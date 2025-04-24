@@ -40,7 +40,13 @@ public class TeacherService {
         if (!repo.existsById(id)) throw new NotFoundException("Teacher " + id + " not found");
         repo.deleteById(id);
     }
-
+    public List<TeacherDTO> findBySubject(Long subjectId) {
+        List<Teacher> teachers = repo.findAllBySubjects_Id(subjectId);
+        if (teachers.isEmpty()) {
+            throw new NotFoundException("No teachers found for subject " + subjectId);
+        }
+        return teachers.stream().map(this::toDto).toList();
+    }
     /* ---------- mapping helpers ---------- */
     private TeacherDTO toDto(Teacher t) {
         return TeacherDTO.builder()

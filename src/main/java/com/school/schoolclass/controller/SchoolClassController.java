@@ -1,7 +1,12 @@
 package com.school.schoolclass.controller;
-
+import com.school.common.exception.NotFoundException;
 import com.school.schoolclass.dto.SchoolClassDTO;
 import com.school.schoolclass.service.SchoolClassService;
+import com.school.schoolclass.model.SchoolClass;
+import com.school.schoolclass.repository.SchoolClassRepository;
+import com.school.student.dto.StudentDTO;
+import com.school.student.service.StudentService;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +20,8 @@ import java.util.List;
 public class SchoolClassController {
 
     private final SchoolClassService svc;
+    private final SchoolClassRepository classRepo;   // NEW
+    private final StudentService studentService;     // NEW
 
     @GetMapping
     public List<SchoolClassDTO> getAll() { return svc.findAll(); }
@@ -38,7 +45,14 @@ public class SchoolClassController {
 
     /* ── placeholder sub-routes ───────────── */
     @GetMapping("/{id}/students")
-    public List<?> students(@PathVariable Long id) { return List.of(); }
+    public List<StudentDTO> students(@PathVariable Long id) {
+        SchoolClass sc = classRepo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Class " + id + " not found"));
+        return sc.getStudents()
+                 .stream()
+                 .map(studentService::toDto)
+                 .toList();
+    }
 
     @GetMapping("/{id}/lessons")
     public List<?> lessons(@PathVariable Long id) { return List.of(); }

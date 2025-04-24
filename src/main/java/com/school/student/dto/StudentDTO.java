@@ -7,4 +7,5 @@ public class StudentDTO {
     private Long id;
     private String fullName;
     private String email;
+    private Long classId;          // NEW
 }

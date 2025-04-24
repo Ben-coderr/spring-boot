@@ -95,6 +95,17 @@
           </annotationProcessorPaths>
         </configuration>
       </plugin>
+    <plugin>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-maven-plugin</artifactId>
+      <version>${flyway.version}</version>
+      <!-- connection details so you don’t have to pass -D props every time -->
+      <configuration>
+        <url>jdbc:mysql://localhost:3307/schooldb?allowPublicKeyRetrieval=true&amp;useSSL=false&amp;serverTimezone=UTC</url>
+        <user>root</user>
+        <password>admin</password>
+      </configuration>
+    </plugin>
 
       <!-- Spring Boot -->
       <plugin>

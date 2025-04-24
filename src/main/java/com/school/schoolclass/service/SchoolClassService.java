@@ -45,7 +45,7 @@ public class SchoolClassService {
     }
 
     /* ---------- helpers ---------- */
-    private SchoolClassDTO toDto(SchoolClass c) {
+    public  SchoolClassDTO toDto(SchoolClass c) {
         return SchoolClassDTO.builder()
                 .id(c.getId())
                 .name(c.getName())
@@ -53,7 +53,7 @@ public class SchoolClassService {
                 .build();
     }
 
-    private SchoolClass toEntity(SchoolClassDTO d) {
+    public SchoolClass toEntity(SchoolClassDTO d) {
         return SchoolClass.builder()
                 .name(d.getName())
                 .grade(gradeRepo.findById(d.getGradeId())

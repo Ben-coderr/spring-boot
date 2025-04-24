@@ -4,6 +4,8 @@ import com.school.student.dto.StudentDTO;
 import com.school.student.model.Student;
 import com.school.student.repository.StudentRepository;
 import com.school.common.exception.NotFoundException;
+import com.school.schoolclass.repository.SchoolClassRepository;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +16,7 @@ import java.util.List;
 public class StudentService {
 
     private final StudentRepository repo;
+     private final SchoolClassRepository classRepo; 
 
     public List<StudentDTO> findAll() {
         return repo.findAll().stream().map(this::toDto).toList();
@@ -42,11 +45,12 @@ public class StudentService {
     }
 
     /* ---------- mapping helpers ---------- */
-    private StudentDTO toDto(Student s) {
+    public StudentDTO toDto(Student s) {
         return StudentDTO.builder()
                 .id(s.getId())
                 .fullName(s.getFullName())
                 .email(s.getEmail())
+                .classId(s.getSchoolClass().getId())        // NEW
                 .build();
     }
 
@@ -54,6 +58,10 @@ public class StudentService {
         return Student.builder()
                 .fullName(d.getFullName())
                 .email(d.getEmail())
+                .schoolClass(
+                        classRepo.findById(d.getClassId())
+                          .orElseThrow(() -> new NotFoundException("Class "+d.getClassId()+" not found"))
+                )
                 .build();
     }
 }
