@@ -1,15 +1,25 @@
 package com.school.student.service;
-
+import com.school.common.enums.StudentStatus;
 import com.school.student.dto.StudentDTO;
 import com.school.student.model.Student;
 import com.school.student.repository.StudentRepository;
 import com.school.common.exception.NotFoundException;
+import com.school.parent.repository.ParentRepository;
+import com.school.schoolclass.model.SchoolClass;
 import com.school.schoolclass.repository.SchoolClassRepository;
 
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.Set;
+
+import com.school.common.exception.CapacityExceededException;
+import com.school.parent.model.Parent;
+
 
 @Service
 @RequiredArgsConstructor
@@ -17,6 +27,8 @@ public class StudentService {
 
     private final StudentRepository repo;
      private final SchoolClassRepository classRepo; 
+     private final ParentRepository parentRepo;
+
 
     public List<StudentDTO> findAll() {
         return repo.findAll().stream().map(this::toDto).toList();
@@ -28,6 +40,13 @@ public class StudentService {
     }
 
     public StudentDTO create(StudentDTO dto) {
+        SchoolClass sc = classRepo.findById(dto.getClassId())
+                .orElseThrow(() -> new NotFoundException("Class "+dto.getClassId()+" not found"));
+
+        if (sc.getStudents().size() >= sc.getCapacity()) {
+            throw new CapacityExceededException(sc.getId(), sc.getCapacity());
+        }
+
         return toDto(repo.save(toEntity(dto)));
     }
 
@@ -36,6 +55,13 @@ public class StudentService {
                 .orElseThrow(() -> new NotFoundException("Student " + id + " not found"));
         st.setFullName(dto.getFullName());
         st.setEmail(dto.getEmail());
+        st.setDateOfBirth(dto.getDateOfBirth());
+        st.setGender(dto.getGender());
+        st.setPhone(dto.getPhone());
+        st.setAddress(dto.getAddress());
+        st.setEnrollmentDate(dto.getEnrollmentDate());
+        st.setStatus(dto.getStatus());
+        
         return toDto(repo.save(st));
     }
 
@@ -51,6 +77,18 @@ public class StudentService {
                 .fullName(s.getFullName())
                 .email(s.getEmail())
                 .classId(s.getSchoolClass().getId())        // NEW
+                .dateOfBirth(s.getDateOfBirth())
+                .gender(s.getGender())
+                .phone(s.getPhone())
+                .address(s.getAddress())
+                .enrollmentDate(s.getEnrollmentDate())
+                .status(s.getStatus())
+                .parentIds(
+                    s.getParents().stream()
+                    .map(Parent::getId)
+                    .collect(Collectors.toSet())
+                )
+
                 .build();
     }
 
@@ -58,10 +96,30 @@ public class StudentService {
         return Student.builder()
                 .fullName(d.getFullName())
                 .email(d.getEmail())
+                .dateOfBirth(d.getDateOfBirth())
+                .gender(d.getGender())
+                .phone(d.getPhone())
+                .address(d.getAddress())
+                .enrollmentDate(d.getEnrollmentDate())
+                .status(
+                    d.getStatus() != null ? d.getStatus()
+                                        : StudentStatus.ACTIVE)
+                .parents(resolveParents(d.getParentIds()))
                 .schoolClass(
                         classRepo.findById(d.getClassId())
                           .orElseThrow(() -> new NotFoundException("Class "+d.getClassId()+" not found"))
                 )
+
                 .build();
+
     }
+//Helpers 
+
+private Set<Parent> resolveParents(Set<Long> ids) {
+    if (ids == null || ids.isEmpty()) return new HashSet<>();
+    return ids.stream()
+              .map(id -> parentRepo.findById(id)
+                     .orElseThrow(() -> new NotFoundException("Parent "+id+" not found")))
+              .collect(Collectors.toSet());
+}
 }

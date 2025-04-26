@@ -1,5 +1,6 @@
 package com.school.lesson.model;
-
+import java.time.LocalTime;
+import com.school.lesson.model.DayOfWeek;
 import com.school.subject.model.Subject;
 import com.school.teacher.model.Teacher;
 import com.school.schoolclass.model.SchoolClass;
@@ -26,6 +27,16 @@ public class Lesson {
     private Teacher teacher;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "class_id")          //  ←  add this
+    @JoinColumn(name = "class_id")       
     private SchoolClass schoolClass;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 10)
+    private DayOfWeek day;
+
+    @Column(nullable = false)
+    private LocalTime startTime;
+
+    @Column(nullable = false)
+    private LocalTime endTime;
 }

@@ -1,19 +1,28 @@
 package com.school.parent.service;
+import java.util.Set;
+import java.util.stream.Collectors;
+import com.school.student.model.Student;
 
 import com.school.parent.dto.ParentDTO;
 import com.school.parent.model.Parent;
 import com.school.parent.repository.ParentRepository;
+import com.school.student.repository.StudentRepository;
 import com.school.common.exception.NotFoundException;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.List;
+
 
 @Service
 @RequiredArgsConstructor
 public class ParentService {
 
     private final ParentRepository repo;
+    private final StudentRepository studentRepo;
 
     public List<ParentDTO> findAll() {
         return repo.findAll().stream().map(this::toDto).toList();
@@ -46,6 +55,11 @@ public class ParentService {
                 .id(p.getId())
                 .fullName(p.getFullName())
                 .email(p.getEmail())
+                .childIds(
+                    p.getChildren().stream()
+                        .map(Student::getId)
+                        .collect(Collectors.toSet())
+                )
                 .build();
     }
 
@@ -53,6 +67,17 @@ public class ParentService {
         return Parent.builder()
                 .fullName(d.getFullName())
                 .email(d.getEmail())
+                .children(resolveStudents(d.getChildIds()))
                 .build();
     }
+
+
+/* ---------- helpers ---------- */
+private Set<Student> resolveStudents(Set<Long> ids) {
+   if (ids == null || ids.isEmpty()) return new HashSet<>();
+   return ids.stream()
+             .map(id -> studentRepo.findById(id)
+                     .orElseThrow(() -> new NotFoundException("Student "+id+" not found")))
+             .collect(Collectors.toSet());
+}
 }

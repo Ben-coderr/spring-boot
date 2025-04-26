@@ -4,12 +4,14 @@ import com.school.subject.model.Subject;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.school.common.audit.Auditable;
+
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class Teacher {
+public class Teacher extends Auditable {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 

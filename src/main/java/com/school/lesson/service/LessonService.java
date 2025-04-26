@@ -1,5 +1,7 @@
 package com.school.lesson.service;
 
+import java.time.LocalTime;
+
 import com.school.common.exception.NotFoundException;
 import com.school.lesson.dto.LessonDTO;
 import com.school.lesson.model.Lesson;
@@ -7,10 +9,14 @@ import com.school.lesson.repository.LessonRepository;
 import com.school.subject.repository.SubjectRepository;
 import com.school.teacher.repository.TeacherRepository;
 import com.school.schoolclass.repository.SchoolClassRepository;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+
+import com.school.lesson.model.DayOfWeek;
 
 @Service
 @RequiredArgsConstructor
@@ -30,9 +36,21 @@ public class LessonService {
                 .orElseThrow(() -> new NotFoundException("Lesson " + id + " not found")));
     }
 
-    public LessonDTO create(LessonDTO dto) { return toDto(repo.save(toEntity(dto))); }
+    public LessonDTO create(LessonDTO dto) {
+
+        
+        if (dto.getStartTime().compareTo(dto.getEndTime()) >= 0) {
+            throw new IllegalArgumentException("startTime must be before endTime");
+        }
+
+        
+        return toDto(repo.save(toEntity(dto)));
+    }
 
     public LessonDTO update(Long id, LessonDTO dto) {
+        if (dto.getStartTime().compareTo(dto.getEndTime()) >= 0) {
+                throw new IllegalArgumentException("startTime must be before endTime");
+                }
         Lesson l = repo.findById(id)
                 .orElseThrow(() -> new NotFoundException("Lesson " + id + " not found"));
         l.setTopic(dto.getTopic());
@@ -63,6 +81,9 @@ public class LessonService {
                 .id(l.getId())
                 .topic(l.getTopic())
                 .lessonDate(l.getLessonDate())
+                .day(l.getDay().name())
+                .startTime(l.getStartTime().toString())
+                .endTime(l.getEndTime().toString())
                 .subjectId(l.getSubject().getId())
                 .teacherId(l.getTeacher().getId())
                 .classId(l.getSchoolClass().getId())
@@ -73,6 +94,10 @@ public class LessonService {
         return Lesson.builder()
                 .topic(d.getTopic())
                 .lessonDate(d.getLessonDate())
+                .day(DayOfWeek.valueOf(d.getDay()))
+                .startTime(LocalTime.parse(d.getStartTime()))
+                .endTime(LocalTime.parse(d.getEndTime()))
+                
                 .subject(subjectRepo.findById(d.getSubjectId())
                         .orElseThrow(() -> new NotFoundException("Subject " + d.getSubjectId() + " not found")))
                 .teacher(teacherRepo.findById(d.getTeacherId())
@@ -81,4 +106,5 @@ public class LessonService {
                         .orElseThrow(() -> new NotFoundException("Class " + d.getClassId() + " not found")))
                 .build();
     }
+    
 }

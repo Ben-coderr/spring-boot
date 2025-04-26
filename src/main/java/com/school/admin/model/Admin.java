@@ -1,11 +1,13 @@
 package com.school.admin.model;
 
+import com.school.common.audit.Auditable;
+
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class Admin {
+public class Admin extends Auditable {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
