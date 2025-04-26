@@ -1,0 +1,185 @@
+src/
+└── main/
+    ├── java/
+    │   └── com/
+    │       └── school/
+    │           ├── admin/
+    │           │   ├── controller/
+    │           │   │   └── AdminController.java
+    │           │   ├── dto/
+    │           │   │   └── AdminDTO.java
+    │           │   ├── model/
+    │           │   │   └── Admin.java
+    │           │   ├── repository/
+    │           │   │   └── AdminRepository.java
+    │           │   └── service/
+    │           │       └── AdminService.java
+    │           ├── announcement/
+    │           │   ├── controller/
+    │           │   │   └── AnnouncementController.java
+    │           │   ├── dto/
+    │           │   │   └── AnnouncementDTO.java
+    │           │   ├── model/
+    │           │   │   └── Announcement.java
+    │           │   ├── repository/
+    │           │   │   └── AnnouncementRepository.java
+    │           │   └── service/
+    │           │       └── AnnouncementService.java
+    │           ├── assignment/
+    │           │   ├── controller/
+    │           │   │   └── AssignmentController.java
+    │           │   ├── dto/
+    │           │   │   └── AssignmentDTO.java
+    │           │   ├── model/
+    │           │   │   └── Assignment.java
+    │           │   ├── repository/
+    │           │   │   └── AssignmentRepository.java
+    │           │   └── service/
+    │           │       └── AssignmentService.java
+    │           ├── attendance/
+    │           │   ├── controller/
+    │           │   │   └── AttendanceController.java
+    │           │   ├── dto/
+    │           │   │   └── AttendanceDTO.java
+    │           │   ├── model/
+    │           │   │   └── Attendance.java
+    │           │   ├── repository/
+    │           │   │   └── AttendanceRepository.java
+    │           │   └── service/
+    │           │       └── AttendanceService.java
+    │           ├── common/
+    │           │   └── exception/
+    │           │       ├── NotFoundException.java
+    │           │       └── RestExceptionHandler.java
+    │           ├── event/
+    │           │   ├── controller/
+    │           │   │   └── EventController.java
+    │           │   ├── dto/
+    │           │   │   └── EventDTO.java
+    │           │   ├── model/
+    │           │   │   └── Event.java
+    │           │   ├── repository/
+    │           │   │   └── EventRepository.java
+    │           │   └── service/
+    │           │       └── EventService.java
+    │           ├── exam/
+    │           │   ├── controller/
+    │           │   │   └── ExamController.java
+    │           │   ├── dto/
+    │           │   │   └── ExamDTO.java
+    │           │   ├── model/
+    │           │   │   └── Exam.java
+    │           │   ├── repository/
+    │           │   │   └── ExamRepository.java
+    │           │   └── service/
+    │           │       └── ExamService.java
+    │           ├── grade/
+    │           │   ├── controller/
+    │           │   │   └── GradeController.java
+    │           │   ├── dto/
+    │           │   │   └── GradeDTO.java
+    │           │   ├── model/
+    │           │   │   └── Grade.java
+    │           │   ├── repository/
+    │           │   │   └── GradeRepository.java
+    │           │   └── service/
+    │           │       └── GradeService.java
+    │           ├── lesson/
+    │           │   ├── controller/
+    │           │   │   └── LessonController.java
+    │           │   ├── dto/
+    │           │   │   └── LessonDTO.java
+    │           │   ├── model/
+    │           │   │   └── Lesson.java
+    │           │   ├── repository/
+    │           │   │   └── LessonRepository.java
+    │           │   └── service/
+    │           │       └── LessonService.java
+    │           ├── parent/
+    │           │   ├── controller/
+    │           │   │   └── ParentController.java
+    │           │   ├── dto/
+    │           │   │   └── ParentDTO.java
+    │           │   ├── model/
+    │           │   │   └── Parent.java
+    │           │   ├── repository/
+    │           │   │   └── ParentRepository.java
+    │           │   └── service/
+    │           │       └── ParentService.java
+    │           ├── result/
+    │           │   ├── controller/
+    │           │   │   └── ResultController.java
+    │           │   ├── dto/
+    │           │   │   └── ResultDTO.java
+    │           │   ├── model/
+    │           │   │   └── Result.java
+    │           │   ├── repository/
+    │           │   │   └── ResultRepository.java
+    │           │   └── service/
+    │           │       └── ResultService.java
+    │           ├── schoolclass/
+    │           │   ├── controller/
+    │           │   │   └── SchoolClassController.java
+    │           │   ├── dto/
+    │           │   │   └── SchoolClassDTO.java
+    │           │   ├── model/
+    │           │   │   └── SchoolClass.java
+    │           │   ├── repository/
+    │           │   │   └── SchoolClassRepository.java
+    │           │   └── service/
+    │           │       └── SchoolClassService.java
+    │           ├── student/
+    │           │   ├── controller/
+    │           │   │   └── StudentController.java
+    │           │   ├── dto/
+    │           │   │   └── StudentDTO.java
+    │           │   ├── model/
+    │           │   │   └── Student.java
+    │           │   ├── repository/
+    │           │   │   └── StudentRepository.java
+    │           │   └── service/
+    │           │       └── StudentService.java
+    │           ├── subject/
+    │           │   ├── controller/
+    │           │   │   └── SubjectController.java
+    │           │   ├── dto/
+    │           │   │   └── SubjectDTO.java
+    │           │   ├── model/
+    │           │   │   └── Subject.java
+    │           │   ├── repository/
+    │           │   │   └── SubjectRepository.java
+    │           │   └── service/
+    │           │       └── SubjectService.java
+    │           ├── teacher/
+    │           │   ├── controller/
+    │           │   │   └── TeacherController.java
+    │           │   ├── dto/
+    │           │   │   └── TeacherDTO.java
+    │           │   ├── model/
+    │           │   │   └── Teacher.java
+    │           │   ├── repository/
+    │           │   │   └── TeacherRepository.java
+    │           │   └── service/
+    │           │       └── TeacherService.java
+    │           └── SchoolManagementApplication.java
+    └── resources/
+        ├── db/
+        │   └── migration/
+        │       ├── V10__create_exam_table.sql
+        │       ├── V11__create_assignment_table.sql
+        │       ├── V12__create_result_table.sql
+        │       ├── V13__create_attendance_table.sql
+        │       ├── V14__create_event_table.sql
+        │       ├── V15__create_announcement_table.sql
+        │       ├── V16__add_class_fk_to_student.sql
+        │       ├── V17__create_teacher_subject_table.sql
+        │       ├── V1__create_admin_table.sql
+        │       ├── V2__create_student_table.sql
+        │       ├── V3__create_teacher_table.sql
+        │       ├── V4__create_parent_table.sql
+        │       ├── V5__create_grade_table.sql
+        │       ├── V6__create_class_table.sql
+        │       ├── V7__rename_class_table.sql
+        │       ├── V8__create_subject_table.sql
+        │       └── V9__create_lesson_table.sql
+        └── application.properties

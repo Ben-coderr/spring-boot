@@ -26,5 +26,6 @@ public class Lesson {
     private Teacher teacher;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "class_id")          //  ←  add this
     private SchoolClass schoolClass;
 }
