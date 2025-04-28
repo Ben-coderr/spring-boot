@@ -16,6 +16,8 @@ import lombok.Setter;
 public class StudentDTO {
     private Long id;
     private String fullName;
+    private String surname;   
+    private String username; 
     private String email;
      private LocalDate dateOfBirth;
      private Gender gender;

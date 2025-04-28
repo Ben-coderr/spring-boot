@@ -1,13 +1,15 @@
 package com.school.teacher.controller;
 
-import com.school.teacher.dto.TeacherDTO;
-import com.school.teacher.service.TeacherService;
-import lombok.RequiredArgsConstructor;
+import java.net.URI;
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
-import java.util.List;
+import com.school.teacher.dto.TeacherDTO;
+import com.school.teacher.service.TeacherService;
+
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/teachers")
@@ -35,4 +37,18 @@ public class TeacherController {
 
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) { svc.delete(id); }
+
+    /* ───── NEW incremental routes ───────────────────────── */
+
+    /** Assign this teacher to an existing subject */
+    @PostMapping("/{tid}/subjects/{sid}")
+    public void assign(@PathVariable Long tid, @PathVariable Long sid) {
+        svc.assignSubject(tid, sid);
+    }
+
+    /** Remove the link again */
+    @DeleteMapping("/{tid}/subjects/{sid}")
+    public void unassign(@PathVariable Long tid, @PathVariable Long sid) {
+        svc.unassignSubject(tid, sid);
+    }
 }

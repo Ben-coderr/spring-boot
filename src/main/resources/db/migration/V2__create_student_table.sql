@@ -3,3 +3,5 @@ CREATE TABLE student (
     full_name VARCHAR(120) NOT NULL,
     email VARCHAR(120) NOT NULL UNIQUE
 );
+ALTER TABLE student ADD COLUMN surname VARCHAR(255) NOT NULL AFTER full_name;
+

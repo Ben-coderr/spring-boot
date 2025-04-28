@@ -1,14 +1,30 @@
 package com.school.student.model;
+import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
+
 import com.school.common.audit.Auditable;
 import com.school.common.enums.Gender;
 import com.school.common.enums.StudentStatus;
-import java.time.LocalDate;
-import com.school.schoolclass.model.SchoolClass;
-import jakarta.persistence.*;
-import lombok.*;
 import com.school.parent.model.Parent;
-import java.util.HashSet;
-import java.util.Set;
+import com.school.schoolclass.model.SchoolClass;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
@@ -18,10 +34,12 @@ public class Student extends Auditable {
     private Long id;
 
     private String fullName;      // “name” in Prisma
-    private String surname;       // NEW
-    
+    @Column(name = "surname")       // exact match
+    private String surname;    // NEW
+    @Column(unique = true, nullable = false, length = 120)
+    private String username;
     @Column(unique = true)
-    private String username;    
+  
     private String email;
 
      

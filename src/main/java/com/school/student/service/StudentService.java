@@ -1,24 +1,23 @@
 package com.school.student.service;
-import com.school.common.enums.StudentStatus;
-import com.school.student.dto.StudentDTO;
-import com.school.student.model.Student;
-import com.school.student.repository.StudentRepository;
-import com.school.common.exception.NotFoundException;
-import com.school.parent.repository.ParentRepository;
-import com.school.schoolclass.model.SchoolClass;
-import com.school.schoolclass.repository.SchoolClassRepository;
-
-import lombok.RequiredArgsConstructor;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.Set;
-
+import com.school.common.enums.StudentStatus;
 import com.school.common.exception.CapacityExceededException;
+import com.school.common.exception.NotFoundException;
 import com.school.parent.model.Parent;
+import com.school.parent.repository.ParentRepository;
+import com.school.schoolclass.model.SchoolClass;
+import com.school.schoolclass.repository.SchoolClassRepository;
+import com.school.student.dto.StudentDTO;
+import com.school.student.model.Student;
+import com.school.student.repository.StudentRepository;
+
+import lombok.RequiredArgsConstructor;
 
 
 @Service
@@ -54,6 +53,8 @@ public class StudentService {
         Student st = repo.findById(id)
                 .orElseThrow(() -> new NotFoundException("Student " + id + " not found"));
         st.setFullName(dto.getFullName());
+        st.setSurname(dto.getSurname());     // ADD
+        st.setUsername(dto.getUsername());   // ADD
         st.setEmail(dto.getEmail());
         st.setDateOfBirth(dto.getDateOfBirth());
         st.setGender(dto.getGender());
@@ -75,6 +76,8 @@ public class StudentService {
         return StudentDTO.builder()
                 .id(s.getId())
                 .fullName(s.getFullName())
+                .surname(s.getSurname())     // ADD
+                .username(s.getUsername())   // ADD
                 .email(s.getEmail())
                 .classId(s.getSchoolClass().getId())        // NEW
                 .dateOfBirth(s.getDateOfBirth())
@@ -95,6 +98,8 @@ public class StudentService {
     private Student toEntity(StudentDTO d) {
         return Student.builder()
                 .fullName(d.getFullName())
+                .surname(d.getSurname())         // ADD
+                .username(d.getUsername())       // ADD
                 .email(d.getEmail())
                 .dateOfBirth(d.getDateOfBirth())
                 .gender(d.getGender())

@@ -1,16 +1,21 @@
 package com.school.subject.service;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.school.common.exception.NotFoundException;
 import com.school.subject.dto.SubjectDTO;
 import com.school.subject.model.Subject;
 import com.school.subject.repository.SubjectRepository;
 import com.school.teacher.model.Teacher;
 import com.school.teacher.repository.TeacherRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -84,12 +89,30 @@ public class SubjectService {
         return SubjectDTO.builder()
                 .id(s.getId())
                 .name(s.getName())
+                .teacherIds(                       // NEW
+                    s.getTeachers().stream()
+                    .map(Teacher::getId)
+                    .collect(Collectors.toSet())
+                )
                 .build();
     }
 
     private Subject toEntity(SubjectDTO d) {
         return Subject.builder()
                 .name(d.getName())
+                .teachers(resolveTeachers(d.getTeacherIds()))   // NEW
                 .build();
     }
+    
+    //Helpers 
+
+    private Set<Teacher> resolveTeachers(Set<Long> ids) {
+        if (ids == null || ids.isEmpty()) return new HashSet<>();
+        return ids.stream()
+                .map(id -> teacherRepo.findById(id)
+                            .orElseThrow(() ->
+                                new NotFoundException("Teacher " + id + " not found")))
+                .collect(Collectors.toSet());
+    }
+    
 }
