@@ -31,7 +31,7 @@ public class GradeService {
     public GradeDTO update(Long id, GradeDTO dto) {
         Grade g = repo.findById(id)
                 .orElseThrow(() -> new NotFoundException("Grade " + id + " not found"));
-        g.setName(dto.getName());
+        g.setLevel(dto.getLevel());
         return toDto(repo.save(g));
     }
 
@@ -44,13 +44,15 @@ public class GradeService {
     private GradeDTO toDto(Grade g) {
         return GradeDTO.builder()
                 .id(g.getId())
-                .name(g.getName())
+                // .name(g.getName())
+                .level(g.getLevel())
                 .build();
     }
 
     private Grade toEntity(GradeDTO d) {
         return Grade.builder()
-                .name(d.getName())
+                // .name(d.getName())
+                .level(d.getLevel())
                 .build();
     }
 }

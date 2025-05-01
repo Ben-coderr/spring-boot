@@ -7,6 +7,7 @@ import com.school.common.exception.NotFoundException;
 import com.school.parent.repository.ParentRepository;
 import com.school.schoolclass.model.SchoolClass;
 import com.school.schoolclass.repository.SchoolClassRepository;
+import com.school.grade.repository.GradeRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -28,6 +29,7 @@ public class StudentService {
     private final StudentRepository repo;
      private final SchoolClassRepository classRepo; 
      private final ParentRepository parentRepo;
+    private final GradeRepository      gradeRepo;
 
 
     public List<StudentDTO> findAll() {
@@ -82,7 +84,10 @@ public class StudentService {
                 .phone(s.getPhone())
                 .address(s.getAddress())
                 .enrollmentDate(s.getEnrollmentDate())
+                .gradeId(s.getGrade() == null ? null : s.getGrade().getId())
                 .status(s.getStatus())
+                .img(s.getImg())
+                .bloodType(s.getBloodType())
                 .parentIds(
                     s.getParents().stream()
                     .map(Parent::getId)
@@ -101,6 +106,12 @@ public class StudentService {
                 .phone(d.getPhone())
                 .address(d.getAddress())
                 .enrollmentDate(d.getEnrollmentDate())
+                .grade(
+                    d.getGradeId() == null ? null
+                                        : gradeRepo.findById(d.getGradeId())
+                                                .orElseThrow(() ->
+                                                    new NotFoundException("Grade "+d.getGradeId()+" not found"))
+                )
                 .status(
                     d.getStatus() != null ? d.getStatus()
                                         : StudentStatus.ACTIVE)
@@ -109,7 +120,8 @@ public class StudentService {
                         classRepo.findById(d.getClassId())
                           .orElseThrow(() -> new NotFoundException("Class "+d.getClassId()+" not found"))
                 )
-
+                .img(d.getImg())
+                .bloodType(d.getBloodType())
                 .build();
 
     }

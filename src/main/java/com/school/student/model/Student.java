@@ -1,7 +1,10 @@
 package com.school.student.model;
 import com.school.common.audit.Auditable;
 import com.school.common.enums.Gender;
+import com.school.common.enums.Role;
 import com.school.common.enums.StudentStatus;
+import com.school.grade.model.Grade;
+
 import java.time.LocalDate;
 import com.school.schoolclass.model.SchoolClass;
 import jakarta.persistence.*;
@@ -23,6 +26,11 @@ public class Student extends Auditable {
     @Column(unique = true)
     private String username;    
     private String email;
+// Student.java
+    private String password;                  // nullable
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Role role = Role.STUDENT;
 
      
          /* ─────────── NEW FIELDS ─────────── */
@@ -56,13 +64,20 @@ public class Student extends Auditable {
          @Column(nullable = false)
          private boolean deleted = false;    
 
+        @Column(length = 255)
+        private String img;  
 
-
+        @Column(length = 5)
+        private String bloodType; 
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "class_id") 
     private SchoolClass schoolClass;
+
     @Builder.Default
     @ManyToMany(mappedBy = "children")
     private Set<Parent> parents = new HashSet<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Grade grade;
 }

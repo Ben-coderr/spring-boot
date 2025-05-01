@@ -1,6 +1,7 @@
 package com.school.admin.model;
 
 import com.school.common.audit.Auditable;
+import com.school.common.enums.Role;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -18,5 +19,11 @@ public class Admin extends Auditable {
     private String email;
 
     @Column(nullable = false)
-    private String password;   // hash it later in security layer
+    private String password;
+
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Role role = Role.ADMIN;
+
 }

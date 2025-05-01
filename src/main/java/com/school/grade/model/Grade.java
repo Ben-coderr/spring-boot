@@ -11,5 +11,6 @@ public class Grade {
 
     /** e.g. "Grade 1", "Year 7", "Terminale" … */
     @Column(nullable = false, unique = true)
-    private String name;
+    // private String name;
+    private Integer level;
 }

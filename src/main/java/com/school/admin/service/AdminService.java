@@ -3,8 +3,11 @@ package com.school.admin.service;
 import com.school.admin.dto.AdminDTO;
 import com.school.admin.model.Admin;
 import com.school.admin.repository.AdminRepository;
+import com.school.common.enums.Role;
 import com.school.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,6 +17,7 @@ import java.util.List;
 public class AdminService {
 
     private final AdminRepository repo;
+    private final PasswordEncoder encoder;
 
     public List<AdminDTO> findAll() {
         return repo.findAll().stream().map(this::toDto).toList();
@@ -25,9 +29,16 @@ public class AdminService {
     }
 
     public AdminDTO create(AdminDTO dto) {
-        Admin saved = repo.save(toEntity(dto));
+        Admin saved = repo.save(
+            Admin.builder()
+                .fullName(dto.getFullName())
+                .email(dto.getEmail())
+                .password(encoder.encode(dto.getPassword())) // encoder @RequiredArgsConstructor
+                .role(Role.ADMIN)
+                .build());
         return toDto(saved);
     }
+
 
     public AdminDTO update(Long id, AdminDTO dto) {
         Admin admin = repo.findById(id)

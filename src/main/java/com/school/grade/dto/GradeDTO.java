@@ -5,5 +5,6 @@ import lombok.*;
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class GradeDTO {
     private Long id;
-    private String name;
+    // private String name;
+    private Integer level;
 }
