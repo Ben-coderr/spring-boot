@@ -33,7 +33,7 @@ public class AdminService {
             Admin.builder()
                 .fullName(dto.getFullName())
                 .email(dto.getEmail())
-                .password(encoder.encode(dto.getPassword())) // encoder @RequiredArgsConstructor
+                .password(encoder.encode(requirePwd(dto.getPassword()))) // encoder @RequiredArgsConstructor
                 .role(Role.ADMIN)
                 .build());
         return toDto(saved);
@@ -69,5 +69,10 @@ public class AdminService {
                 .email(d.getEmail())
                 .password("changeme") // placeholder until security hashed
                 .build();
+    }
+    private String requirePwd(String raw) {
+        if (raw == null || raw.isBlank())
+            throw new IllegalArgumentException("password is required");
+        return raw;
     }
 }

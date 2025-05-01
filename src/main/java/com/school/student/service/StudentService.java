@@ -1,4 +1,5 @@
 package com.school.student.service;
+import com.school.common.enums.Role;
 import com.school.common.enums.StudentStatus;
 import com.school.student.dto.StudentDTO;
 import com.school.student.model.Student;
@@ -11,6 +12,7 @@ import com.school.grade.repository.GradeRepository;
 
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
@@ -30,6 +32,7 @@ public class StudentService {
      private final SchoolClassRepository classRepo; 
      private final ParentRepository parentRepo;
     private final GradeRepository      gradeRepo;
+    private final BCryptPasswordEncoder encoder;
 
 
     public List<StudentDTO> findAll() {
@@ -43,13 +46,20 @@ public class StudentService {
 
     public StudentDTO create(StudentDTO dto) {
         SchoolClass sc = classRepo.findById(dto.getClassId())
-                .orElseThrow(() -> new NotFoundException("Class "+dto.getClassId()+" not found"));
-
+                              .orElseThrow(() -> new NotFoundException("Class "+dto.getClassId()+" not found"));
         if (sc.getStudents().size() >= sc.getCapacity()) {
             throw new CapacityExceededException(sc.getId(), sc.getCapacity());
         }
 
-        return toDto(repo.save(toEntity(dto)));
+        /* NEW — hash password + default role */
+        if (dto.getPassword() == null || dto.getPassword().isBlank())
+            dto.setPassword("changeme");        
+        dto.setRole(Role.STUDENT);
+
+        Student entity = toEntity(dto);
+        Student secured = Student.withRawPassword(entity, dto.getPassword(),
+                (BCryptPasswordEncoder) encoder);
+        return toDto(repo.save(secured));
     }
 
     public StudentDTO update(Long id, StudentDTO dto) {

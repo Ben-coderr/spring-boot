@@ -11,7 +11,8 @@ import java.util.List;
 
 @Component
 public class JwtUtil {
-    private static final byte[] KEY = "change-me-32-bytes-or-more-secret!".getBytes();
+    private static final byte[] KEY =       
+    "hfKpyyT6u83e1zwx9s3UXN5UWKfT1n40nRBxD8itzL8UOEjQdwbZKWqGgN6RE8cc".getBytes();
     private final JwtParser parser = Jwts.parser().verifyWith(Keys.hmacShaKeyFor(KEY)).build();
 
     public String generate(String email, String role) {
@@ -29,6 +30,6 @@ public class JwtUtil {
         String email = c.getSubject();
         String role  = c.get("role", String.class);
         return new UsernamePasswordAuthenticationToken(
-                email, null, List.of(new SimpleGrantedAuthority(role)));
+                email, null, List.of(new SimpleGrantedAuthority("ROLE_" + role)));
     }
 }

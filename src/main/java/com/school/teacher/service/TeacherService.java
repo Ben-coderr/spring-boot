@@ -3,8 +3,11 @@ package com.school.teacher.service;
 import com.school.teacher.dto.TeacherDTO;
 import com.school.teacher.model.Teacher;
 import com.school.teacher.repository.TeacherRepository;
+import com.school.common.enums.Role;
 import com.school.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,6 +17,7 @@ import java.util.List;
 public class TeacherService {
 
     private final TeacherRepository repo;
+    private final PasswordEncoder   encoder;
 
     public List<TeacherDTO> findAll() {
         return repo.findAll().stream().map(this::toDto).toList();
@@ -25,7 +29,16 @@ public class TeacherService {
     }
 
     public TeacherDTO create(TeacherDTO dto) {
-        return toDto(repo.save(toEntity(dto)));
+    if (dto.getPassword() == null || dto.getPassword().isBlank())
+        throw new IllegalArgumentException("password is required");
+        Teacher saved = repo.save(
+                Teacher.builder()
+                       .fullName(dto.getFullName())
+                       .email(dto.getEmail())
+                       .password(encoder.encode(dto.getPassword()))   
+                       .role(Role.TEACHER)
+                       .build());
+        return toDto(saved);
     }
 
     public TeacherDTO update(Long id, TeacherDTO dto) {
@@ -60,6 +73,7 @@ public class TeacherService {
         return Teacher.builder()
                 .fullName(d.getFullName())
                 .email(d.getEmail())
+                .role(Role.TEACHER)
                 .build();
     }
 }

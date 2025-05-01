@@ -11,8 +11,9 @@ ALTER TABLE teacher
 
 -- STUDENT ──────────────
 ALTER TABLE student
-    ADD COLUMN password VARCHAR(255),
-    ADD COLUMN role     VARCHAR(20) NOT NULL DEFAULT 'STUDENT';
+    ADD COLUMN password VARCHAR(255) NOT NULL DEFAULT '$2a$10$MtDv8oylmbWc9LzB/k3jYuz1kAkdNhkw1h1lOsuF9GIBKMsOF1iSm',
+    ADD COLUMN role     VARCHAR(20)  NOT NULL DEFAULT 'STUDENT';
+
 
 -- PARENT  ──────────────
 ALTER TABLE parent

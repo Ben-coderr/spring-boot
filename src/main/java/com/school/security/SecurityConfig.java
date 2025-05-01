@@ -11,6 +11,7 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.userdetails.UserDetailsService;
+// import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -37,10 +38,15 @@ public class SecurityConfig {
         return http.csrf(Customizer.withDefaults()).csrf(c -> c.disable())
                    .sessionManagement(sm -> sm.sessionCreationPolicy(STATELESS))
                    .authorizeHttpRequests(auth -> auth
-                       .requestMatchers("/api/auth/**").permitAll()
-                       .requestMatchers("/api/admins/**").hasRole("ADMIN")
-                       .anyRequest().authenticated())
+                    .requestMatchers("/api/auth/**").permitAll()
+                    .anyRequest().authenticated())  
                    .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                    .build();
     }
+
+    // @Bean
+    // public BCryptPasswordEncoder passwordEncoder() {
+    //     return new BCryptPasswordEncoder();
+    // }
+
 }

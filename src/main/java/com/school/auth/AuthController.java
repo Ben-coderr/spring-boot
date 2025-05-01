@@ -19,7 +19,7 @@ public class AuthController {
         Authentication auth = authMgr.authenticate(
                 new UsernamePasswordAuthenticationToken(in.email(), in.password()));
         String role = auth.getAuthorities().iterator().next().getAuthority();
-        return new TokenDTO(jwt.generate(in.email(), role));
+        return new TokenDTO(jwt.generate(in.email(), role.replace("ROLE_", "")));
     }
 
     /* ── tiny records for payload ───────── */

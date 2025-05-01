@@ -7,10 +7,13 @@ import com.school.parent.dto.ParentDTO;
 import com.school.parent.model.Parent;
 import com.school.parent.repository.ParentRepository;
 import com.school.student.repository.StudentRepository;
+// import com.school.teacher.model.Teacher;
+import com.school.common.enums.Role;
 import com.school.common.exception.NotFoundException;
 
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
@@ -23,6 +26,7 @@ public class ParentService {
 
     private final ParentRepository repo;
     private final StudentRepository studentRepo;
+    private final PasswordEncoder encoder;
 
     public List<ParentDTO> findAll() {
         return repo.findAll().stream().map(this::toDto).toList();
@@ -34,7 +38,12 @@ public class ParentService {
     }
 
     public ParentDTO create(ParentDTO dto) {
-        return toDto(repo.save(toEntity(dto)));
+    if (dto.getPassword() == null || dto.getPassword().isBlank())
+        throw new IllegalArgumentException("password is required");
+    Parent t = toEntity(dto);
+    t.setPassword(encoder.encode(dto.getPassword()));
+    t.setRole(Role.PARENT);
+    return toDto(repo.save(t));
     }
 
     public ParentDTO update(Long id, ParentDTO dto) {
@@ -67,6 +76,7 @@ public class ParentService {
         return Parent.builder()
                 .fullName(d.getFullName())
                 .email(d.getEmail())
+                .role(Role.PARENT)
                 .children(resolveStudents(d.getChildIds()))
                 .build();
     }

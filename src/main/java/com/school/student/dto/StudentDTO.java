@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.Set;
 
 import com.school.common.enums.Gender;
+import com.school.common.enums.Role;
 import com.school.common.enums.StudentStatus;
 
 import lombok.AllArgsConstructor;
@@ -28,4 +29,6 @@ import lombok.Setter;
         private Set<Long> parentIds;
         private String img;
         private String bloodType;
+        private String password;   // plaintext on create; NEVER returned in GET
+        private Role   role;
 }

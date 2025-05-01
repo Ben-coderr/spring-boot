@@ -14,4 +14,5 @@ public class ParentDTO {
     private String fullName;
     private String email;
     private Set<Long> childIds;
+    private String password;
 }
