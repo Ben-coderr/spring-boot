@@ -1,1 +1,105 @@
-/.idea/
+############################
+#  Java / Maven / Spring   #
+############################
+# compiled bytecode
+*.class
+
+# generated JARs / WARs / native images
+*.jar
+*.war
+*.nar
+*.ear
+*.exe
+*.dll
+*.so
+
+# Maven & Gradle output
+/target/
+/out/
+/build/
+
+# Maven wrapper binaries / logs
+.mvn/wrapper/maven-wrapper.jar
+.mvn/wrapper/maven-wrapper.properties
+!/.mvn/wrapper/maven-wrapper.properties
+.mvn/wrapper/maven-wrapper.*
+
+# Log files
+*.log
+logs/
+
+# Local environment & runtime files
+*.pid
+*.hprof
+*.err
+hs_err_pid*
+
+############################
+#         IDEs             #
+############################
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+# Rider / Android Studio / WebStorm, etc.
+.idea_modules/
+
+# Eclipse / STS
+.project
+.classpath
+.settings/
+.springBeans
+
+# VS Code
+.vscode/
+
+############################
+#       OS artifacts       #
+############################
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+############################
+#     Test / coverage      #
+############################
+# Common coverage tools
+jacoco.exec
+coverage.*  
+/coverage/
+.coverage/
+.nyc_output/
+
+############################
+#      Docker / misc       #
+############################
+# Docker compose overrides and env secrets
+docker-compose.override.yml
+.env
+*.local.env
+
+# Database files (H2, SQLite, etc.)
+*.h2.db
+*.mv.db
+*.sqlite
+
+############################
+#    Dependency caches     #
+############################
+# Gradle
+.gradle/
+# Sonar
+.sonar/
+# npm / yarn (if you add a front-end)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+############################
+#    IntelliJ run configs  #
+############################
+*.run.xml
+*.run.json
