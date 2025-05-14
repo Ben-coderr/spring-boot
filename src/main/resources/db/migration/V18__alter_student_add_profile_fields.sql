@@ -1,7 +1,7 @@
 -- Extra columns for student profile
 ALTER TABLE student
-  ADD COLUMN date_of_birth DATE NOT NULL AFTER email,
-  ADD COLUMN gender VARCHAR(10) NOT NULL AFTER date_of_birth,
+  ADD COLUMN date_of_birth DATE         NOT NULL DEFAULT '2000-01-01' AFTER email,
+  ADD COLUMN gender        VARCHAR(10)  NOT NULL DEFAULT 'MALE'      AFTER date_of_birth,
   ADD COLUMN phone VARCHAR(25) NULL,
   ADD COLUMN address VARCHAR(255) NULL,
   ADD COLUMN enrollment_date DATE NULL,

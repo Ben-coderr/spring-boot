@@ -29,6 +29,8 @@ import lombok.Setter;
         private Set<Long> parentIds;
         private String img;
         private String bloodType;
-        private String password;   // plaintext on create; NEVER returned in GET
+        private String password;
+        private String username;
+        private String surname;
         private Role   role;
 }

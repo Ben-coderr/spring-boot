@@ -10,13 +10,17 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+import org.springframework.transaction.annotation.Transactional;
+
+
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class EventService {
 
     private final EventRepository repo;
     private final SchoolClassRepository classRepo;
-
+    @Transactional(readOnly = true)
     public List<EventDTO> findAll() { return repo.findAll().stream().map(this::toDto).toList(); }
 
     public EventDTO findById(Long id) {

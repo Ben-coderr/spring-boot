@@ -1,27 +1,36 @@
 package com.school.security;
 
+
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
+
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 
 @Component
 public class JwtUtil {
-    private static final byte[] KEY =       
-    "hfKpyyT6u83e1zwx9s3UXN5UWKfT1n40nRBxD8itzL8UOEjQdwbZKWqGgN6RE8cc".getBytes();
-    private final JwtParser parser = Jwts.parser().verifyWith(Keys.hmacShaKeyFor(KEY)).build();
+
+ 
+    private final byte[] key;
+   private final JwtParser parser;
+
+    public JwtUtil(@Value("${security.jwt.secret}") String secret) {
+        this.key    = secret.getBytes();
+        this.parser = Jwts.parser().verifyWith(Keys.hmacShaKeyFor(key)).build();
+   }
 
     public String generate(String email, String role) {
-        return Jwts.builder()
+         return Jwts.builder()
                    .subject(email)
                    .claim("role", role)
                    .issuedAt(new Date())
                    .expiration(Date.from(Instant.now().plusSeconds(8*3600)))
-                   .signWith(Keys.hmacShaKeyFor(KEY))
+                   .signWith(Keys.hmacShaKeyFor(key))
                    .compact();
     }
 
@@ -33,3 +42,4 @@ public class JwtUtil {
                 email, null, List.of(new SimpleGrantedAuthority("ROLE_" + role)));
     }
 }
+

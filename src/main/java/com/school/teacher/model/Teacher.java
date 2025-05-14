@@ -23,7 +23,8 @@ public class Teacher extends Auditable {
     @Column(nullable = false, unique = true)
     private String email;
 
-    private String password;                  // nullable
+    @Column(nullable = false)
+    private String password;
 
     @Builder.Default
 @Enumerated(EnumType.STRING)

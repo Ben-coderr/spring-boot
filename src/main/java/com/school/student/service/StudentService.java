@@ -9,10 +9,11 @@ import com.school.parent.repository.ParentRepository;
 import com.school.schoolclass.model.SchoolClass;
 import com.school.schoolclass.repository.SchoolClassRepository;
 import com.school.grade.repository.GradeRepository;
-
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
@@ -24,17 +25,21 @@ import com.school.common.exception.CapacityExceededException;
 import com.school.parent.model.Parent;
 
 
+
+
+
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class StudentService {
 
     private final StudentRepository repo;
      private final SchoolClassRepository classRepo; 
      private final ParentRepository parentRepo;
     private final GradeRepository      gradeRepo;
-    private final BCryptPasswordEncoder encoder;
+    private final PasswordEncoder encoder;
 
-
+    @Transactional(readOnly = true)
     public List<StudentDTO> findAll() {
         return repo.findAll().stream().map(this::toDto).toList();
     }
@@ -51,14 +56,22 @@ public class StudentService {
             throw new CapacityExceededException(sc.getId(), sc.getCapacity());
         }
 
-        /* NEW — hash password + default role */
+
+        long headCount = repo.countBySchoolClass_Id(sc.getId());
+        if (headCount >= sc.getCapacity()) {
+            throw new CapacityExceededException(sc.getId(), sc.getCapacity());
+        }
         if (dto.getPassword() == null || dto.getPassword().isBlank())
-            dto.setPassword("changeme");        
+            throw new IllegalArgumentException("password is required");    
         dto.setRole(Role.STUDENT);
 
+        if (dto.getDateOfBirth() == null)
+            throw new IllegalArgumentException("dateOfBirth is required");
+        if (dto.getGender() == null)
+            throw new IllegalArgumentException("gender is required");
+
         Student entity = toEntity(dto);
-        Student secured = Student.withRawPassword(entity, dto.getPassword(),
-                (BCryptPasswordEncoder) encoder);
+        Student secured = Student.withRawPassword(entity, dto.getPassword(), encoder);
         return toDto(repo.save(secured));
     }
 
@@ -66,6 +79,8 @@ public class StudentService {
         Student st = repo.findById(id)
                 .orElseThrow(() -> new NotFoundException("Student " + id + " not found"));
         st.setFullName(dto.getFullName());
+        st.setSurname(dto.getSurname());
+        st.setUsername(dto.getUsername());
         st.setEmail(dto.getEmail());
         st.setDateOfBirth(dto.getDateOfBirth());
         st.setGender(dto.getGender());
@@ -73,7 +88,9 @@ public class StudentService {
         st.setAddress(dto.getAddress());
         st.setEnrollmentDate(dto.getEnrollmentDate());
         st.setStatus(dto.getStatus());
-        
+        st.setStatus(dto.getStatus());
+        st.setImg(dto.getImg());
+        st.setBloodType(dto.getBloodType());
         return toDto(repo.save(st));
     }
 
@@ -87,6 +104,8 @@ public class StudentService {
         return StudentDTO.builder()
                 .id(s.getId())
                 .fullName(s.getFullName())
+                .surname(s.getSurname())
+                .username(s.getUsername())
                 .email(s.getEmail())
                 .classId(s.getSchoolClass().getId())        // NEW
                 .dateOfBirth(s.getDateOfBirth())
@@ -110,6 +129,8 @@ public class StudentService {
     private Student toEntity(StudentDTO d) {
         return Student.builder()
                 .fullName(d.getFullName())
+                .surname(d.getSurname())
+                .username(d.getUsername())
                 .email(d.getEmail())
                 .dateOfBirth(d.getDateOfBirth())
                 .gender(d.getGender())

@@ -9,16 +9,22 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+
+
+
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class AdminService {
 
     private final AdminRepository repo;
     private final PasswordEncoder encoder;
 
+    @Transactional(readOnly = true)
     public List<AdminDTO> findAll() {
         return repo.findAll().stream().map(this::toDto).toList();
     }

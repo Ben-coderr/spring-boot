@@ -13,20 +13,24 @@ import com.school.schoolclass.repository.SchoolClassRepository;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 import com.school.lesson.model.DayOfWeek;
 
+
+
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class LessonService {
 
     private final LessonRepository repo;
     private final SubjectRepository subjectRepo;
     private final TeacherRepository teacherRepo;
     private final SchoolClassRepository classRepo;
-
+    @Transactional(readOnly = true)
     public List<LessonDTO> findAll() {
         return repo.findAll().stream().map(this::toDto).toList();
     }

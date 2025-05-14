@@ -8,17 +8,22 @@ import com.school.student.repository.StudentRepository;
 import com.school.lesson.repository.LessonRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+
+
+
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class AttendanceService {
 
     private final AttendanceRepository repo;
     private final StudentRepository studentRepo;
     private final LessonRepository lessonRepo;
-
+        @Transactional(readOnly = true)
     public List<AttendanceDTO> findAll() {
         return repo.findAll().stream().map(this::toDto).toList();
     }

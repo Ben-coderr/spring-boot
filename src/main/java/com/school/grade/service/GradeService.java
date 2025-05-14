@@ -9,12 +9,16 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+import org.springframework.transaction.annotation.Transactional;
+
+
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class GradeService {
 
     private final GradeRepository repo;
-
+    @Transactional(readOnly = true)
     public List<GradeDTO> findAll() {
         return repo.findAll().stream().map(this::toDto).toList();
     }

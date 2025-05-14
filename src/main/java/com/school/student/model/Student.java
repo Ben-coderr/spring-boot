@@ -13,7 +13,7 @@ import com.school.parent.model.Parent;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Entity
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
@@ -29,12 +29,13 @@ public class Student extends Auditable {
     private String username;    
     private String email;
 // Student.java
-    private String password;                  // nullable
+    @Column(nullable = false)
+    private String password;
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Role role;
     /* convenience helper when creating with builder */
-    public static Student withRawPassword(Student s, String rawPw, BCryptPasswordEncoder enc){
+    public static Student withRawPassword(Student s, String rawPw, PasswordEncoder enc){
         s.setPassword(enc.encode(rawPw));
         s.setRole(Role.STUDENT);
         return s;
@@ -88,3 +89,4 @@ public class Student extends Auditable {
     @ManyToOne(fetch = FetchType.LAZY)
     private Grade grade;
 }
+

@@ -10,13 +10,17 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+import org.springframework.transaction.annotation.Transactional;
+
+
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class ExamService {
 
     private final ExamRepository repo;
     private final LessonRepository lessonRepo;
-
+    @Transactional(readOnly = true)
     public List<ExamDTO> findAll() {
         return repo.findAll().stream().map(this::toDto).toList();
     }

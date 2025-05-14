@@ -18,7 +18,8 @@ public class Parent extends Auditable {
     @Column(nullable = false)
     private String fullName;
 // Parent.java
-        private String password;                  // nullable
+        @Column(nullable = false)
+        private String password;
         @Enumerated(EnumType.STRING)
         @Column(nullable = false, length = 20)
         private Role role = Role.PARENT;
@@ -32,3 +33,4 @@ public class Parent extends Auditable {
             inverseJoinColumns = @JoinColumn(name = "student_id"))
     private Set<Student> children = new HashSet<>();
 }
+

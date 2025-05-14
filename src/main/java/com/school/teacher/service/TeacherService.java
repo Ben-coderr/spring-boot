@@ -6,74 +6,99 @@ import com.school.teacher.repository.TeacherRepository;
 import com.school.common.enums.Role;
 import com.school.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
-
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class TeacherService {
 
     private final TeacherRepository repo;
-    private final PasswordEncoder   encoder;
+    private final PasswordEncoder encoder;
 
+    @Transactional(readOnly = true)
     public List<TeacherDTO> findAll() {
-        return repo.findAll().stream().map(this::toDto).toList();
+        List<Teacher> entities = repo.findAll();
+        List<TeacherDTO> result = new ArrayList<>();
+
+        for (Teacher t : entities) {
+            result.add(toDto(t));
+        }
+        return result;
     }
 
     public TeacherDTO findById(Long id) {
-        return toDto(repo.findById(id)
-                .orElseThrow(() -> new NotFoundException("Teacher " + id + " not found")));
+        Optional<Teacher> opt = repo.findById(id);
+
+        if (opt.isEmpty()) {
+            throw new NotFoundException("Teacher " + id + " not found");
+        }
+
+        return toDto(opt.get());
     }
 
     public TeacherDTO create(TeacherDTO dto) {
-    if (dto.getPassword() == null || dto.getPassword().isBlank())
-        throw new IllegalArgumentException("password is required");
-        Teacher saved = repo.save(
-                Teacher.builder()
-                       .fullName(dto.getFullName())
-                       .email(dto.getEmail())
-                       .password(encoder.encode(dto.getPassword()))   
-                       .role(Role.TEACHER)
-                       .build());
+
+        if (dto.getPassword() == null || dto.getPassword().trim().isEmpty()) {
+            throw new IllegalArgumentException("password is required");
+        }
+
+        // build entity “old-school” style
+        Teacher teacher = new Teacher();
+        teacher.setFullName(dto.getFullName());
+        teacher.setEmail(dto.getEmail());
+        teacher.setPassword(encoder.encode(dto.getPassword()));
+        teacher.setRole(Role.TEACHER);
+
+        Teacher saved = repo.save(teacher);
         return toDto(saved);
     }
-
     public TeacherDTO update(Long id, TeacherDTO dto) {
-        Teacher t = repo.findById(id)
-                .orElseThrow(() -> new NotFoundException("Teacher " + id + " not found"));
+
+        Optional<Teacher> opt = repo.findById(id);
+        if (opt.isEmpty()) {
+            throw new NotFoundException("Teacher " + id + " not found");
+        }
+
+        Teacher t = opt.get();
         t.setFullName(dto.getFullName());
         t.setEmail(dto.getEmail());
-        return toDto(repo.save(t));
-    }
 
+        Teacher saved = repo.save(t);
+        return toDto(saved);
+    }
     public void delete(Long id) {
-        if (!repo.existsById(id)) throw new NotFoundException("Teacher " + id + " not found");
+        if (!repo.existsById(id)) {
+            throw new NotFoundException("Teacher " + id + " not found");
+        }
         repo.deleteById(id);
     }
     public List<TeacherDTO> findBySubject(Long subjectId) {
+
         List<Teacher> teachers = repo.findAllBySubjects_Id(subjectId);
+
         if (teachers.isEmpty()) {
             throw new NotFoundException("No teachers found for subject " + subjectId);
         }
-        return teachers.stream().map(this::toDto).toList();
-    }
-    /* ---------- mapping helpers ---------- */
-    private TeacherDTO toDto(Teacher t) {
-        return TeacherDTO.builder()
-                .id(t.getId())
-                .fullName(t.getFullName())
-                .email(t.getEmail())
-                .build();
-    }
 
-    private Teacher toEntity(TeacherDTO d) {
-        return Teacher.builder()
-                .fullName(d.getFullName())
-                .email(d.getEmail())
-                .role(Role.TEACHER)
-                .build();
+        List<TeacherDTO> dtoList = new ArrayList<>();
+        for (Teacher t : teachers) {
+            dtoList.add(toDto(t));
+        }
+        return dtoList;
+    }
+    private TeacherDTO toDto(Teacher t) {
+        TeacherDTO dto = new TeacherDTO();
+        dto.setId(t.getId());
+        dto.setFullName(t.getFullName());
+        dto.setEmail(t.getEmail());
+ 
+        return dto;
     }
 }

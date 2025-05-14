@@ -12,15 +12,19 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+import org.springframework.transaction.annotation.Transactional;
+
+
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class SchoolClassService {
 
     private final SchoolClassRepository repo;
     private final GradeRepository gradeRepo;
     private final TeacherRepository teacherRepo;
 
-
+    @Transactional(readOnly = true)
     public List<SchoolClassDTO> findAll() {
         return repo.findAll().stream().map(this::toDto).toList();
     }

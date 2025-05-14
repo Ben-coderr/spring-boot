@@ -7,16 +7,21 @@ import com.school.assignment.repository.AssignmentRepository;
 import com.school.lesson.repository.LessonRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+
+
+
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class AssignmentService {
 
     private final AssignmentRepository repo;
     private final LessonRepository lessonRepo;
-
+    @Transactional(readOnly = true)
     public List<AssignmentDTO> findAll() {
         return repo.findAll().stream().map(this::toDto).toList();
     }
