@@ -2,6 +2,7 @@ package com.school.controller;
 
 import com.school.model.Teacher;
 import com.school.repository.TeacherRepository;
+import com.school.dto.TeacherDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -26,19 +27,20 @@ public class TeacherController {
 
 
     @GetMapping
-    public List<Teacher> listTeachers() {
-        return teachers.findAll();
+    public List<TeacherDto> listTeachers() {
+        return teachers.findAll().stream().map(TeacherDto::from).toList();
     }
 
     @GetMapping("{id}")
-    public Teacher getTeacher(@PathVariable Long id) {
-        return teachers.findById(id)
+    public TeacherDto getTeacher(@PathVariable Long id) {
+        Teacher t = teachers.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "teacher " + id + " not found"));
+        return TeacherDto.from(t);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Teacher addTeacher(@RequestBody Teacher body) {
+    public TeacherDto addTeacher(@RequestBody Teacher body) {
 
         need(body.getFullName(), "name");
         need(body.getPassword(), "password");
@@ -49,13 +51,14 @@ public class TeacherController {
         if (body.getEmail() != null && !body.getEmail().contains("@"))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid email");
 
-        return teachers.save(body);
+        return TeacherDto.from(teachers.save(body));
     }
 
     @PutMapping("{id}")
-    public Teacher updateTeacher(@PathVariable Long id, @RequestBody Teacher in) {
+    public TeacherDto updateTeacher(@PathVariable Long id, @RequestBody Teacher in) {
 
-        Teacher t = getTeacher(id);
+        Teacher t = teachers.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "teacher " + id + " not found"));
 
         if (in.getFullName() != null) t.setFullName(in.getFullName());
 
@@ -68,7 +71,7 @@ public class TeacherController {
         if (in.getPassword() != null) t.setPassword(in.getPassword());
         if (in.getSubject()  != null) t.setSubject(in.getSubject());
 
-        return teachers.save(t);
+        return TeacherDto.from(teachers.save(t));
     }
 
     @DeleteMapping("{id}")

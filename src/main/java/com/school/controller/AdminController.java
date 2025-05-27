@@ -2,6 +2,7 @@ package com.school.controller;
 
 import com.school.model.Admin;
 import com.school.repository.AdminRepository;
+import com.school.dto.AdminDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -22,31 +23,36 @@ public class AdminController {
     }
 
     @GetMapping
-    public List<Admin> list(){ return admins.findAll(); }
+    public List<AdminDto> list(){
+        return admins.findAll().stream().map(AdminDto::from).toList();
+    }
 
     @GetMapping("{id}")
-    public Admin get(@PathVariable Long id){
-        return admins.findById(id)
+    public AdminDto get(@PathVariable Long id){
+        Admin a = admins.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,"admin "+id+" not found"));
+        return AdminDto.from(a);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Admin create(@RequestBody Admin body){
+    public AdminDto create(@RequestBody Admin body){
         need(body.getFullName(),"name");
         need(body.getEmail(),"email");
         need(body.getPassword(),"password");
-        return admins.save(body);
+        return AdminDto.from(admins.save(body));
     }
 
     @PutMapping("{id}")
-    public Admin update(@PathVariable Long id,@RequestBody Admin in){
-        Admin a = get(id);
+    public AdminDto update(@PathVariable Long id,@RequestBody Admin in){
+        Admin a = admins.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,"admin "+id+" not found"));
         if(in.getFullName()!=null) a.setFullName(in.getFullName());
         if(in.getEmail()!=null)    a.setEmail(in.getEmail());
         if(in.getPassword()!=null) a.setPassword(in.getPassword());
-        return admins.save(a);
+        return AdminDto.from(admins.save(a));
     }
 
     @DeleteMapping("{id}")
