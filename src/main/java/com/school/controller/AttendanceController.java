@@ -2,6 +2,7 @@ package com.school.controller;
 
 import com.school.model.Attendance;
 import com.school.repository.AttendanceRepository;
+import com.school.dto.AttendanceDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -28,14 +29,15 @@ public class AttendanceController {
    }
 
     @GetMapping
-    public List<Attendance> listAttendances() {
-        return attendances.findAll();
+    public List<AttendanceDto> listAttendances() {
+        return attendances.findAll().stream().map(AttendanceDto::from).toList();
     }
 
     @GetMapping("{id}")
-    public Attendance getAttendance(@PathVariable Long id) {
-        return attendances.findById(id)
+    public AttendanceDto getAttendance(@PathVariable Long id) {
+        Attendance a = attendances.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "attendance " + id + " not found"));
+        return AttendanceDto.from(a);
     }
 
     @GetMapping("/student/{sid}/percent")
@@ -46,7 +48,7 @@ public class AttendanceController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Attendance createAttendance(@RequestBody Attendance body) {
+    public AttendanceDto createAttendance(@RequestBody Attendance body) {
 
         if (body.getDate() == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "date required");
@@ -60,12 +62,12 @@ public class AttendanceController {
         if (body.getLesson() == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "lesson required");
 
-        return attendances.save(body);
+        return AttendanceDto.from(attendances.save(body));
     }
 
     @PostMapping("/bulk")
     @ResponseStatus(HttpStatus.CREATED)
-    public java.util.List<Attendance> bulk(@RequestBody java.util.List<Attendance> list){
+    public java.util.List<AttendanceDto> bulk(@RequestBody java.util.List<Attendance> list){
 
         if(list==null || list.isEmpty())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"empty payload");
@@ -80,13 +82,14 @@ public class AttendanceController {
             if(a.getStudent()==null || a.getLesson()==null)
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"student & lesson needed");
         }
-        return attendances.saveAll(list);
+        return attendances.saveAll(list).stream().map(AttendanceDto::from).toList();
     }
 
     @PutMapping("{id}")
-    public Attendance updateAttendance(@PathVariable Long id, @RequestBody Attendance in) {
+    public AttendanceDto updateAttendance(@PathVariable Long id, @RequestBody Attendance in) {
 
-        Attendance a = getAttendance(id);
+        Attendance a = attendances.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "attendance " + id + " not found"));
 
         if (in.getStatus() != null) {
             if (!allowed.contains(in.getStatus()))
@@ -98,7 +101,7 @@ public class AttendanceController {
         if (in.getStudent() != null) a.setStudent(in.getStudent());
         if (in.getLesson()  != null) a.setLesson(in.getLesson());
 
-        return attendances.save(a);
+        return AttendanceDto.from(attendances.save(a));
     }
 
     @DeleteMapping("{id}")
