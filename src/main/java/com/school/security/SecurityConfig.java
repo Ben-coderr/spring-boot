@@ -60,42 +60,55 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Collections.singletonList("*"));
+        // Restrict origins in production
+        configuration.setAllowedOrigins(Arrays.asList(
+            "http://localhost:3000",  // Next.js dev server
+            "https://your-production-domain.com"  // Production frontend
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("authorization", "content-type", "x-auth-token"));
-        configuration.setExposedHeaders(Arrays.asList("x-auth-token"));
+        configuration.setAllowedHeaders(Arrays.asList(
+            "authorization", 
+            "content-type", 
+            "x-requested-with",
+            "cache-control"
+        ));
+        configuration.setExposedHeaders(Arrays.asList(
+            "authorization", 
+            "content-type",
+            "x-auth-token"
+        ));
+        configuration.setAllowCredentials(true);  // Allow cookies/credentials
+        configuration.setMaxAge(3600L);  // 1 hour cache
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-    
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            // Disable CSRF as we're using JWT
             .csrf(csrf -> csrf.disable())
-            
-            // Configure CORS
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            
-            // Use stateless session management
             .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
-            
-            // Disable frame options restrictions that can affect Swagger UI
-            .headers(headers -> headers.frameOptions(frameOpt -> frameOpt.disable()))
-            
-            // Configure request authorization
+            .headers(headers -> headers
+                .frameOptions(frameOpt -> frameOpt.disable())
+                .contentSecurityPolicy(csp -> csp
+                    .policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'")
+                )
+            )
             .authorizeHttpRequests(auth -> {
-                // First permit all Swagger and public endpoints
                 auth.requestMatchers(WHITE_LIST_URLS).permitAll();
                 
-                // Require authentication for everything else
+                // Example role-based access (adjust to your needs)
+                auth.requestMatchers("/api/admin/**").hasRole("ADMIN");
+                auth.requestMatchers("/api/teacher/**").hasRole("TEACHER");
+                auth.requestMatchers("/api/parent/**").hasRole("PARENT");
+                auth.requestMatchers("/api/student/**").hasRole("STUDENT");
                 auth.anyRequest().authenticated();
             })
-            
-            // Add JWT filter before the standard authentication filter
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
-            
+
         return http.build();
     }
 }
