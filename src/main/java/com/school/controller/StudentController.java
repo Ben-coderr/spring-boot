@@ -187,6 +187,8 @@ public class StudentController {
                                   @RequestBody Result in) {
         Result result = resultRepo.findById(resultId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "result not found"));
+        if (result.getStudent() == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "student not set");
         if (!result.getStudent().getId().equals(studentId))
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "result " + resultId + " not for student " + studentId);
         if (in.getScore() != null) result.setScore(in.getScore());
@@ -206,8 +208,11 @@ public class StudentController {
     @PostMapping("{id}/attendance")
     @ResponseStatus(HttpStatus.CREATED)
     public AttendanceDto createAttendanceForStudent(@PathVariable Long id, @RequestBody AttendanceDto body) {
-        Attendance entity = AttendanceMapper.toEntity(body, studentRepo, lessonRepo);
-        // enforce student id from path
+        Attendance entity = new Attendance();
+        entity.setStatus(body.status());
+        entity.setDate(body.date());
+        entity.setLesson(lessonRepo.findById(body.lessonId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "lesson not found")));
         entity.setStudent(studentRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "student not found")));
         return AttendanceMapper.toDto(attendanceRepo.save(entity));
@@ -219,6 +224,8 @@ public class StudentController {
                                                     @RequestBody AttendanceDto in) {
         Attendance att = attendanceRepo.findById(attendanceId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "attendance not found"));
+        if (att.getStudent() == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "student not set");
         if (!att.getStudent().getId().equals(studentId))
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "attendance " + attendanceId + " not for student " + studentId);
         AttendanceMapper.copyOnWrite(in, att, studentRepo, lessonRepo);

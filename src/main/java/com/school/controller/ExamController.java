@@ -88,6 +88,8 @@ public class ExamController {
                                          @RequestBody Result in) {
         Result result = resultRepo.findById(resultId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "result not found"));
+        if (result.getExam() == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "exam not set");
         if (!result.getExam().getId().equals(examId))
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "result " + resultId + " not for exam " + examId);
         if (in.getScore() != null) result.setScore(in.getScore());

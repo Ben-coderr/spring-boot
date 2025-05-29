@@ -63,19 +63,18 @@ public class AttendanceController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public AttendanceDto createAttendance(@RequestBody AttendanceDto body) {
+    public AttendanceDto createAttendance(@RequestBody Attendance body) {
 
-        if (body.date() == null)
+        if (body.getDate() == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "date required");
-        if (body.status() == null || !allowed.contains(body.status()))
+        if (body.getStatus() == null || !allowed.contains(body.getStatus()))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "status must be PRESENT / ABSENT / LATE");
-        if (body.studentId() == null)
+        if (body.getStudent() == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "student required");
-        if (body.lessonId() == null)
+        if (body.getLesson() == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "lesson required");
 
-        Attendance entity = AttendanceMapper.toEntity(body, studentRepo, lessonRepo);
-        return AttendanceMapper.toDto(attendanceRepo.save(entity));
+        return AttendanceDto.from(attendanceRepo.save(body));
     }
 
     @PostMapping("/bulk")

@@ -148,6 +148,8 @@ public class TeacherController { // teacher endpoints
                                   @RequestBody Lesson in) {
         Lesson lesson = lessonRepo.findById(lessonId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "lesson " + lessonId + " not found"));
+        if (lesson.getTeacher() == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "teacher not set");
         if (!lesson.getTeacher().getId().equals(teacherId))
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "lesson " + lessonId + " not for teacher " + teacherId);
         if (in.getTopic() != null) lesson.setTopic(in.getTopic());
@@ -172,16 +174,20 @@ public class TeacherController { // teacher endpoints
 
     @PostMapping("{id}/exams")
     @ResponseStatus(HttpStatus.CREATED)
-    public ExamDto createExam(@PathVariable Long id, @RequestBody Exam body) {
+    public ExamDto createExam(@PathVariable Long id,
+                              @RequestBody CreateExamReq req) {
         teacherRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "teacher " + id + " not found"));
-        if (body.getLesson() == null)
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "lesson required");
-        if (!id.equals(body.getLesson().getTeacher().getId()))
+        Lesson lesson = lessonRepo.findById(req.lessonId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "lesson not found"));
+        if (lesson.getTeacher() == null || !lesson.getTeacher().getId().equals(id))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "lesson not owned by teacher");
-        if (body.getTitle() == null || body.getTitle().isBlank())
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "title required");
-        return ExamDto.from(examRepo.save(body));
+
+        Exam exam = new Exam();
+        exam.setTitle(req.title());
+        exam.setLesson(lesson);
+        exam.setExamDate(req.examDate() != null ? req.examDate() : lesson.getLessonDate());
+        return ExamDto.from(examRepo.save(exam));
     }
 
     @PutMapping("{tid}/exams/{eid}")
@@ -190,6 +196,10 @@ public class TeacherController { // teacher endpoints
                               @RequestBody Exam in) {
         Exam exam = examRepo.findById(examId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "exam " + examId + " not found"));
+        if (exam.getLesson() == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "lesson not set");
+        if (exam.getLesson().getTeacher() == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "teacher not set");
         if (!exam.getLesson().getTeacher().getId().equals(teacherId))
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "exam " + examId + " not for teacher " + teacherId);
         if (in.getTitle() != null) exam.setTitle(in.getTitle());

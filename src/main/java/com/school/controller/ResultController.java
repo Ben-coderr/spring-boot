@@ -1,8 +1,13 @@
 package com.school.controller;
 
 import com.school.model.Result;
+import com.school.model.Student;
+import com.school.model.Exam;
 import com.school.repository.ResultRepository;
+import com.school.repository.StudentRepository;
+import com.school.repository.ExamRepository;
 import com.school.dto.ResultDto;
+import com.school.dto.CreateResultReq;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -17,10 +22,16 @@ public class ResultController {
 
     private final ResultRepository resultRepo;
     private final ResultService resultService;
+    private final StudentRepository studentRepo;
+    private final ExamRepository examRepo;
 
-    public ResultController(ResultRepository repo, ResultService svc) {
+    public ResultController(ResultRepository repo, ResultService svc,
+                            StudentRepository students,
+                            ExamRepository exams) {
         this.resultRepo = repo;
         this.resultService   = svc;
+        this.studentRepo = students;
+        this.examRepo = exams;
     }
 
 
@@ -55,18 +66,23 @@ public class ResultController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Result create(@RequestBody Result body){
-        if(body.getScore() == null)
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"score required");
-        if(body.getStudent() == null || body.getExam() == null)
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"student and exam required");
-        if(body.getKind() == null)
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"kind required");
-        
-        // If not passed in request, default isFinal to false
-        if(body.getIsFinal() == null) body.setIsFinal(false);
+    public Result create(@RequestBody CreateResultReq req){
+        if (req.score() == null || req.kind() == null ||
+            req.studentId() == null || req.examId() == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "student, exam, score and kind required");
 
-        return resultRepo.save(body);
+        Student student = studentRepo.findById(req.studentId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "student not found"));
+        Exam exam = examRepo.findById(req.examId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "exam not found"));
+
+        Result result = new Result();
+        result.setStudent(student);
+        result.setExam(exam);
+        result.setKind(req.kind());
+        result.setScore(req.score());
+        result.setIsFinal(req.isFinal() != null ? req.isFinal() : false);
+        return resultRepo.save(result);
     }
 
     @PutMapping("{id}")

@@ -82,13 +82,15 @@ public class LessonController { // lessons api
 
     @PostMapping("{id}/exams")
     @ResponseStatus(HttpStatus.CREATED)
-    public ExamDto createExamForLesson(@PathVariable Long id, @RequestBody Exam body) {
+    public ExamDto createExamForLesson(@PathVariable Long id,
+                                       @RequestBody CreateExamForLessonReq req) {
         Lesson lesson = lessons.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "lesson " + id + " not found"));
-        body.setLesson(lesson);
-        if (body.getTitle() == null || body.getTitle().isBlank())
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "title required");
-        return ExamDto.from(examRepo.save(body));
+        Exam exam = new Exam();
+        exam.setLesson(lesson);
+        exam.setTitle(req.title());
+        exam.setExamDate(req.examDate() != null ? req.examDate() : lesson.getLessonDate());
+        return ExamDto.from(examRepo.save(exam));
     }
 
     @PutMapping("{lid}/exams/{eid}")
@@ -97,6 +99,8 @@ public class LessonController { // lessons api
                                        @RequestBody Exam in) {
         Exam exam = examRepo.findById(examId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "exam not found"));
+        if (exam.getLesson() == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "lesson not set");
         if (!exam.getLesson().getId().equals(lessonId))
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "exam " + examId + " not for lesson " + lessonId);
         if (in.getTitle() != null) exam.setTitle(in.getTitle());
@@ -132,6 +136,8 @@ public class LessonController { // lessons api
                                                   @RequestBody AssignmentDto in) {
         Assignment ass = assignmentRepo.findById(aid)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "assignment not found"));
+        if (ass.getLesson() == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "lesson not set");
         if (!ass.getLesson().getId().equals(lessonId))
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "assignment " + aid + " not for lesson " + lessonId);
         AssignmentMapper.copyOnWrite(in, ass, lessons);

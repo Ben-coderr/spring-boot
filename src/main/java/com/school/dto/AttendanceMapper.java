@@ -1,7 +1,6 @@
 package com.school.dto;
 
 import com.school.model.Attendance;
-import com.school.model.Student;
 import com.school.model.Lesson;
 import com.school.repository.StudentRepository;
 import com.school.repository.LessonRepository;
@@ -27,13 +26,6 @@ public final class AttendanceMapper {
                                    LessonRepository lessons) {
         if (dto.status() != null) target.setStatus(dto.status());
         if (dto.date() != null) target.setDate(dto.date());
-
-        if (dto.studentId() != null) {
-            Student student = students.findById(dto.studentId())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "student not found"));
-            target.setStudent(student);
-        }
 
         if (dto.lessonId() != null) {
             Lesson lesson = lessons.findById(dto.lessonId())

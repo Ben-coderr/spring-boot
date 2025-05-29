@@ -67,6 +67,8 @@ public class ClassManagementService { // manage classes
         SchoolClass c = classRepo.findById(classId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "class "+classId+" ?"));
 
+        if (c.getGrade() == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "grade not set");
         Grade next = gradeRepo.findByLevel(c.getGrade().getLevel() + 1)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "grade missing"));
 
