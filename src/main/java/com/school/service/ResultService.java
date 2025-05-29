@@ -20,10 +20,7 @@ public class ResultService {
         this.schemeRepo = schemeRepo;
     }
 
-    /* -------------------------------------------------------------
-       1. Overall average for ONE pupil in ONE grade
-          (across *every* subject that has a scheme for that grade)
-       ------------------------------------------------------------- */
+    //overall average for one student in one grade
     public double avgForStudent(Long studentId, Long gradeId) {
 
         var schemes = schemeRepo.findByGradeId(gradeId);
@@ -45,9 +42,7 @@ public class ResultService {
         return (coeffSum == 0) ? 0 : total / coeffSum;
     }
 
-    /* -------------------------------------------------------------
-       2. Average for ONE subject of ONE pupil in ONE grade
-       ------------------------------------------------------------- */
+    //average for one subject of one student in one grade
     public double avgForStudentSubject(Long studentId,
                                        Long subjectId,
                                        Long gradeId) {

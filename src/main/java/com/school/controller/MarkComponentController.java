@@ -11,10 +11,10 @@ import org.springframework.web.bind.annotation.*;
 public class MarkComponentController {
 
     private final MarkComponentRepo repo;
-    public MarkComponentController(MarkComponentRepo r){ this.repo = r; }
+    public MarkComponentController(MarkComponentRepo repository){ this.repo = repository; }
 
     @PostMapping @ResponseStatus(HttpStatus.CREATED)
-    public MarkComponent create(@RequestBody MarkComponent c){
-        return repo.save(c);
+    public MarkComponent create(@RequestBody MarkComponent component){
+        return repo.save(component);
     }
 }

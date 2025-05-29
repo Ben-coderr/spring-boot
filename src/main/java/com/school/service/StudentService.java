@@ -14,15 +14,12 @@ public class StudentService {
     private final StudentRepository    students;
     private final SchoolClassRepository classes;
 
-    public StudentService(StudentRepository s, SchoolClassRepository c) {
-        this.students = s;
-        this.classes  = c;
+    public StudentService(StudentRepository studentRepo, SchoolClassRepository classRepo) {
+        this.students = studentRepo;
+        this.classes  = classRepo;
     }
 
-    /**
-     * Moves one learner into another class if that class still has a free seat.
-     * @throws ResponseStatusException 400 if the target class is already full.
-     */
+    //move a student to another class if space is available
     public Student move(Long studentId, Long targetClassId) {
 
         Student      kid    = students.findById(studentId)

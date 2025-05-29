@@ -20,7 +20,10 @@ public class MarkComponent {
     public String getKind()   { return kind; }
 
     /* ---------- setters ---------- */
-    public void setScheme(SubjectGradeScheme s) { this.scheme = s; }
-    public void setKind(String k)               { this.kind   = k; }
-    public void setWeight(double w)             { this.weight = w; }
+    //set grade scheme
+    public void setScheme(SubjectGradeScheme scheme) { this.scheme = scheme; }
+    //set component kind
+    public void setKind(String kind)               { this.kind   = kind; }
+    //set component weight
+    public void setWeight(double weight)             { this.weight = weight; }
 }

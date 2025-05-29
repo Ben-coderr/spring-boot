@@ -14,10 +14,10 @@ public class ClassRankingService {
     private final ResultRepository  results;
     private final StudentRepository students;
 
-    public ClassRankingService(ResultRepository res,
-                               StudentRepository stu) {
-        this.results  = res;
-        this.students = stu;
+    public ClassRankingService(ResultRepository resultRepo,
+                               StudentRepository studentRepo) {
+        this.results  = resultRepo;
+        this.students = studentRepo;
     }
 
 
@@ -36,7 +36,7 @@ public class ClassRankingService {
             Long    sid = (Long)   row[0];
             Double  avg = (Double) row[1];
             String  nm  = students.findById(sid)
-                                  .map(s -> s.getFullName())
+                                  .map(student -> student.getFullName())
                                   .orElse("unknown");
 
             Map<String,Object> m = new HashMap<>();

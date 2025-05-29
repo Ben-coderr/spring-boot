@@ -19,7 +19,7 @@ public class AttendanceService {
         this.repo = repo;
     }
 
-    /** simple % present for one pupil */
+    //percentage present for one student
     public Map<String,Object> percentage(Long studentId) {
 
         List<Attendance> rows = repo.findByStudentId(studentId);

@@ -13,5 +13,6 @@ public class Subject {
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
     public Integer getCoefficient() { return coefficient; }
-    public void setCoefficient(Integer c) { this.coefficient = c; }
+    //set coefficient of subject
+    public void setCoefficient(Integer coefficient) { this.coefficient = coefficient; }
 }

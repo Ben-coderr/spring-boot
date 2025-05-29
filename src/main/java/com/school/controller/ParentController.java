@@ -25,9 +25,9 @@ public class ParentController {
         this.encoder = encoder;
     }
 
-    private static void must(String v,String f){
-        if(v==null||v.isBlank())
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,f+" required");
+    private static void must(String value,String field){
+        if(value==null||value.isBlank())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,field+" required");
     }
 
     @GetMapping

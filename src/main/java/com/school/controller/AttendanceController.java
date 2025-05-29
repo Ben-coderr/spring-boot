@@ -24,9 +24,9 @@ public class AttendanceController {
     private final Set<String> allowed = Set.of("PRESENT", "ABSENT", "LATE");
 
     public AttendanceController(AttendanceRepository repo,
-                                AttendanceService    svc) {
+                                AttendanceService    service) {
         this.attendances = repo;
-        this.stats       = svc;
+        this.stats       = service;
    }
 
     @GetMapping

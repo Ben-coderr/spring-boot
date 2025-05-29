@@ -17,28 +17,28 @@ public class BulletinService {
     private final StudentRepository    studentRepo;
     private final ResultRepository     resultRepo;
     private final AttendanceRepository attendanceRepo;
-    private final ResultService        resultService;   // <-- NEW
+    private final ResultService        resultService;
 
     public BulletinService(StudentRepository    studentRepo,
                            ResultRepository     resultRepo,
                            AttendanceRepository attendanceRepo,
-                           ResultService        resultService   // <-- NEW
+                           ResultService        resultService
     ) {
         this.studentRepo    = studentRepo;
         this.resultRepo     = resultRepo;
         this.attendanceRepo = attendanceRepo;
-        this.resultService  = resultService;          // <-- assign
+        this.resultService  = resultService;
     }
 
-    /* ------------------------------------------------------------------ */
+    //generate a bulletin for a student
 
     public Map<String,Object> generate(Long studentId) {
-        Student s = studentRepo.findById(studentId)
+        Student student = studentRepo.findById(studentId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "student not found"));
 
         Map<String,Object> out = new LinkedHashMap<>();
-        out.put("student", Map.of("id", s.getId(), "name", s.getFullName()));
+        out.put("student", Map.of("id", student.getId(), "name", student.getFullName()));
 
         /* ---- 1. raw per-subject averages ----------------------------- */
         Map<Long,Double> raw = new HashMap<>();
@@ -49,7 +49,7 @@ public class BulletinService {
 
         /* ---- 2. weighted finals (scheme-aware) ----------------------- */
         Map<Long,Double> finals = new HashMap<>();
-        Long gradeId = s.getSchoolClass().getGrade().getId();
+        Long gradeId = student.getSchoolClass().getGrade().getId();
 
         for (Long subjectId : raw.keySet()) {
             double fin = resultService

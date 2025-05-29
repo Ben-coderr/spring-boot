@@ -23,12 +23,12 @@ public class ClassManagementService {
     private final StudentRepository    studentRepo;
     private final GradeRepository      gradeRepo;
 
-    public ClassManagementService(SchoolClassRepository c,
-                                  StudentRepository    s,
-                                  GradeRepository      g) {
-        this.classRepo   = c;
-        this.studentRepo = s;
-        this.gradeRepo   = g;
+    public ClassManagementService(SchoolClassRepository classRepo,
+                                  StudentRepository    studentRepo,
+                                  GradeRepository      gradeRepo) {
+        this.classRepo   = classRepo;
+        this.studentRepo = studentRepo;
+        this.gradeRepo   = gradeRepo;
     }
 
 
@@ -70,7 +70,7 @@ public class ClassManagementService {
         Grade next = gradeRepo.findByLevel(c.getGrade().getLevel() + 1)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "grade missing"));
 
-        // create a new “shell” class in the next grade – same name for now
+        // make a new class in the next grade with the same name
         SchoolClass newClass = new SchoolClass();
         newClass.setName(c.getName());
         newClass.setCapacity(c.getCapacity());
@@ -92,7 +92,7 @@ public class ClassManagementService {
         }
     }
 
-    //Method to get the average of a class 
+    //get ranking of a class
     public List<StudentRank> rank(Long classId) {
 
         List<Student> pupils = studentRepo.findBySchoolClass_Id(classId);
@@ -106,7 +106,7 @@ public class ClassManagementService {
         }
 
         
-        temp.sort((a, b) -> Double.compare(b.avg(), a.avg()));
+        temp.sort((first, second) -> Double.compare(second.avg(), first.avg()));
 
         return temp;
     }

@@ -66,7 +66,7 @@ public class StudentController {
         return attendanceSvc.percentForStudent(id);
     }
 
-    /* -------------------- create -------------------- */
+    //create student
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)

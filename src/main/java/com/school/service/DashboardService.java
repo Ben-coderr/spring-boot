@@ -8,10 +8,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Bare-bones snapshot of how full every class is right now.
- * No Stream API – just plain loops so it’s easier to read/step-debug.
- */
+//simple snapshot of class occupancy using loops
 @Service
 public class DashboardService {
 
@@ -23,16 +20,14 @@ public class DashboardService {
     private final SchoolClassRepository classRepo;
     private final StudentRepository     studentRepo;
 
-    public DashboardService(SchoolClassRepository cRepo,
-                            StudentRepository     sRepo) {
+    public DashboardService(SchoolClassRepository classRepo,
+                            StudentRepository     studentRepo) {
 
-        this.classRepo   = cRepo;
-        this.studentRepo = sRepo;
+        this.classRepo   = classRepo;
+        this.studentRepo = studentRepo;
     }
 
-    /**
-     * Build the list one element at a time (no stream/collect).
-     */
+    //build the list one element at a time
     public List<Occupancy> snapshot() {
 
         List<SchoolClass> all = classRepo.findAll();

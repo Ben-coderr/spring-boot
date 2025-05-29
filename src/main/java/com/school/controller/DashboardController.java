@@ -12,8 +12,8 @@ public class DashboardController {
 
     private final DashboardService boards;
 
-    public DashboardController(DashboardService svc) {
-        this.boards = svc;
+    public DashboardController(DashboardService service) {
+        this.boards = service;
     }
 
 

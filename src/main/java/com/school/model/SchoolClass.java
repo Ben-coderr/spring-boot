@@ -20,15 +20,23 @@ public class SchoolClass {
 
     public Long getId()                   { return id; }
 
+    //get class name
     public String getName()               { return name; }
-    public void   setName(String n)       { this.name = n; }
+    //set class name
+    public void   setName(String name)       { this.name = name; }
 
+    //get class capacity
     public Integer getCapacity()          { return capacity; }
-    public void    setCapacity(Integer c) { this.capacity = c; }
+    //set class capacity
+    public void    setCapacity(Integer capacity) { this.capacity = capacity; }
 
+    //get grade for the class
     public Grade getGrade()               { return grade; }
-    public void  setGrade(Grade g)        { this.grade = g; }
+    //set grade for the class
+    public void  setGrade(Grade grade)        { this.grade = grade; }
 
+    //get supervisor teacher
     public Teacher getSupervisor()        { return supervisor; }
-    public void    setSupervisor(Teacher t){ this.supervisor = t; }
+    //set supervisor teacher
+    public void    setSupervisor(Teacher supervisor){ this.supervisor = supervisor; }
 }

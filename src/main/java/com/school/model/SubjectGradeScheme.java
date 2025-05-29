@@ -28,7 +28,10 @@ public class SubjectGradeScheme {
     public List<MarkComponent> getComponents(){ return components; }
 
     /* ---------- setters ---------- */
-    public void setSubject(Subject s)          { this.subject = s; }
-    public void setGrade(Grade g)              { this.grade   = g; }
-    public void setCoefficient(Integer c)      { this.coefficient = c; }
+    //set subject
+    public void setSubject(Subject subject)          { this.subject = subject; }
+    //set grade
+    public void setGrade(Grade grade)              { this.grade   = grade; }
+    //set coefficient value
+    public void setCoefficient(Integer coefficient)      { this.coefficient = coefficient; }
 }

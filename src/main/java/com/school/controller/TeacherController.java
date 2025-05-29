@@ -27,9 +27,9 @@ public class TeacherController {
     }
 
     //helper to validate needed fields
-    private static void need(String v, String f) {
-        if (v == null || v.isBlank())
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, f + " required");
+    private static void need(String value, String field) {
+        if (value == null || value.isBlank())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, field + " required");
     }
 
 

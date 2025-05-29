@@ -3,7 +3,7 @@ package com.school.model;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.validation.constraints.*;
@@ -43,7 +43,7 @@ public class Student {
     @Column(insertable = false, updatable = false)
     private java.time.LocalDateTime createdAt;
 
-    //Rleations variables for parent link top student
+    // link parent to student
     @ManyToOne(fetch = FetchType.LAZY)
     private Parent parent;                // many kids can possibly share one parent
 
@@ -54,46 +54,59 @@ public class Student {
     public Long   getId()                 { return id; }
 
     public String getFullName()           { return fullName; }
-    public void   setFullName(String n)   { this.fullName = n; }
+    //set student full name
+    public void   setFullName(String name)   { this.fullName = name; }
 
     public String getSurname()            { return surname; }
-    public void   setSurname(String s)    { this.surname = s; }
+    //set student surname
+    public void   setSurname(String surname)    { this.surname = surname; }
 
     public String getEmail()              { return email; }
-    public void   setEmail(String e)      { this.email = e; }
+    //set student email
+    public void   setEmail(String email)      { this.email = email; }
 
     public String getPhone()              { return phone; }
-    public void   setPhone(String p)      { this.phone = p; }
+    //set student phone
+    public void   setPhone(String phone)      { this.phone = phone; }
 
     public String getMatricule()          { return matricule; }
-    public void   setMatricule(String m)  { this.matricule = m; }
+    //set student matricule
+    public void   setMatricule(String matricule)  { this.matricule = matricule; }
 
     public String getPlaceOfBirth()          { return placeOfBirth; }
-    public void   setPlaceOfBirth(String p)  { this.placeOfBirth = p; }
+    //set place of birth
+    public void   setPlaceOfBirth(String place)  { this.placeOfBirth = place; }
 
     // public String getPassword()           { return password; }
     // public void   setPassword(String pw)  { this.password = pw; }
 
     public String getAddress()            { return address; }
-    public void   setAddress(String a)    { this.address = a; }
+    //set student address
+    public void   setAddress(String address)    { this.address = address; }
 
     public String getImg()                { return img; }
-    public void   setImg(String i)        { this.img = i; }
+    //set student image
+    public void   setImg(String img)        { this.img = img; }
 
     public String getBloodType()          { return bloodType; }
-    public void   setBloodType(String b)  { this.bloodType = b; }
+    //set blood type
+    public void   setBloodType(String blood)  { this.bloodType = blood; }
 
     public String getSex()                { return sex; }
-    public void   setSex(String s)        { this.sex = s; }
+    //set student sex
+    public void   setSex(String sex)        { this.sex = sex; }
 
     public LocalDate getBirthday()        { return birthday; }
-    public void      setBirthday(LocalDate d){ this.birthday = d; }
+    //set student birthday
+    public void      setBirthday(LocalDate date){ this.birthday = date; }
 
     public java.time.LocalDateTime getCreatedAt() { return createdAt; }
 
     public Parent getParent()             { return parent; }
-    public void   setParent(Parent p)     { this.parent = p; }
+    //set parent of student
+    public void   setParent(Parent parent)     { this.parent = parent; }
 
     public SchoolClass getSchoolClass()   { return schoolClass; }
-    public void        setSchoolClass(SchoolClass c){ this.schoolClass = c; }
+    //set class of student
+    public void        setSchoolClass(SchoolClass schoolClass){ this.schoolClass = schoolClass; }
 }

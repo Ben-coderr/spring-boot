@@ -3,7 +3,7 @@ package com.school.model;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Entity
@@ -39,34 +39,43 @@ public class Teacher {
    
     public Long   getId()            { return id; }
     public String getFullName()      { return fullName; }
-    public void   setFullName(String n){ this.fullName = n; }
+    //set teacher full name
+    public void   setFullName(String name){ this.fullName = name; }
 
     public String getEmail()         { return email; }
-    public void   setEmail(String e) { this.email = e; }
+    //set teacher email
+    public void   setEmail(String email) { this.email = email; }
 
     public String getPhone()         { return phone; }
-    public void   setPhone(String p) { this.phone = p; }
+    //set teacher phone
+    public void   setPhone(String phone) { this.phone = phone; }
 
     public String getPlaceOfBirth()         { return placeOfBirth; }
-    public void   setPlaceOfBirth(String p) { this.placeOfBirth = p; }
+    //set place of birth
+    public void   setPlaceOfBirth(String place) { this.placeOfBirth = place; }
 
     // public String getPassword()      { return password; }
     // public void   setPassword(String pw){ this.password = pw; }
 
     public Subject getSubject()      { return subject; }
-    public void    setSubject(Subject s){ this.subject = s; }
+    //set subject taught
+    public void    setSubject(Subject subject){ this.subject = subject; }
 
     public String getImg()           { return img; }
-    public void   setImg(String i)   { this.img = i; }
+    //set teacher image
+    public void   setImg(String img)   { this.img = img; }
 
     public String getBloodType()     { return bloodType; }
-    public void   setBloodType(String b){ this.bloodType = b; }
+    //set blood type
+    public void   setBloodType(String blood){ this.bloodType = blood; }
 
     public String getSex()           { return sex; }
-    public void   setSex(String s)   { this.sex = s; }
+    //set teacher sex
+    public void   setSex(String sex)   { this.sex = sex; }
 
     public LocalDate getBirthday()   { return birthday; }
-    public void      setBirthday(LocalDate d){ this.birthday = d; }
+    //set teacher birthday
+    public void      setBirthday(LocalDate date){ this.birthday = date; }
 
     public java.time.LocalDateTime getCreatedAt() { return createdAt; }
 }

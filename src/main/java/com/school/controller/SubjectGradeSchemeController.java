@@ -11,10 +11,10 @@ import org.springframework.web.bind.annotation.*;
 public class SubjectGradeSchemeController {
 
     private final SubjectGradeSchemeRepo repo;
-    public SubjectGradeSchemeController(SubjectGradeSchemeRepo r){ this.repo = r; }
+    public SubjectGradeSchemeController(SubjectGradeSchemeRepo repository){ this.repo = repository; }
 
     @PostMapping @ResponseStatus(HttpStatus.CREATED)
-    public SubjectGradeScheme create(@RequestBody SubjectGradeScheme s){
-        return repo.save(s);
+    public SubjectGradeScheme create(@RequestBody SubjectGradeScheme scheme){
+        return repo.save(scheme);
     }
 }

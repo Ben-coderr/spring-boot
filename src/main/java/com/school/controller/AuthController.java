@@ -42,9 +42,9 @@ public class AuthController {
         this.encoder     = encoder;
     }
 
-    private static void need(String v,String f){
-        if(v==null||v.isBlank())
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,f+" required");
+    private static void need(String value,String field){
+        if(value==null||value.isBlank())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,field+" required");
     }
 
     @PostMapping("/signup/student")
@@ -57,12 +57,12 @@ public class AuthController {
         user.setPassword(encoder.encode(req.password()));
         user.setRole(Role.STUDENT);
         user.setApproved(false);
-        Student s = new Student();
-        s.setFullName(req.fullName());
-        s.setEmail(req.email());
-        s.setPhone(req.phone());
-        s.setUser(user);
-        students.save(s);
+        Student student = new Student();
+        student.setFullName(req.fullName());
+        student.setEmail(req.email());
+        student.setPhone(req.phone());
+        student.setUser(user);
+        students.save(student);
     }
 
     @PostMapping("/signup/teacher")
@@ -75,12 +75,12 @@ public class AuthController {
         user.setPassword(encoder.encode(req.password()));
         user.setRole(Role.TEACHER);
         user.setApproved(false);
-        Teacher t = new Teacher();
-        t.setFullName(req.fullName());
-        t.setEmail(req.email());
-        t.setPhone(req.phone());
-        t.setUser(user);
-        teachers.save(t);
+        Teacher teacher = new Teacher();
+        teacher.setFullName(req.fullName());
+        teacher.setEmail(req.email());
+        teacher.setPhone(req.phone());
+        teacher.setUser(user);
+        teachers.save(teacher);
     }
 
     @PostMapping("/signup/parent")
@@ -93,12 +93,12 @@ public class AuthController {
         user.setPassword(encoder.encode(req.password()));
         user.setRole(Role.PARENT);
         user.setApproved(false);
-        Parent p = new Parent();
-        p.setFullName(req.fullName());
-        p.setEmail(req.email());
-        p.setPhone(req.phone());
-        p.setUser(user);
-        parents.save(p);
+        Parent parent = new Parent();
+        parent.setFullName(req.fullName());
+        parent.setEmail(req.email());
+        parent.setPhone(req.phone());
+        parent.setUser(user);
+        parents.save(parent);
     }
 
     @PostMapping("/login")
@@ -129,9 +129,9 @@ public class AuthController {
     /** Pick the “owning” entity and return its fullName, or fallback to username */
     private String resolveFullName(User user) {
         Long uid = user.getId();
-        Role r   = user.getRole();
+        Role role   = user.getRole();
 
-        return switch (r) {
+        return switch (role) {
             case TEACHER -> teachers.findByUser_Id(uid)
                                     .map(t -> t.getFullName())
                                     .orElse(user.getUsername());
@@ -145,6 +145,6 @@ public class AuthController {
         };
     }
 
-    /* -------------------------------------------------------------------- */
+    //request payload for login
     private record AuthRequest(String username, String password) {}
 }

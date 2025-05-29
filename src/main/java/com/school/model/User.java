@@ -27,7 +27,8 @@ public class User implements UserDetails {
     private boolean approved = false;
 
     public boolean isApproved()           { return approved; }
-    public void    setApproved(boolean a) { this.approved = a; }
+    //set approval flag
+    public void    setApproved(boolean approved) { this.approved = approved; }
 
     @Override public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + role));
@@ -44,6 +45,8 @@ public class User implements UserDetails {
     public Long getId()               { return id; }
     public Role getRole()             { return role; }
     public void setRole(Role role)    { this.role = role; }
-    public void setUsername(String u) { this.username = u; }
-    public void setPassword(String p) { this.password = p; }
+    //set username
+    public void setUsername(String username) { this.username = username; }
+    //set password
+    public void setPassword(String password) { this.password = password; }
 }

@@ -20,15 +20,23 @@ public class Attendance {
 
 
     public Long getId()                  { return id; }
+    //get attendance status
     public String getStatus()            { return status; }
-    public void   setStatus(String s)    { this.status = s; }
+    //set attendance status
+    public void   setStatus(String status)    { this.status = status; }
 
+    //get attendance date
     public LocalDate getDate()           { return date; }
-    public void      setDate(LocalDate d){ this.date = d; }
+    //set attendance date
+    public void      setDate(LocalDate date){ this.date = date; }
 
+    //get student for record
     public Student getStudent()          { return student; }
-    public void   setStudent(Student st) { this.student = st; }
+    //set student for record
+    public void   setStudent(Student student) { this.student = student; }
 
+    //get lesson for record
     public Lesson  getLesson()           { return lesson; }
-    public void    setLesson(Lesson l)   { this.lesson = l; }
+    //set lesson for record
+    public void    setLesson(Lesson lesson)   { this.lesson = lesson; }
 }

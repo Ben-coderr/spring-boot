@@ -23,10 +23,10 @@ public class AdminController {
         this.users  = users;
     }
 
-    //helper to validate needded informations
-    private static void need(String v,String f){
-        if(v==null||v.isBlank())
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,f+" required");
+    //helper to validate data
+    private static void need(String value,String field){
+        if(value==null||value.isBlank())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,field+" required");
     }
 
     @GetMapping

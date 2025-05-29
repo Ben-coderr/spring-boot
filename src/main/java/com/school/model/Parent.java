@@ -30,16 +30,20 @@ public class Parent {
 
     public Long getId()                { return id; }
     public String getFullName()        { return fullName; }
-    public void   setFullName(String n){ this.fullName = n; }
+    //set parent full name
+    public void   setFullName(String name){ this.fullName = name; }
 
     public String getPhone()           { return phone; }
-    public void   setPhone(String p)   { this.phone = p; }
+    //set parent phone
+    public void   setPhone(String phone)   { this.phone = phone; }
 
     public String getEmail()           { return email; }
-    public void   setEmail(String e)   { this.email = e; }
+    //set parent email
+    public void   setEmail(String email)   { this.email = email; }
 
     public String getAddress()         { return address; }
-    public void   setAddress(String a) { this.address = a; }
+    //set parent address
+    public void   setAddress(String address) { this.address = address; }
 
     // public String getPassword()         { return password; }
     // public void   setPassword(String pass) { this.password = pass; }
