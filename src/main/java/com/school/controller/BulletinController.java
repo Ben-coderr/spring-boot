@@ -9,15 +9,15 @@ import java.util.Map;
 @RequestMapping("/bulletins")
 public class BulletinController { // build bulletins
 
-    private final BulletinService bulletins;
+    private final BulletinService bulletinService;
 
     public BulletinController(BulletinService service){
-        this.bulletins = service;
+        this.bulletinService = service;
     }
 
-    // e.g. GET /bulletins/student/5
+    //GET /bulletins/student/5
     @GetMapping("/student/{id}")
-    public Map<String,Object> getBulletin(@PathVariable Long id){
-        return bulletins.generate(id);
+    public Map<String,Object> generateBulletin(@PathVariable Long id){
+        return bulletinService.generate(id);
     }
 }

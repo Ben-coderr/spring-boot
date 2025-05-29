@@ -17,21 +17,21 @@ import java.util.ArrayList;
 @RequestMapping("/attendances")
 public class AttendanceController {
 
-    private final AttendanceRepository attendances;
-    private final AttendanceService    stats;   
+    private final AttendanceRepository attendanceRepo;
+    private final AttendanceService    attendanceService;
 
     //only possible statuses are here
     private final Set<String> allowed = Set.of("PRESENT", "ABSENT", "LATE");
 
     public AttendanceController(AttendanceRepository repo,
                                 AttendanceService    service) {
-        this.attendances = repo;
-        this.stats       = service;
+        this.attendanceRepo  = repo;
+        this.attendanceService = service;
    }
 
     @GetMapping
-    public List<AttendanceDto> listAttendances() {
-        List<Attendance> all = attendances.findAll();
+    public List<AttendanceDto> allAttendances() {
+        List<Attendance> all = attendanceRepo.findAll();
         List<AttendanceDto> out = new ArrayList<>();
         for (Attendance attendance : all) {
             out.add(AttendanceDto.from(attendance));
@@ -40,15 +40,15 @@ public class AttendanceController {
     }
 
     @GetMapping("{id}")
-    public AttendanceDto getAttendance(@PathVariable Long id) {
-        Attendance attendance = attendances.findById(id)
+    public AttendanceDto findAttendance(@PathVariable Long id) {
+        Attendance attendance = attendanceRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "attendance " + id + " not found"));
         return AttendanceDto.from(attendance);
     }
 
     @GetMapping("/student/{sid}/percent")
-    public java.util.Map<String,Object> percent(@PathVariable("sid") Long studentId){
-        return stats.percentage(studentId);
+    public java.util.Map<String,Object> percentageForStudent(@PathVariable("sid") Long studentId){
+        return attendanceService.percentage(studentId);
     }
 
 
@@ -68,7 +68,7 @@ public class AttendanceController {
         if (body.getLesson() == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "lesson required");
 
-        return AttendanceDto.from(attendances.save(body));
+        return AttendanceDto.from(attendanceRepo.save(body));
     }
 
     @PostMapping("/bulk")
@@ -81,14 +81,14 @@ public class AttendanceController {
             if(entry.getStatus() == null || !allowed.contains(entry.getStatus().toUpperCase()))
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"status must be PRESENT, ABSENT or LATE");
         }
-        return attendances.saveAll(list);
+        return attendanceRepo.saveAll(list);
     }
 
 
     @PutMapping("{id}")
     public AttendanceDto updateAttendance(@PathVariable Long id, @RequestBody Attendance in) {
 
-        Attendance attendance = attendances.findById(id)
+        Attendance attendance = attendanceRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "attendance " + id + " not found"));
 
         if (in.getStatus() != null) {
@@ -101,11 +101,11 @@ public class AttendanceController {
         if (in.getStudent() != null) attendance.setStudent(in.getStudent());
         if (in.getLesson()  != null) attendance.setLesson(in.getLesson());
 
-        return AttendanceDto.from(attendances.save(attendance));
+        return AttendanceDto.from(attendanceRepo.save(attendance));
     }
 
     @DeleteMapping("{id}")
-    public void deleteAttendance(@PathVariable Long id) {
-        attendances.deleteById(id);
+    public void removeAttendance(@PathVariable Long id) {
+        attendanceRepo.deleteById(id);
     }
 }

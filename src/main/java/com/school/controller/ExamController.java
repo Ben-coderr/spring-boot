@@ -14,12 +14,12 @@ import java.util.ArrayList;
 @RequestMapping("/exams")
 public class ExamController {
 
-    private final ExamRepository exams;
-    public ExamController(ExamRepository repo){ exams = repo; }
+    private final ExamRepository examRepo;
+    public ExamController(ExamRepository repo){ this.examRepo = repo; }
 
     @GetMapping
-    public List<ExamDto> list(){
-        List<Exam> all = exams.findAll();
+    public List<ExamDto> allExams(){
+        List<Exam> all = examRepo.findAll();
         List<ExamDto> out = new ArrayList<>();
         for (Exam exam : all) {
             out.add(ExamDto.from(exam));
@@ -28,31 +28,31 @@ public class ExamController {
     }
 
     @GetMapping("{id}")
-    public ExamDto get(@PathVariable Long id){
-        Exam exam = exams.findById(id)
+    public ExamDto findExam(@PathVariable Long id){
+        Exam exam = examRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"exam "+id+" not found"));
         return ExamDto.from(exam);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ExamDto create(@RequestBody Exam body){
+    public ExamDto createExam(@RequestBody Exam body){
         if(body.getTitle()==null || body.getTitle().isBlank())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"title required");
         if(body.getLesson()==null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"lesson required");
-        return ExamDto.from(exams.save(body));
+        return ExamDto.from(examRepo.save(body));
     }
 
     @PutMapping("{id}")
-    public ExamDto update(@PathVariable Long id,@RequestBody Exam in){
-        Exam exam = exams.findById(id)
+    public ExamDto updateExam(@PathVariable Long id,@RequestBody Exam in){
+        Exam exam = examRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"exam "+id+" not found"));
         if(in.getTitle()!=null)    exam.setTitle(in.getTitle());
         if(in.getExamDate()!=null) exam.setExamDate(in.getExamDate());
-        return ExamDto.from(exams.save(exam));
+        return ExamDto.from(examRepo.save(exam));
     }
 
     @DeleteMapping("{id}")
-    public void delete(@PathVariable Long id){ exams.deleteById(id); }
+    public void removeExam(@PathVariable Long id){ examRepo.deleteById(id); }
 }

@@ -14,12 +14,12 @@ import java.util.ArrayList;
 @RequestMapping("/announcements")
 public class AnnouncementController {
 
-    private final AnnouncementRepository announces; // repository for messages
-    public AnnouncementController(AnnouncementRepository repo){ announces = repo; }
+    private final AnnouncementRepository announcementRepo;
+    public AnnouncementController(AnnouncementRepository repo){ this.announcementRepo = repo; }
 
     @GetMapping
-    public List<AnnouncementDto> list(){ // get all announcements
-        List<Announcement> all = announces.findAll();
+    public List<AnnouncementDto> allAnnouncements(){
+        List<Announcement> all = announcementRepo.findAll();
         List<AnnouncementDto> out = new ArrayList<>();
         for (Announcement announcement : all) {
             out.add(AnnouncementDto.from(announcement));
@@ -28,31 +28,31 @@ public class AnnouncementController {
     }
 
     @GetMapping("{id}")
-    public AnnouncementDto get(@PathVariable Long id){ // get one by id
-        Announcement announcement = announces.findById(id)
+    public AnnouncementDto findAnnouncement(@PathVariable Long id){
+        Announcement announcement = announcementRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"announcement "+id+" not found"));
         return AnnouncementDto.from(announcement);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public AnnouncementDto create(@RequestBody Announcement body){ // save new
+    public AnnouncementDto createAnnouncement(@RequestBody Announcement body){
         if(body.getTitle()==null || body.getTitle().isBlank())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"title required");
         if(body.getContent()==null || body.getContent().isBlank())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"content required");
-        return AnnouncementDto.from(announces.save(body));
+        return AnnouncementDto.from(announcementRepo.save(body));
     }
 
     @PutMapping("{id}")
-    public AnnouncementDto update(@PathVariable Long id,@RequestBody Announcement in){ // update some fields
-        Announcement announcement = announces.findById(id)
+    public AnnouncementDto updateAnnouncement(@PathVariable Long id,@RequestBody Announcement in){
+        Announcement announcement = announcementRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"announcement "+id+" not found"));
         if(in.getTitle()!=null)   announcement.setTitle(in.getTitle());
         if(in.getContent()!=null) announcement.setContent(in.getContent());
-        return AnnouncementDto.from(announces.save(announcement));
+        return AnnouncementDto.from(announcementRepo.save(announcement));
     }
 
     @DeleteMapping("{id}")
-    public void delete(@PathVariable Long id){ announces.deleteById(id); } // remove record
+    public void removeAnnouncement(@PathVariable Long id){ announcementRepo.deleteById(id); }
 }

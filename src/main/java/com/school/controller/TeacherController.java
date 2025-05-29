@@ -18,16 +18,16 @@ import java.util.ArrayList;
 @RequestMapping("/teachers")
 public class TeacherController { // teacher endpoints
 
-    private final TeacherRepository teachers;
-    private final PasswordEncoder encoder;
-    private final UserRepository   users;
+    private final TeacherRepository teacherRepo;
+    private final PasswordEncoder  passwordEncoder;
+    private final UserRepository   userRepo;
 
     public TeacherController(TeacherRepository repo,
-                             PasswordEncoder   encoder,
-                             UserRepository    users) {
-        this.teachers = repo;
-        this.encoder  = encoder;
-        this.users    = users;
+                             PasswordEncoder   passwordEncoder,
+                             UserRepository    userRepo) {
+        this.teacherRepo = repo;
+        this.passwordEncoder  = passwordEncoder;
+        this.userRepo    = userRepo;
     }
 
     //helper to validate needed fields
@@ -39,7 +39,7 @@ public class TeacherController { // teacher endpoints
 
     @GetMapping
     public List<TeacherDto> listTeachers() {
-        List<Teacher> all = teachers.findAll();
+        List<Teacher> all = teacherRepo.findAll();
         List<TeacherDto> out = new ArrayList<>();
         for (Teacher teacher : all) {
             out.add(TeacherDto.from(teacher));
@@ -49,14 +49,14 @@ public class TeacherController { // teacher endpoints
 
     @GetMapping("{id}")
     public TeacherDto getTeacher(@PathVariable Long id) {
-        Teacher teacher = teachers.findById(id)
+        Teacher teacher = teacherRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "teacher " + id + " not found"));
         return TeacherDto.from(teacher);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public TeacherDto add(@RequestBody Teacher body){
+    public TeacherDto registerTeacher(@RequestBody Teacher body){
 
         need(body.getFullName(),"name");
         need(body.getUser() != null ? body.getUser().getPassword() : null,
@@ -68,22 +68,22 @@ public class TeacherController { // teacher endpoints
                     ? body.getEmail()
                     : body.getPhone();
 
-        if (users.findByUsername(uname).isPresent())
+        if (userRepo.findByUsername(uname).isPresent())
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST, "username already exists");
 
         user.setUsername(uname);
-        user.setPassword(encoder.encode(body.getUser().getPassword()));
+        user.setPassword(passwordEncoder.encode(body.getUser().getPassword()));
         user.setRole(Role.TEACHER);
         body.setUser(user);
 
-        return TeacherDto.from(teachers.save(body));
+        return TeacherDto.from(teacherRepo.save(body));
     }
 
     @PutMapping("{id}")
     public TeacherDto updateTeacher(@PathVariable Long id, @RequestBody Teacher in) {
 
-        Teacher teacher = teachers.findById(id)
+        Teacher teacher = teacherRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "teacher " + id + " not found"));
 
         if (in.getFullName() != null) teacher.setFullName(in.getFullName());
@@ -97,11 +97,11 @@ public class TeacherController { // teacher endpoints
         // if (in.getPassword() != null) teacher.setPassword(in.getPassword());
         if (in.getSubject()  != null) teacher.setSubject(in.getSubject());
 
-        return TeacherDto.from(teachers.save(teacher));
+        return TeacherDto.from(teacherRepo.save(teacher));
     }
 
     @DeleteMapping("{id}")
     public void removeTeacher(@PathVariable Long id) {
-        teachers.deleteById(id);
+        teacherRepo.deleteById(id);
     }
 }

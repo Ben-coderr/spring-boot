@@ -17,19 +17,19 @@ import java.util.ArrayList;
 @RequestMapping("/classes")
 public class SchoolClassController {
 
-    private final SchoolClassRepository classes;
-    private final ClassRankingService   ranking;
+    private final SchoolClassRepository classRepo;
+    private final ClassRankingService   rankingService;
 
     public SchoolClassController(SchoolClassRepository repo,
-                                 ClassRankingService   rnk) { // ← changed
-        this.classes = repo;
-        this.ranking = rnk;
+                                 ClassRankingService   rnk) {
+        this.classRepo = repo;
+        this.rankingService = rnk;
     }
 
 
     @GetMapping
-    public List<SchoolClassDto> list(){
-        List<SchoolClass> all = classes.findAll();
+    public List<SchoolClassDto> allClasses(){
+        List<SchoolClass> all = classRepo.findAll();
         List<SchoolClassDto> out = new ArrayList<>();
         for (SchoolClass classEntity : all) {
             GradeDto gd = (classEntity.getGrade()!=null)
@@ -41,44 +41,44 @@ public class SchoolClassController {
     }
 
     @GetMapping("{id}")
-    public SchoolClassDto get(@PathVariable Long id){
-        SchoolClass classEntity = classes.findById(id)
+    public SchoolClassDto findClass(@PathVariable Long id){
+        SchoolClass classEntity = classRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"class "+id+" not found"));
         GradeDto gd = (classEntity.getGrade()!=null)? new GradeDto(classEntity.getGrade().getId(), classEntity.getGrade().getLevel()) : null;
         return new SchoolClassDto(classEntity.getId(), classEntity.getName(), gd);
     }
 
     @GetMapping("{id}/rank")
-    public java.util.List<Map<String,Object>> rank(@PathVariable Long id) {
-        get(id);                     
-        return ranking.ranking(id);
+    public java.util.List<Map<String,Object>> rankingForClass(@PathVariable Long id) {
+        findClass(id);
+        return rankingService.ranking(id);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public SchoolClassDto create(@RequestBody SchoolClass body){
+    public SchoolClassDto createClass(@RequestBody SchoolClass body){
         if(body.getName()==null||body.getName().isBlank())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"name required");
         if(body.getGrade()==null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"grade required");
-        SchoolClass saved = classes.save(body);
+        SchoolClass saved = classRepo.save(body);
         GradeDto gd = (saved.getGrade()!=null)? new GradeDto(saved.getGrade().getId(), saved.getGrade().getLevel()) : null;
         return new SchoolClassDto(saved.getId(), saved.getName(), gd);
     }
 
     @PutMapping("{id}")
-    public SchoolClassDto update(@PathVariable Long id,@RequestBody SchoolClass in){
-        SchoolClass classEntity = classes.findById(id)
+    public SchoolClassDto updateClass(@PathVariable Long id,@RequestBody SchoolClass in){
+        SchoolClass classEntity = classRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"class "+id+" not found"));
         if(in.getName()!=null)     classEntity.setName(in.getName());
         if(in.getCapacity()!=null) classEntity.setCapacity(in.getCapacity());
         if(in.getGrade()!=null)    classEntity.setGrade(in.getGrade());
         if(in.getSupervisor()!=null)classEntity.setSupervisor(in.getSupervisor());
-        SchoolClass saved = classes.save(classEntity);
+        SchoolClass saved = classRepo.save(classEntity);
         GradeDto gd = (saved.getGrade()!=null)? new GradeDto(saved.getGrade().getId(), saved.getGrade().getLevel()) : null;
         return new SchoolClassDto(saved.getId(), saved.getName(), gd);
     }
 
     @DeleteMapping("{id}")
-    public void remove(@PathVariable Long id){ classes.deleteById(id); }
+    public void removeClass(@PathVariable Long id){ classRepo.deleteById(id); }
 }

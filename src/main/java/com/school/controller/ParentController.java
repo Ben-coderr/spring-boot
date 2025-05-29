@@ -16,13 +16,13 @@ import java.util.ArrayList;
 @RestController
 @RequestMapping("/parents")
 public class ParentController { // manage parents
-    private final ParentRepository parents;
-    private final PasswordEncoder  encoder;          
+    private final ParentRepository parentRepo;
+    private final PasswordEncoder  passwordEncoder;
 
     public ParentController(ParentRepository repo,
-                            PasswordEncoder   encoder) {
-        this.parents = repo;
-        this.encoder = encoder;
+                            PasswordEncoder   passwordEncoder) {
+        this.parentRepo = repo;
+        this.passwordEncoder = passwordEncoder;
     }
 
     private static void must(String value,String field){
@@ -31,8 +31,8 @@ public class ParentController { // manage parents
     }
 
     @GetMapping
-    public List<ParentDto> list(){
-        List<Parent> all = parents.findAll();
+    public List<ParentDto> allParents(){
+        List<Parent> all = parentRepo.findAll();
         List<ParentDto> out = new ArrayList<>();
         for (Parent parent : all) {
             out.add(ParentDto.from(parent));
@@ -41,15 +41,15 @@ public class ParentController { // manage parents
     }
 
     @GetMapping("{id}")
-    public ParentDto get(@PathVariable Long id){
-        Parent parent = parents.findById(id)
+    public ParentDto findParent(@PathVariable Long id){
+        Parent parent = parentRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"parent "+id+" not found"));
         return ParentDto.from(parent);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ParentDto add(@RequestBody Parent body){
+    public ParentDto registerParent(@RequestBody Parent body){
 
         must(body.getFullName(),"name");
         must(body.getUser() != null ? body.getUser().getPassword() : null,
@@ -61,23 +61,23 @@ public class ParentController { // manage parents
                     ? body.getEmail()
                     : body.getPhone();
         user.setUsername(uname);
-        user.setPassword(encoder.encode(body.getUser().getPassword()));
+        user.setPassword(passwordEncoder.encode(body.getUser().getPassword()));
         user.setRole(Role.PARENT);
         body.setUser(user);
 
-        return ParentDto.from(parents.save(body));
+        return ParentDto.from(parentRepo.save(body));
     }
 
     @PutMapping("{id}")
-    public ParentDto edit(@PathVariable Long id,@RequestBody Parent in){
-        Parent parent = parents.findById(id)
+    public ParentDto updateParent(@PathVariable Long id,@RequestBody Parent in){
+        Parent parent = parentRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"parent "+id+" not found"));
         if(in.getFullName()!=null) parent.setFullName(in.getFullName());
         if(in.getEmail()!=null)    parent.setEmail(in.getEmail());
         // if(in.getPassword()!=null) parent.setPassword(in.getPassword());
-        return ParentDto.from(parents.save(parent));
+        return ParentDto.from(parentRepo.save(parent));
     }
 
     @DeleteMapping("{id}")
-    public void remove(@PathVariable Long id){ parents.deleteById(id); }
+    public void removeParent(@PathVariable Long id){ parentRepo.deleteById(id); }
 }

@@ -1,4 +1,3 @@
-
 CREATE TABLE grade (
   id     BIGINT AUTO_INCREMENT PRIMARY KEY,
   level  INT NOT NULL UNIQUE
@@ -9,6 +8,7 @@ CREATE TABLE subject (
   coefficient INT NOT NULL,
   name VARCHAR(80) NOT NULL UNIQUE
 );
+
 
 CREATE TABLE parent (
   id         BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -73,12 +73,11 @@ CREATE TABLE student (
   FOREIGN KEY (school_class_id) REFERENCES school_class(id)
 );
 
-
 CREATE TABLE lesson (
   id              BIGINT AUTO_INCREMENT PRIMARY KEY,
   topic           VARCHAR(150) NOT NULL,
   lesson_date     DATE,
-  day             VARCHAR(10),       --MONDAY
+  day             VARCHAR(10),       -- 'MONDAY'
   start_time      TIME,
   end_time        TIME,
 

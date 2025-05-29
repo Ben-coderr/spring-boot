@@ -10,15 +10,15 @@ import java.util.List;
 @RequestMapping("/dash")
 public class DashboardController { // dashboard info
 
-    private final DashboardService boards;
+    private final DashboardService dashboardService;
 
     public DashboardController(DashboardService service) {
-        this.boards = service;
+        this.dashboardService = service;
     }
 
 
     @GetMapping("/occupancy")
     public List<DashboardService.Occupancy> occupancy() {
-        return boards.snapshot();
+        return dashboardService.snapshot();
     }
 }

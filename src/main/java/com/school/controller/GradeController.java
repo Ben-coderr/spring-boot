@@ -14,13 +14,13 @@ import java.util.ArrayList;
 @RequestMapping("/grades")
 public class GradeController {
 
-    private final GradeRepository grades;
-    public GradeController(GradeRepository repo){ this.grades = repo; }
+    private final GradeRepository gradeRepo;
+    public GradeController(GradeRepository repo){ this.gradeRepo = repo; }
 
 
     @GetMapping
-    public List<GradeDto> list(){
-        List<Grade> all = grades.findAll();
+    public List<GradeDto> allGrades(){
+        List<Grade> all = gradeRepo.findAll();
         List<GradeDto> out = new ArrayList<>();
         for (Grade grade : all) {
             out.add(new GradeDto(grade.getId(), grade.getLevel()));
@@ -29,8 +29,8 @@ public class GradeController {
     }
 
     @GetMapping("{id}")
-    public GradeDto get(@PathVariable Long id){
-        Grade grade = grades.findById(id)
+    public GradeDto findGrade(@PathVariable Long id){
+        Grade grade = gradeRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"grade "+id+" not found"));
         return new GradeDto(grade.getId(), grade.getLevel());
     }
@@ -38,20 +38,20 @@ public class GradeController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public GradeDto add(@RequestBody Grade body){
+    public GradeDto createGrade(@RequestBody Grade body){
         if(body.getLevel()==null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"level required");
-        return new GradeDto(grades.save(body).getId(), body.getLevel());
+        return new GradeDto(gradeRepo.save(body).getId(), body.getLevel());
     }
 
     @PutMapping("{id}")
-    public GradeDto edit(@PathVariable Long id,@RequestBody Grade in){
-        Grade grade = grades.findById(id)
+    public GradeDto updateGrade(@PathVariable Long id,@RequestBody Grade in){
+        Grade grade = gradeRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"grade "+id+" not found"));
         if(in.getLevel()!=null) grade.setLevel(in.getLevel());
-        return new GradeDto(grades.save(grade).getId(), grade.getLevel());
+        return new GradeDto(gradeRepo.save(grade).getId(), grade.getLevel());
     }
 
     @DeleteMapping("{id}")
-    public void drop(@PathVariable Long id){ grades.deleteById(id); }
+    public void removeGrade(@PathVariable Long id){ gradeRepo.deleteById(id); }
 }

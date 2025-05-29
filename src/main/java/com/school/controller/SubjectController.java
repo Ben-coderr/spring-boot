@@ -14,12 +14,12 @@ import java.util.ArrayList;
 @RequestMapping("/subjects")
 public class SubjectController { // handle subjects
 
-    private final SubjectRepository subjects;
-    public SubjectController(SubjectRepository repo){ this.subjects = repo; }
+    private final SubjectRepository subjectRepo;
+    public SubjectController(SubjectRepository repo){ this.subjectRepo = repo; }
 
     @GetMapping
-    public List<SubjectDto> list(){
-        List<Subject> all = subjects.findAll();
+    public List<SubjectDto> allSubjects(){
+        List<Subject> all = subjectRepo.findAll();
         List<SubjectDto> out = new ArrayList<>();
         for (Subject subject : all) {
             out.add(SubjectDto.from(subject));
@@ -28,33 +28,33 @@ public class SubjectController { // handle subjects
     }
 
     @GetMapping("{id}")
-    public SubjectDto get(@PathVariable Long id){
-        Subject subject = subjects.findById(id)
+    public SubjectDto findSubject(@PathVariable Long id){
+        Subject subject = subjectRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"subject "+id+" not found"));
         return SubjectDto.from(subject);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public SubjectDto add(@RequestBody Subject body){
+    public SubjectDto createSubject(@RequestBody Subject body){
         if(body.getName()==null || body.getName().isBlank())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"name required");
-        return SubjectDto.from(subjects.save(body));
+        return SubjectDto.from(subjectRepo.save(body));
     }
 
     @PutMapping("{id}")
-    public SubjectDto edit(@PathVariable Long id,@RequestBody Subject in){
-        Subject subject = subjects.findById(id)
+    public SubjectDto updateSubject(@PathVariable Long id,@RequestBody Subject in){
+        Subject subject = subjectRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"subject "+id+" not found"));
         if(in.getName()!=null) subject.setName(in.getName());
         if(in.getCoefficient()!=null) subject.setCoefficient(in.getCoefficient());
         if(in.getCcWeight()!=null) subject.setCcWeight(in.getCcWeight());
         if(in.getExamWeight()!=null) subject.setExamWeight(in.getExamWeight());
         if(in.getAttendanceWeight()!=null) subject.setAttendanceWeight(in.getAttendanceWeight());
-        return SubjectDto.from(subjects.save(subject));
+        return SubjectDto.from(subjectRepo.save(subject));
     }
 
     @DeleteMapping("{id}")
-    public void delete(@PathVariable Long id){ subjects.deleteById(id); }
+    public void removeSubject(@PathVariable Long id){ subjectRepo.deleteById(id); }
 }
 

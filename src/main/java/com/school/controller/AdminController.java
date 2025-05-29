@@ -14,13 +14,13 @@ import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/admins")
-public class AdminController { // admin tasks
+public class AdminController {
 
-    private final AdminRepository admins;
-    private final UserRepository  users;
-    public AdminController(AdminRepository repo, UserRepository users){
-        this.admins = repo;
-        this.users  = users;
+    private final AdminRepository adminRepo;
+    private final UserRepository  userRepo;
+    public AdminController(AdminRepository repo, UserRepository userRepo){
+        this.adminRepo = repo;
+        this.userRepo  = userRepo;
     }
 
     //helper to validate data
@@ -30,8 +30,8 @@ public class AdminController { // admin tasks
     }
 
     @GetMapping
-    public List<AdminDto> list(){
-        List<Admin> all = admins.findAll();
+    public List<AdminDto> allAdmins(){
+        List<Admin> all = adminRepo.findAll();
         List<AdminDto> out = new ArrayList<>();
         for (Admin admin : all) {
             out.add(AdminDto.from(admin));
@@ -40,8 +40,8 @@ public class AdminController { // admin tasks
     }
 
     @GetMapping("{id}")
-    public AdminDto get(@PathVariable Long id){
-        Admin admin = admins.findById(id)
+    public AdminDto findAdmin(@PathVariable Long id){
+        Admin admin = adminRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,"admin "+id+" not found"));
         return AdminDto.from(admin);
@@ -49,37 +49,37 @@ public class AdminController { // admin tasks
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public AdminDto create(@RequestBody Admin body){
+    public AdminDto createAdmin(@RequestBody Admin body){
         need(body.getFullName(),"name");
         need(body.getEmail(),"email");
         need(body.getPassword(),"password");
-        return AdminDto.from(admins.save(body));
+        return AdminDto.from(adminRepo.save(body));
     }
 
     @PutMapping("{id}")
-    public AdminDto update(@PathVariable Long id,@RequestBody Admin in){
-        Admin admin = admins.findById(id)
+    public AdminDto updateAdmin(@PathVariable Long id,@RequestBody Admin in){
+        Admin admin = adminRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,"admin "+id+" not found"));
         if(in.getFullName()!=null) admin.setFullName(in.getFullName());
         if(in.getEmail()!=null)    admin.setEmail(in.getEmail());
         if(in.getPassword()!=null) admin.setPassword(in.getPassword());
-        return AdminDto.from(admins.save(admin));
+        return AdminDto.from(adminRepo.save(admin));
     }
 
     @DeleteMapping("{id}")
-    public void delete(@PathVariable Long id){ admins.deleteById(id); }
+    public void removeAdmin(@PathVariable Long id){ adminRepo.deleteById(id); }
 
     @GetMapping("/unapproved")
     public java.util.List<User> unapproved(){
-        return users.findByApprovedFalse();
+        return userRepo.findByApprovedFalse();
     }
 
     @PostMapping("/approve/{userId}")
     public void approve(@PathVariable Long userId){
-        User user = users.findById(userId)
+        User user = userRepo.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"user not found"));
         user.setApproved(true);
-        users.save(user);
+        userRepo.save(user);
     }
 }
