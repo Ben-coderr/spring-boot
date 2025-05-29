@@ -24,13 +24,13 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     private Role role;
     @Column(nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0")
-    private boolean approved = false;
+    private boolean approved = false; // is account approved
 
     public boolean isApproved()           { return approved; }
-    //set approval flag
+    // set approval flag
     public void    setApproved(boolean approved) { this.approved = approved; }
 
-    @Override public Collection<? extends GrantedAuthority> getAuthorities() {
+    @Override public Collection<? extends GrantedAuthority> getAuthorities() { // roles as auth
         return List.of(new SimpleGrantedAuthority("ROLE_" + role));
     }
 
@@ -45,8 +45,8 @@ public class User implements UserDetails {
     public Long getId()               { return id; }
     public Role getRole()             { return role; }
     public void setRole(Role role)    { this.role = role; }
-    //set username
+    // set username
     public void setUsername(String username) { this.username = username; }
-    //set password
+    // set password
     public void setPassword(String password) { this.password = password; }
 }

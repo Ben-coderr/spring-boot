@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-public class AttendanceService {
+public class AttendanceService { // track presence
 
     private final AttendanceRepository repo;
 

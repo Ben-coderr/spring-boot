@@ -2,7 +2,7 @@ package com.school.model;
 import jakarta.persistence.*;
 
 @Entity
-public class Grade {
+public class Grade { // year level
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private Integer level;

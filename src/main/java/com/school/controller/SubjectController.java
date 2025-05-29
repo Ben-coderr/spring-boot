@@ -12,7 +12,7 @@ import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/subjects")
-public class SubjectController {
+public class SubjectController { // handle subjects
 
     private final SubjectRepository subjects;
     public SubjectController(SubjectRepository repo){ this.subjects = repo; }

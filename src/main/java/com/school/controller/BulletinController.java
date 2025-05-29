@@ -7,7 +7,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/bulletins")
-public class BulletinController {
+public class BulletinController { // build bulletins
 
     private final BulletinService bulletins;
 

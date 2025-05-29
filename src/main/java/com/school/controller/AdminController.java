@@ -14,7 +14,7 @@ import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/admins")
-public class AdminController {
+public class AdminController { // admin tasks
 
     private final AdminRepository admins;
     private final UserRepository  users;

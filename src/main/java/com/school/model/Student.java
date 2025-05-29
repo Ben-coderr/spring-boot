@@ -9,7 +9,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.*;
 
 @Entity
-public class Student {
+public class Student { // student entity
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

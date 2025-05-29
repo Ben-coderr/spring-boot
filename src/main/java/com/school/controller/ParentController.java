@@ -15,7 +15,7 @@ import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/parents")
-public class ParentController {
+public class ParentController { // manage parents
     private final ParentRepository parents;
     private final PasswordEncoder  encoder;          
 

@@ -16,15 +16,15 @@ import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/auth")
-public class AuthController {
+public class AuthController { // endpoints for auth
 
-    private final AuthenticationManager  authManager;
-    private final JwtUtil                jwt;
-    private final TeacherRepository      teachers;
-    private final ParentRepository       parents;
-    private final StudentRepository      students;
-    private final AdminRepository        admins;
-    private final PasswordEncoder        encoder;
+    private final AuthenticationManager  authManager; // from spring
+    private final JwtUtil                jwt;         // token helper
+    private final TeacherRepository      teachers;    // teacher data
+    private final ParentRepository       parents;     // parent data
+    private final StudentRepository      students;    // student data
+    private final AdminRepository        admins;      // admin data
+    private final PasswordEncoder        encoder;     // password helper
 
     public AuthController(AuthenticationManager authManager,
                           JwtUtil              jwt,
@@ -32,7 +32,7 @@ public class AuthController {
                           ParentRepository     parents,
                           StudentRepository    students,
                           AdminRepository      admins,
-                          PasswordEncoder      encoder) {
+                          PasswordEncoder      encoder) { // inject all deps
         this.authManager = authManager;
         this.jwt         = jwt;
         this.teachers    = teachers;
@@ -42,14 +42,14 @@ public class AuthController {
         this.encoder     = encoder;
     }
 
-    private static void need(String value,String field){
+    private static void need(String value,String field){ // simple check
         if(value==null||value.isBlank())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,field+" required");
     }
 
     @PostMapping("/signup/student")
     @ResponseStatus(HttpStatus.CREATED)
-    public void signupStudent(@RequestBody SignupReq req){
+    public void signupStudent(@RequestBody SignupReq req){ // make new student
         need(req.username(),"username");
         need(req.password(),"password");
         User user = new User();
@@ -67,7 +67,7 @@ public class AuthController {
 
     @PostMapping("/signup/teacher")
     @ResponseStatus(HttpStatus.CREATED)
-    public void signupTeacher(@RequestBody SignupReq req){
+    public void signupTeacher(@RequestBody SignupReq req){ // make new teacher
         need(req.username(),"username");
         need(req.password(),"password");
         User user = new User();
@@ -85,7 +85,7 @@ public class AuthController {
 
     @PostMapping("/signup/parent")
     @ResponseStatus(HttpStatus.CREATED)
-    public void signupParent(@RequestBody SignupReq req){
+    public void signupParent(@RequestBody SignupReq req){ // make new parent
         need(req.username(),"username");
         need(req.password(),"password");
         User user = new User();
@@ -102,7 +102,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public LoginResponse login(@RequestBody AuthRequest req) {
+    public LoginResponse login(@RequestBody AuthRequest req) { // user login
 
         Authentication auth = authManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
@@ -126,7 +126,7 @@ public class AuthController {
         );
     }
 
-    // Pick the "owning" entity and return its fullName, or fallback to username
+    // pick the "owning" entity name or username
     private String resolveFullName(User user) {
         Long uid = user.getId();
         Role role   = user.getRole();
@@ -145,6 +145,6 @@ public class AuthController {
         };
     }
 
-    //request payload for login
+    // request payload for login
     private record AuthRequest(String username, String password) {}
 }

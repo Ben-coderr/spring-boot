@@ -13,14 +13,14 @@ import java.util.Map;
 
 import javax.crypto.SecretKey;
 
-@Component
-public class JwtUtil {
+ @Component
+ public class JwtUtil { // helper for JWT
 
 
- private final SecretKey key = Keys.hmacShaKeyFor( 
-             "ksaujdh87dh3287hcp23h237pdh387dh".getBytes());
+ private final SecretKey key = Keys.hmacShaKeyFor(
+             "ksaujdh87dh3287hcp23h237pdh387dh".getBytes()); // secret key
 
-    public String generate(String username, String role) {
+    public String generate(String username, String role) { // make token
         Instant now = Instant.now();
         return Jwts.builder()
                    .subject(username)
@@ -30,11 +30,11 @@ public class JwtUtil {
                    .signWith(key)
                    .compact();
     }
-    public String generateToken(User user) {
+    public String generateToken(User user) { // from user object
         return generate(user.getUsername(), user.getRole().name());
     }
     public io.jsonwebtoken.Claims parse(String jwt) {
-        return Jwts.parser()                 // same API, type now matches
+        return Jwts.parser()                 // check token
                    .verifyWith(key)
                    .build()
                    .parseSignedClaims(jwt)

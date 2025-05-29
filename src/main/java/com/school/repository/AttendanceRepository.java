@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
+public interface AttendanceRepository extends JpaRepository<Attendance, Long> { // attendance records
     long countByStudentId(Long studentId);                     // total rows
     long countByStudentIdAndStatus(Long studentId, String s);  // filter PRESENT
     List<Attendance> findByStudentId(Long studentId);

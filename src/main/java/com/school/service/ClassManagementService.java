@@ -17,7 +17,7 @@ import java.util.List;
 
 
 @Service
-public class ClassManagementService {
+public class ClassManagementService { // manage classes
 
     private final SchoolClassRepository classRepo;
     private final StudentRepository    studentRepo;

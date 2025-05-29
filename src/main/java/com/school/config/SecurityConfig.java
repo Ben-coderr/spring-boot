@@ -16,21 +16,21 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.core.userdetails.UserDetailsService;
 
 @Configuration
-public class SecurityConfig {
+public class SecurityConfig { // config for security
 
     @Bean
-    public PasswordEncoder encoder() {
+    public PasswordEncoder encoder() { // plain text for demo
         return NoOpPasswordEncoder.getInstance();
     }
     @Bean
-    public UserDetailsService uds(UserRepository repo) {
+    public UserDetailsService uds(UserRepository repo) { // fetch user
         return username -> repo.findByUsername(username)
                                .orElseThrow(() -> new RuntimeException("user?"));
     }
 
     @Bean
     public DaoAuthenticationProvider authProvider(UserDetailsService uds,
-                                                  PasswordEncoder enc) {
+                                                  PasswordEncoder enc) { // provider with our user
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
         provider.setUserDetailsService(uds);
         provider.setPasswordEncoder(enc);
@@ -38,17 +38,17 @@ public class SecurityConfig {
     }
     @Bean
     public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration cfg) throws Exception {
+            AuthenticationConfiguration cfg) throws Exception { // expose manager
         return cfg.getAuthenticationManager();
     }
     @Bean
 public SecurityFilterChain filter(HttpSecurity http,
                                   DaoAuthenticationProvider auth,
-                                  JwtAuthFilter             jwt) throws Exception {
+                                  JwtAuthFilter             jwt) throws Exception { // build chain
 
     http.csrf().disable()
 
-        // allow swagger + login endpoint without a token
+        // allow swagger and login without token
         .authorizeHttpRequests()
             .requestMatchers("/swagger-ui/**","/v3/api-docs/**","/auth/login", "/auth/signup/**").permitAll()
             .anyRequest().authenticated()

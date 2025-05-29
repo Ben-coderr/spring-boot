@@ -2,4 +2,4 @@ package com.school.repository;
 import com.school.model.Announcement;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface AnnouncementRepository extends JpaRepository<Announcement, Long> {}
+public interface AnnouncementRepository extends JpaRepository<Announcement, Long> {} // basic CRUD

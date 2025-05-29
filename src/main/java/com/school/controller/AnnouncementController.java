@@ -14,11 +14,11 @@ import java.util.ArrayList;
 @RequestMapping("/announcements")
 public class AnnouncementController {
 
-    private final AnnouncementRepository announces;
+    private final AnnouncementRepository announces; // repository for messages
     public AnnouncementController(AnnouncementRepository repo){ announces = repo; }
 
     @GetMapping
-    public List<AnnouncementDto> list(){
+    public List<AnnouncementDto> list(){ // get all announcements
         List<Announcement> all = announces.findAll();
         List<AnnouncementDto> out = new ArrayList<>();
         for (Announcement announcement : all) {
@@ -28,7 +28,7 @@ public class AnnouncementController {
     }
 
     @GetMapping("{id}")
-    public AnnouncementDto get(@PathVariable Long id){
+    public AnnouncementDto get(@PathVariable Long id){ // get one by id
         Announcement announcement = announces.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"announcement "+id+" not found"));
         return AnnouncementDto.from(announcement);
@@ -36,7 +36,7 @@ public class AnnouncementController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public AnnouncementDto create(@RequestBody Announcement body){
+    public AnnouncementDto create(@RequestBody Announcement body){ // save new
         if(body.getTitle()==null || body.getTitle().isBlank())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"title required");
         if(body.getContent()==null || body.getContent().isBlank())
@@ -45,7 +45,7 @@ public class AnnouncementController {
     }
 
     @PutMapping("{id}")
-    public AnnouncementDto update(@PathVariable Long id,@RequestBody Announcement in){
+    public AnnouncementDto update(@PathVariable Long id,@RequestBody Announcement in){ // update some fields
         Announcement announcement = announces.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"announcement "+id+" not found"));
         if(in.getTitle()!=null)   announcement.setTitle(in.getTitle());
@@ -54,5 +54,5 @@ public class AnnouncementController {
     }
 
     @DeleteMapping("{id}")
-    public void delete(@PathVariable Long id){ announces.deleteById(id); }
+    public void delete(@PathVariable Long id){ announces.deleteById(id); } // remove record
 }

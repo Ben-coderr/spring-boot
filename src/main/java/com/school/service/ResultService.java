@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
-public class ResultService {
+public class ResultService { // computes averages
 
     private final ResultRepository    resultRepo;
     private final SubjectRepository   subjectRepo;

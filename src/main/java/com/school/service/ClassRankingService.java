@@ -9,7 +9,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.*;
 
 @Service
-public class ClassRankingService {
+public class ClassRankingService { // rank students
 
     private final ResultRepository  results;
     private final StudentRepository students;

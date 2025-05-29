@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
-public class StudentService {
+public class StudentService { // student logic
 
     private final StudentRepository    students;
     private final SchoolClassRepository classes;

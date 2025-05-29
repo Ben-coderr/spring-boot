@@ -8,7 +8,7 @@ import java.util.List;
 //api call for dashboard
 @RestController
 @RequestMapping("/dash")
-public class DashboardController {
+public class DashboardController { // dashboard info
 
     private final DashboardService boards;
 

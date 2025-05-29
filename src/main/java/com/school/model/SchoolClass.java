@@ -3,7 +3,7 @@ package com.school.model;
 import jakarta.persistence.*;
 
 @Entity
-public class SchoolClass {
+public class SchoolClass { // class group
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

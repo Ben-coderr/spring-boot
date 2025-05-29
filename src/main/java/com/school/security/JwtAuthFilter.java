@@ -14,8 +14,8 @@ import java.io.IOException;
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
 
-    private final JwtUtil        jwt;
-    private final UserRepository users;
+    private final JwtUtil        jwt;   // helper for token
+    private final UserRepository users; // read users
 
     public JwtAuthFilter(JwtUtil jwt, UserRepository users) {
         this.jwt   = jwt;
@@ -26,13 +26,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest  req,
                                     HttpServletResponse res,
                                     FilterChain         chain)
-            throws ServletException, IOException {
+            throws ServletException, IOException { // check token on each call
 
-        String hdr = req.getHeader(HttpHeaders.AUTHORIZATION);
+        String hdr = req.getHeader(HttpHeaders.AUTHORIZATION); // get header
         if (hdr != null && hdr.startsWith("Bearer ")) {
             String token = hdr.substring(7);
             try {
-                var claims = jwt.parse(token);
+                var claims = jwt.parse(token); // decode token
                 String username = claims.getSubject();
 
                 var principal = users.findByUsername(username).orElse(null);
@@ -44,6 +44,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             } catch (Exception ignored) { // invalid token → anonymous
             }
         }
-        chain.doFilter(req, res);
+        chain.doFilter(req, res); // continue filter chain
     }
 }

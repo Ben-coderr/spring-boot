@@ -18,7 +18,7 @@ import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/students")
-public class StudentController {
+public class StudentController { // endpoints for students
 
     private final StudentRepository     students;
     private final SchoolClassRepository classes;

@@ -2,12 +2,12 @@ package com.school.model;
 import jakarta.persistence.*;
 
 @Entity
-public class Admin {
+public class Admin { // simple admin entity
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String fullName;
     private String email;
-    private String password;
+    private String password; // hashed
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

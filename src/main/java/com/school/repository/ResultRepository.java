@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface ResultRepository extends JpaRepository<Result, Long> {
+public interface ResultRepository extends JpaRepository<Result, Long> { // exam results
     @Query("select avg(r.score) from Result r where r.student.id = :sid")
     Double averageForStudent(@Param("sid") Long studentId);
 
