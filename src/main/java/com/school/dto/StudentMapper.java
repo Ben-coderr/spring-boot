@@ -14,7 +14,14 @@ public final class StudentMapper {
         SchoolClass c = s.getSchoolClass();
         SchoolClassDto cd = (c == null) ? null : new SchoolClassDto(c.getId(), c.getName(), gd);
 
-        return new StudentDto(s.getId(), s.getFullName(), s.getEmail(), cd);
+        return new StudentDto(
+                s.getId(),
+                s.getFullName(),
+                s.getEmail(),
+                cd,
+                s.getMatricule(),
+                s.getPlaceOfBirth()
+        );
     }
 
     public static void copyOnWrite(StudentDto dto,
@@ -22,6 +29,8 @@ public final class StudentMapper {
                                    SchoolClassRepository classes) {
         if (dto.fullName() != null) target.setFullName(dto.fullName());
         if (dto.email() != null) target.setEmail(dto.email());
+        if (dto.matricule() != null) target.setMatricule(dto.matricule());
+        if (dto.placeOfBirth() != null) target.setPlaceOfBirth(dto.placeOfBirth());
 
         if (dto.schoolClass() != null && dto.schoolClass().id() != null) {
             SchoolClass c = classes.findById(dto.schoolClass().id())

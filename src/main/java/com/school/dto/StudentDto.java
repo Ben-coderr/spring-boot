@@ -5,5 +5,7 @@ public record StudentDto(
         Long id,
         String fullName,
         String email,
-        SchoolClassDto schoolClass
+        SchoolClassDto schoolClass,
+        String matricule,
+        String placeOfBirth
 ) {}

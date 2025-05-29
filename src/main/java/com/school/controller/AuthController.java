@@ -2,14 +2,15 @@
 package com.school.controller;
 
 import com.school.dto.LoginResponse;
-import com.school.model.Role;
-import com.school.model.User;
+import com.school.dto.SignupReq;
+import com.school.model.*;
 import com.school.repository.*;
 import com.school.security.JwtUtil;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -23,19 +24,81 @@ public class AuthController {
     private final ParentRepository       parents;
     private final StudentRepository      students;
     private final AdminRepository        admins;
+    private final PasswordEncoder        encoder;
 
     public AuthController(AuthenticationManager authManager,
                           JwtUtil              jwt,
                           TeacherRepository    teachers,
                           ParentRepository     parents,
                           StudentRepository    students,
-                          AdminRepository      admins) {
+                          AdminRepository      admins,
+                          PasswordEncoder      encoder) {
         this.authManager = authManager;
         this.jwt         = jwt;
         this.teachers    = teachers;
         this.parents     = parents;
         this.students    = students;
         this.admins      = admins;
+        this.encoder     = encoder;
+    }
+
+    private static void need(String v,String f){
+        if(v==null||v.isBlank())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,f+" required");
+    }
+
+    @PostMapping("/signup/student")
+    @ResponseStatus(HttpStatus.CREATED)
+    public void signupStudent(@RequestBody SignupReq req){
+        need(req.username(),"username");
+        need(req.password(),"password");
+        User u = new User();
+        u.setUsername(req.username());
+        u.setPassword(encoder.encode(req.password()));
+        u.setRole(Role.STUDENT);
+        u.setApproved(false);
+        Student s = new Student();
+        s.setFullName(req.fullName());
+        s.setEmail(req.email());
+        s.setPhone(req.phone());
+        s.setUser(u);
+        students.save(s);
+    }
+
+    @PostMapping("/signup/teacher")
+    @ResponseStatus(HttpStatus.CREATED)
+    public void signupTeacher(@RequestBody SignupReq req){
+        need(req.username(),"username");
+        need(req.password(),"password");
+        User u = new User();
+        u.setUsername(req.username());
+        u.setPassword(encoder.encode(req.password()));
+        u.setRole(Role.TEACHER);
+        u.setApproved(false);
+        Teacher t = new Teacher();
+        t.setFullName(req.fullName());
+        t.setEmail(req.email());
+        t.setPhone(req.phone());
+        t.setUser(u);
+        teachers.save(t);
+    }
+
+    @PostMapping("/signup/parent")
+    @ResponseStatus(HttpStatus.CREATED)
+    public void signupParent(@RequestBody SignupReq req){
+        need(req.username(),"username");
+        need(req.password(),"password");
+        User u = new User();
+        u.setUsername(req.username());
+        u.setPassword(encoder.encode(req.password()));
+        u.setRole(Role.PARENT);
+        u.setApproved(false);
+        Parent p = new Parent();
+        p.setFullName(req.fullName());
+        p.setEmail(req.email());
+        p.setPhone(req.phone());
+        p.setUser(u);
+        parents.save(p);
     }
 
     @PostMapping("/login")

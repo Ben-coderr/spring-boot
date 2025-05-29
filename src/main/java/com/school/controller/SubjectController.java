@@ -41,6 +41,7 @@ public class SubjectController {
         Subject s = subjects.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"subject "+id+" not found"));
         if(in.getName()!=null) s.setName(in.getName());
+        if(in.getCoefficient()!=null) s.setCoefficient(in.getCoefficient());
         return SubjectDto.from(subjects.save(s));
     }
 

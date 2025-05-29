@@ -1,7 +1,9 @@
 package com.school.controller;
 
 import com.school.model.Admin;
+import com.school.model.User;
 import com.school.repository.AdminRepository;
+import com.school.repository.UserRepository;
 import com.school.dto.AdminDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -14,7 +16,11 @@ import java.util.List;
 public class AdminController {
 
     private final AdminRepository admins;
-    public AdminController(AdminRepository repo){ this.admins = repo; }
+    private final UserRepository  users;
+    public AdminController(AdminRepository repo, UserRepository users){
+        this.admins = repo;
+        this.users  = users;
+    }
 
     //helper to validate needded informations
     private static void need(String v,String f){
@@ -57,4 +63,17 @@ public class AdminController {
 
     @DeleteMapping("{id}")
     public void delete(@PathVariable Long id){ admins.deleteById(id); }
+
+    @GetMapping("/unapproved")
+    public java.util.List<User> unapproved(){
+        return users.findByApprovedFalse();
+    }
+
+    @PostMapping("/approve/{userId}")
+    public void approve(@PathVariable Long userId){
+        User u = users.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"user not found"));
+        u.setApproved(true);
+        users.save(u);
+    }
 }

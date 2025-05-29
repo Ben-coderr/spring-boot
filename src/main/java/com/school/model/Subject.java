@@ -6,9 +6,12 @@ public class Subject {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String name;
+    private Integer coefficient = 1;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+    public Integer getCoefficient() { return coefficient; }
+    public void setCoefficient(Integer c) { this.coefficient = c; }
 }

@@ -15,6 +15,7 @@ public class Teacher {
     private String fullName;
     private String email;
     private String phone;
+    private String placeOfBirth;
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "user_id")
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)         
@@ -45,6 +46,9 @@ public class Teacher {
 
     public String getPhone()         { return phone; }
     public void   setPhone(String p) { this.phone = p; }
+
+    public String getPlaceOfBirth()         { return placeOfBirth; }
+    public void   setPlaceOfBirth(String p) { this.placeOfBirth = p; }
 
     // public String getPassword()      { return password; }
     // public void   setPassword(String pw){ this.password = pw; }

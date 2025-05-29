@@ -22,6 +22,9 @@ public class Student {
     private String email;
     private String phone;
 
+    private String matricule;
+    private String placeOfBirth;
+
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "user_id")
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)       
@@ -61,6 +64,12 @@ public class Student {
 
     public String getPhone()              { return phone; }
     public void   setPhone(String p)      { this.phone = p; }
+
+    public String getMatricule()          { return matricule; }
+    public void   setMatricule(String m)  { this.matricule = m; }
+
+    public String getPlaceOfBirth()          { return placeOfBirth; }
+    public void   setPlaceOfBirth(String p)  { this.placeOfBirth = p; }
 
     // public String getPassword()           { return password; }
     // public void   setPassword(String pw)  { this.password = pw; }
