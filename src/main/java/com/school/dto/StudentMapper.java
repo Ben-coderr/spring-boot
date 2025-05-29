@@ -2,6 +2,7 @@ package com.school.dto;
 
 import com.school.model.*;
 import com.school.repository.SchoolClassRepository;
+import com.school.repository.ParentRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -34,7 +35,8 @@ public final class StudentMapper {
 
     public static void copyOnWrite(StudentDto dto,
                                    Student target,
-                                   SchoolClassRepository classes) {
+                                   SchoolClassRepository classes,
+                                   ParentRepository parents) {
         if (dto.fullName() != null) target.setFullName(dto.fullName());
         if (dto.surname() != null) target.setSurname(dto.surname());
         if (dto.email() != null) target.setEmail(dto.email());
@@ -52,6 +54,13 @@ public final class StudentMapper {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "class not found"));
             target.setSchoolClass(classEntity);
+        }
+
+        if (dto.parentId() != null) {
+            Parent parent = parents.findById(dto.parentId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "parent not found"));
+            target.setParent(parent);
         }
     }
 
