@@ -8,10 +8,10 @@ Usage:
 Populates (in order):
   • grades
   • subjects (with CC/EXAM/ATTENDANCE weights)
-  • parents   (+ user records)
-  • teachers  (+ user records)
+  • parents
+  • teachers
   • classes
-  • students  (+ user records)
+  • students
   • lessons
   • exams  + assignments
   • results  (random scores, tagged to exams)
@@ -51,44 +51,12 @@ def _rand_blood() -> str:
     return rand.choice(["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"])
 
 
-def _unique(username: str, seen: set[str]) -> str:
-    """
-    Ensure username is unique for this run (duplicates → add "-xxxxxx" suffix).
-    """
-    if username not in seen:
-        seen.add(username)
-        return username
-
-    base = username.split("@")[0]
-    while True:
-        candidate = f"{base}-{''.join(rand.choices(string.ascii_lowercase + string.digits, k=6))}"
-        if candidate not in seen:
-            seen.add(candidate)
-            return candidate
-
-
-def _post(session: requests.Session, url: str, payload: dict, retries: int = 1):
-    """
-    Thin wrapper around POST that raises on failure.
-    If we hit a duplicate-username error we retry once with a new suffix.
-    """
-    while True:
-        r = session.post(url, json=payload)
-        if r.status_code in (200, 201):
-            return r.json()
-
-        if (
-            retries
-            and r.status_code in (400, 409, 500)
-            and "Duplicate" in r.text
-        ):
-            retries -= 1
-            payload = payload.copy()
-            usr = payload.get("user") or payload          # teachers/parents etc. wrap user
-            usr["username"] = _unique(usr["username"], set())
-            continue
-
-        raise RuntimeError(f"POST {url} → {r.status_code} : {r.text}")
+def _post(session: requests.Session, url: str, payload: dict):
+    """Simple wrapper around POST that raises on failure."""
+    r = session.post(url, json=payload)
+    if r.status_code in (200, 201):
+        return r.json()
+    raise RuntimeError(f"POST {url} → {r.status_code} : {r.text}")
 
 
 # --------------------------------------------------------------------------- entity builders
@@ -113,7 +81,7 @@ def create_subjects(s: requests.Session, host: str) -> Dict[str, int]:
 
 
 
-def create_parents(s, host, n: int, seen: set[str]) -> List[int]:
+def create_parents(s, host, n: int) -> List[int]:
     ids = []
     for _ in tqdm(range(n), desc="parents"):
         email = fake.email()
@@ -122,16 +90,13 @@ def create_parents(s, host, n: int, seen: set[str]) -> List[int]:
             "phone": _rand_phone(),
             "email": email,
             "address": fake.address(),
-            "user": {
-                "username": _unique(email, seen),
-                "password": "pwd"
-            }
+            "password": "pwd"
         }
         ids.append(_post(s, f"{host}/parents", payload)["id"])
     return ids
 
 
-def create_teachers(s, host, subjects, n: int, seen: set[str]) -> List[int]:
+def create_teachers(s, host, subjects, n: int) -> List[int]:
     ids, subs = [], list(subjects.values())
     for _ in tqdm(range(n), desc="teachers"):
         email = fake.email()
@@ -139,15 +104,13 @@ def create_teachers(s, host, subjects, n: int, seen: set[str]) -> List[int]:
             "fullName": fake.name(),
             "email": email,
             "phone": _rand_phone(),
-            "subject": {"id": rand.choice(subs)},
+            "placeOfBirth": fake.city(),
+            "subjectId": rand.choice(subs),
             "img": fake.image_url(width=128, height=128),
             "bloodType": _rand_blood(),
             "sex": rand.choice(["MALE", "FEMALE"]),
             "birthday": str(fake.date_of_birth(minimum_age=25, maximum_age=55)),
-            "user": {
-                "username": _unique(email, seen),
-                "password": "pwd"
-            }
+            "password": "pwd"
         }
         ids.append(_post(s, f"{host}/teachers", payload)["id"])
     return ids
@@ -168,26 +131,26 @@ def create_classes(s, host, grades: Dict[int, int], teachers: List[int], per_gra
     return ids
 
 
-def create_students(s, host, parents, classes, n: int, seen: set[str]) -> List[int]:
+def create_students(s, host, parents, classes, n: int) -> List[int]:
     ids = []
     for _ in tqdm(range(n), desc="students"):
         cid = rand.choice(classes)
         email = fake.email()
         payload = {
             "fullName": fake.name(),
+            "surname": fake.last_name(),
             "email": email,
             "phone": _rand_phone(),
+            "classId": cid,
+            "matricule": ''.join(rand.choices(string.ascii_uppercase + string.digits, k=6)),
+            "placeOfBirth": fake.city(),
+            "parentId": rand.choice(parents),
             "address": fake.address(),
             "img": fake.image_url(width=128, height=128),
             "bloodType": _rand_blood(),
             "sex": rand.choice(["MALE", "FEMALE"]),
             "birthday": str(fake.date_of_birth(minimum_age=6, maximum_age=18)),
-            "parent": {"id": rand.choice(parents)},
-            "schoolClass": {"id": cid},
-            "user": {
-                "username": _unique(email, seen),
-                "password": "pwd"
-            }
+            "password": "pwd"
         }
         ids.append(_post(s, f"{host}/students", payload)["id"])
     return ids
@@ -221,7 +184,7 @@ def create_exams_and_assignments(s, host, lessons):
         ass_ids.append(_post(s, f"{host}/assignments", {
             "title": f"HW {fake.word().title()}",
             "dueDate": str(fake.date_between('-10d', '+10d')),
-            "lesson": {"id": lid}
+            "lessonId": lid
         })["id"])
     return exam_ids, ass_ids
 
@@ -245,8 +208,8 @@ def create_attendance(s, host, students, lessons):
             _post(s, f"{host}/attendances", {
                 "status": rand.choice(statuses),
                 "date": str(fake.date_between('-30d', 'today')),
-                "student": {"id": sid},
-                "lesson": {"id": lid}
+                "studentId": sid,
+                "lessonId": lid
             })
 
 
@@ -287,16 +250,13 @@ def main() -> None:
 
     # ----------------------------------------------------------- seed
     print('Seeding reference data…')
-    used_usernames: set[str] = set()
-
     grades   = create_grades(sess, args.host)
     subjects = create_subjects(sess, args.host)
 
-
-    parents  = create_parents(sess, args.host, args.parents,  used_usernames)
-    teachers = create_teachers(sess, args.host, subjects, args.teachers, used_usernames)
+    parents  = create_parents(sess, args.host, args.parents)
+    teachers = create_teachers(sess, args.host, subjects, args.teachers)
     classes  = create_classes(sess, args.host, grades, teachers, per_grade=2)
-    students = create_students(sess, args.host, parents, classes, args.students, used_usernames)
+    students = create_students(sess, args.host, parents, classes, args.students)
 
     days     = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
     lessons  = create_lessons(sess, args.host, subjects, teachers, classes, days)
