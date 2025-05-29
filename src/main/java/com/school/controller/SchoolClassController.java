@@ -3,7 +3,6 @@ package com.school.controller;
 import com.school.model.SchoolClass;
 import com.school.repository.SchoolClassRepository;
 import com.school.dto.SchoolClassDto;
-import com.school.dto.GradeDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -32,10 +31,8 @@ public class SchoolClassController {
         List<SchoolClass> all = classRepo.findAll();
         List<SchoolClassDto> out = new ArrayList<>();
         for (SchoolClass classEntity : all) {
-            GradeDto gd = (classEntity.getGrade()!=null)
-                    ? new GradeDto(classEntity.getGrade().getId(), classEntity.getGrade().getLevel())
-                    : null;
-            out.add(new SchoolClassDto(classEntity.getId(), classEntity.getName(), gd));
+            Long gradeId = (classEntity.getGrade() != null) ? classEntity.getGrade().getId() : null;
+            out.add(new SchoolClassDto(classEntity.getId(), classEntity.getName(), gradeId));
         }
         return out;
     }
@@ -44,8 +41,8 @@ public class SchoolClassController {
     public SchoolClassDto findClass(@PathVariable Long id){
         SchoolClass classEntity = classRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"class "+id+" not found"));
-        GradeDto gd = (classEntity.getGrade()!=null)? new GradeDto(classEntity.getGrade().getId(), classEntity.getGrade().getLevel()) : null;
-        return new SchoolClassDto(classEntity.getId(), classEntity.getName(), gd);
+        Long gradeId = (classEntity.getGrade()!=null) ? classEntity.getGrade().getId() : null;
+        return new SchoolClassDto(classEntity.getId(), classEntity.getName(), gradeId);
     }
 
     @GetMapping("{id}/rank")
@@ -62,8 +59,8 @@ public class SchoolClassController {
         if(body.getGrade()==null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"grade required");
         SchoolClass saved = classRepo.save(body);
-        GradeDto gd = (saved.getGrade()!=null)? new GradeDto(saved.getGrade().getId(), saved.getGrade().getLevel()) : null;
-        return new SchoolClassDto(saved.getId(), saved.getName(), gd);
+        Long gradeId = (saved.getGrade()!=null) ? saved.getGrade().getId() : null;
+        return new SchoolClassDto(saved.getId(), saved.getName(), gradeId);
     }
 
     @PutMapping("{id}")
@@ -75,8 +72,8 @@ public class SchoolClassController {
         if(in.getGrade()!=null)    classEntity.setGrade(in.getGrade());
         if(in.getSupervisor()!=null)classEntity.setSupervisor(in.getSupervisor());
         SchoolClass saved = classRepo.save(classEntity);
-        GradeDto gd = (saved.getGrade()!=null)? new GradeDto(saved.getGrade().getId(), saved.getGrade().getLevel()) : null;
-        return new SchoolClassDto(saved.getId(), saved.getName(), gd);
+        Long gradeId = (saved.getGrade()!=null) ? saved.getGrade().getId() : null;
+        return new SchoolClassDto(saved.getId(), saved.getName(), gradeId);
     }
 
     @DeleteMapping("{id}")

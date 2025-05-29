@@ -8,14 +8,11 @@ import org.springframework.web.server.ResponseStatusException;
 public final class StudentMapper {
 
     public static StudentDto toDto(Student student) {
-        Grade grade = (student.getSchoolClass() != null) ? student.getSchoolClass().getGrade() : null;
-        GradeDto gradeDto = (grade == null) ? null : new GradeDto(grade.getId(), grade.getLevel());
-
         SchoolClass classEntity = student.getSchoolClass();
-        SchoolClassDto classDto = (classEntity == null) ? null : new SchoolClassDto(classEntity.getId(), classEntity.getName(), gradeDto);
+        Long classId = (classEntity == null) ? null : classEntity.getId();
 
         Parent parentEntity = student.getParent();
-        ParentDto parentDto = (parentEntity == null) ? null : ParentDto.from(parentEntity);
+        Long parentId = (parentEntity == null) ? null : parentEntity.getId();
 
         return new StudentDto(
                 student.getId(),
@@ -23,10 +20,10 @@ public final class StudentMapper {
                 student.getSurname(),
                 student.getEmail(),
                 student.getPhone(),
-                classDto,
+                classId,
                 student.getMatricule(),
                 student.getPlaceOfBirth(),
-                parentDto,
+                parentId,
                 student.getAddress(),
                 student.getImg(),
                 student.getBloodType(),
@@ -50,8 +47,8 @@ public final class StudentMapper {
         if (dto.sex() != null) target.setSex(dto.sex());
         if (dto.birthday() != null) target.setBirthday(dto.birthday());
 
-        if (dto.schoolClass() != null && dto.schoolClass().id() != null) {
-            SchoolClass classEntity = classes.findById(dto.schoolClass().id())
+        if (dto.classId() != null) {
+            SchoolClass classEntity = classes.findById(dto.classId())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "class not found"));
             target.setSchoolClass(classEntity);
