@@ -59,9 +59,8 @@ public class BulletinService {
         out.put("finals", finals);
 
         /* ---- 3. overall + attendance -------------------------------- */
-        double overall = finals.values().stream()
-                               .mapToDouble(Double::doubleValue)
-                               .average().orElse(0d);
+        double overall = resultService
+                .avgForStudent(studentId, gradeId);
         out.put("overallAverage", overall);
 
         long total   = attendanceRepo.countByStudentId(studentId);

@@ -4,6 +4,7 @@ import com.school.model.Role;
 import com.school.model.Teacher;
 import com.school.model.User;
 import com.school.repository.TeacherRepository;
+import com.school.repository.UserRepository;
 import com.school.dto.TeacherDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,11 +20,14 @@ public class TeacherController {
 
     private final TeacherRepository teachers;
     private final PasswordEncoder encoder;
+    private final UserRepository   users;
 
     public TeacherController(TeacherRepository repo,
-                             PasswordEncoder   encoder) {
+                             PasswordEncoder   encoder,
+                             UserRepository    users) {
         this.teachers = repo;
         this.encoder  = encoder;
+        this.users    = users;
     }
 
     //helper to validate needed fields
@@ -63,6 +67,11 @@ public class TeacherController {
         String uname = (body.getEmail() != null && !body.getEmail().isBlank())
                     ? body.getEmail()
                     : body.getPhone();
+
+        if (users.findByUsername(uname).isPresent())
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "username already exists");
+
         user.setUsername(uname);
         user.setPassword(encoder.encode(body.getUser().getPassword()));
         user.setRole(Role.TEACHER);

@@ -5,6 +5,20 @@ Seed the Edusphere API with fake data.
 Usage:
     python fill_via_api.py --host http://localhost:8083 --user admin --password password
 
+Populates (in order):
+  • grades
+  • subjects
+  • mark schemes  (+ mark-components ‘CC’ 40 % and ‘EXAM’ 60 %)
+  • parents   (+ user records)
+  • teachers  (+ user records)
+  • classes
+  • students  (+ user records)
+  • lessons
+  • exams  + assignments
+  • results  (random scores, tagged to exams)
+  • attendance rows
+  • announcements
+
 Dependencies:
     pip install requests faker tqdm
 """
@@ -30,7 +44,7 @@ rand = random.Random()
 
 
 def _rand_phone() -> str:
-    """12-digit random “phone” number."""
+    """12-digit fake phone number."""
     return fake.msisdn()[:12]
 
 
@@ -40,7 +54,7 @@ def _rand_blood() -> str:
 
 def _unique(username: str, seen: set[str]) -> str:
     """
-    Make username unique for *this* run by appending a -xxxx suffix if needed.
+    Ensure username is unique for this run (duplicates → add "-xxxxxx" suffix).
     """
     if username not in seen:
         seen.add(username)
@@ -56,8 +70,8 @@ def _unique(username: str, seen: set[str]) -> str:
 
 def _post(session: requests.Session, url: str, payload: dict, retries: int = 1):
     """
-    Thin wrapper around POST that raises RuntimeError on non-success.
-    If we get a duplicate-username type error, we retry once with a new suffix.
+    Thin wrapper around POST that raises on failure.
+    If we hit a duplicate-username error we retry once with a new suffix.
     """
     while True:
         r = session.post(url, json=payload)
@@ -70,9 +84,9 @@ def _post(session: requests.Session, url: str, payload: dict, retries: int = 1):
             and "Duplicate" in r.text
         ):
             retries -= 1
-            payload = payload.copy()  # shallow copy is enough
-            usr = payload.get("user") or payload  # depends on entity
-            usr["username"] = _unique(usr["username"], set())  # ensure new
+            payload = payload.copy()
+            usr = payload.get("user") or payload          # teachers/parents etc. wrap user
+            usr["username"] = _unique(usr["username"], set())
             continue
 
         raise RuntimeError(f"POST {url} → {r.status_code} : {r.text}")
@@ -90,6 +104,32 @@ def create_subjects(s: requests.Session, host: str) -> Dict[str, int]:
         "Geography", "English", "French", "Computer Science", "Arts"
     ]
     return {n: _post(s, f"{host}/subjects", {"name": n})["id"] for n in names}
+
+
+def create_mark_schemes(s, host: str,
+                        grades: Dict[int, int],
+                        subjects: Dict[str, int]) -> None:
+    """
+    For every (grade, subject) pair create:
+        • a SubjectGradeScheme (coefficient = 1)
+        • two MarkComponents →  'CC' 40 %  and  'EXAM' 60 %
+    """
+    kinds = [("CC", 40), ("EXAM", 60)]
+
+    for gid in tqdm(grades.values(), desc="schemes", leave=False):
+        for sid in subjects.values():
+            scheme_id = _post(s, f"{host}/schemes", {
+                "subject": {"id": sid},
+                "grade":   {"id": gid},
+                "coefficient": 1
+            })["id"]
+
+            for kind, weight in kinds:
+                _post(s, f"{host}/components", {
+                    "scheme": {"id": scheme_id},
+                    "kind": kind,
+                    "weight": weight
+                })
 
 
 def create_parents(s, host, n: int, seen: set[str]) -> List[int]:
@@ -174,7 +214,7 @@ def create_students(s, host, parents, classes, n: int, seen: set[str]) -> List[i
 
 def create_lessons(s, host, subjects, teachers, classes, days) -> List[int]:
     ids = []
-    for cls, day in tqdm(itertools.product(classes, days), desc="lessons", total=len(classes) * len(days)):
+    for cls, day in tqdm(itertools.product(classes, days), desc="lessons", total=len(classes)*len(days)):
         payload = {
             "topic": f"{fake.word().title()} - {day}",
             "lessonDate": str(fake.date_between('-30d', 'today')),
@@ -249,7 +289,7 @@ def main() -> None:
     ap.add_argument('--students', type=int, default=120)
     args = ap.parse_args()
 
-    # ----------------------------------------------------------------- AUTH
+    # ----------------------------------------------------------- AUTH
     sess = requests.Session()
     try:
         resp = sess.post(f"{args.host}/auth/login",
@@ -263,20 +303,22 @@ def main() -> None:
 
     sess.headers["Authorization"] = f"Bearer {token}"
 
-    # ----------------------------------------------------------------- seed
+    # ----------------------------------------------------------- seed
     print('Seeding reference data…')
     used_usernames: set[str] = set()
 
-    grades = create_grades(sess, args.host)
+    grades   = create_grades(sess, args.host)
     subjects = create_subjects(sess, args.host)
 
-    parents = create_parents(sess, args.host, args.parents, used_usernames)
+    create_mark_schemes(sess, args.host, grades, subjects)
+
+    parents  = create_parents(sess, args.host, args.parents,  used_usernames)
     teachers = create_teachers(sess, args.host, subjects, args.teachers, used_usernames)
-    classes = create_classes(sess, args.host, grades, teachers, per_grade=2)
+    classes  = create_classes(sess, args.host, grades, teachers, per_grade=2)
     students = create_students(sess, args.host, parents, classes, args.students, used_usernames)
 
-    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
-    lessons = create_lessons(sess, args.host, subjects, teachers, classes, days)
+    days     = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    lessons  = create_lessons(sess, args.host, subjects, teachers, classes, days)
     exams, assignments = create_exams_and_assignments(sess, args.host, lessons)
 
     create_results(sess, args.host, students, exams)

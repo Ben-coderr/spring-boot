@@ -25,19 +25,22 @@ public class StudentController {
     private final StudentService        moves;
     private final AttendanceService     attendanceSvc;
     private final PasswordEncoder       encoder;
+    private final UserRepository        users;
 
     public StudentController(
         StudentRepository     students,
         SchoolClassRepository classes,
         StudentService        moves,
         AttendanceService     attendanceSvc,
-        PasswordEncoder       encoder
-    ) {   
+        PasswordEncoder       encoder,
+        UserRepository        users
+    ) {
         this.students      = students;
         this.classes       = classes;
         this.moves         = moves;
         this.attendanceSvc = attendanceSvc;
         this.encoder       = encoder;
+        this.users         = users;
     }
 
     
@@ -81,6 +84,11 @@ public class StudentController {
         String uname = (body.getEmail() != null && !body.getEmail().isBlank())
                      ? body.getEmail()
                      : body.getPhone();
+
+        if (users.findByUsername(uname).isPresent())
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "username already exists");
+
         user.setUsername(uname);
         user.setPassword(encoder.encode(body.getUser().getPassword()));
         user.setRole(Role.STUDENT);
