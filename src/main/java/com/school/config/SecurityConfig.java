@@ -45,7 +45,9 @@ public SecurityFilterChain filter(HttpSecurity http,
                                   DaoAuthenticationProvider auth,
                                   JwtAuthFilter             jwt) throws Exception { // build chain
 
-    http.csrf().disable()
+
+    http.cors().and()
+        .csrf().disable()
 
         // allow swagger and login without token
         .authorizeHttpRequests()
