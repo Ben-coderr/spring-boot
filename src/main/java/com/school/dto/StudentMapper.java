@@ -14,13 +14,24 @@ public final class StudentMapper {
         SchoolClass classEntity = student.getSchoolClass();
         SchoolClassDto classDto = (classEntity == null) ? null : new SchoolClassDto(classEntity.getId(), classEntity.getName(), gradeDto);
 
+        Parent parentEntity = student.getParent();
+        ParentDto parentDto = (parentEntity == null) ? null : ParentDto.from(parentEntity);
+
         return new StudentDto(
                 student.getId(),
                 student.getFullName(),
+                student.getSurname(),
                 student.getEmail(),
+                student.getPhone(),
                 classDto,
                 student.getMatricule(),
-                student.getPlaceOfBirth()
+                student.getPlaceOfBirth(),
+                parentDto,
+                student.getAddress(),
+                student.getImg(),
+                student.getBloodType(),
+                student.getSex(),
+                student.getBirthday()
         );
     }
 
@@ -28,9 +39,16 @@ public final class StudentMapper {
                                    Student target,
                                    SchoolClassRepository classes) {
         if (dto.fullName() != null) target.setFullName(dto.fullName());
+        if (dto.surname() != null) target.setSurname(dto.surname());
         if (dto.email() != null) target.setEmail(dto.email());
+        if (dto.phone() != null) target.setPhone(dto.phone());
         if (dto.matricule() != null) target.setMatricule(dto.matricule());
         if (dto.placeOfBirth() != null) target.setPlaceOfBirth(dto.placeOfBirth());
+        if (dto.address() != null) target.setAddress(dto.address());
+        if (dto.img() != null) target.setImg(dto.img());
+        if (dto.bloodType() != null) target.setBloodType(dto.bloodType());
+        if (dto.sex() != null) target.setSex(dto.sex());
+        if (dto.birthday() != null) target.setBirthday(dto.birthday());
 
         if (dto.schoolClass() != null && dto.schoolClass().id() != null) {
             SchoolClass classEntity = classes.findById(dto.schoolClass().id())
