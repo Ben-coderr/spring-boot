@@ -32,9 +32,9 @@ public class ClassRankingService {
         List<Map<String,Object>> out = new ArrayList<>();
         int rk = 1;
 
-        for (Object[] r : rows) {
-            Long    sid = (Long)   r[0];
-            Double  avg = (Double) r[1];
+        for (Object[] row : rows) {
+            Long    sid = (Long)   row[0];
+            Double  avg = (Double) row[1];
             String  nm  = students.findById(sid)
                                   .map(s -> s.getFullName())
                                   .orElse("unknown");

@@ -31,11 +31,7 @@ public class JwtUtil {
                    .compact();
     }
     public String generateToken(User user) {
-        return generateToken(
-                user.getUsername(),
-                Map.of("role", user.getRole().name(),
-                       "uid",  user.getId())
-        );
+        return generate(user.getUsername(), user.getRole().name());
     }
     public io.jsonwebtoken.Claims parse(String jwt) {
         return Jwts.parser()                 // same API, type now matches

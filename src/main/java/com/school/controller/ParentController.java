@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/parents")
@@ -31,14 +32,19 @@ public class ParentController {
 
     @GetMapping
     public List<ParentDto> list(){
-        return parents.findAll().stream().map(ParentDto::from).toList();
+        List<Parent> all = parents.findAll();
+        List<ParentDto> out = new ArrayList<>();
+        for (Parent parent : all) {
+            out.add(ParentDto.from(parent));
+        }
+        return out;
     }
 
     @GetMapping("{id}")
     public ParentDto get(@PathVariable Long id){
-        Parent p = parents.findById(id)
+        Parent parent = parents.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"parent "+id+" not found"));
-        return ParentDto.from(p);
+        return ParentDto.from(parent);
     }
 
     @PostMapping
@@ -50,26 +56,26 @@ public class ParentController {
             "password");
 
         // build the user (username = email if present, else phone)
-        User u = new User();
+        User user = new User();
         String uname = (body.getEmail() != null && !body.getEmail().isBlank())
                     ? body.getEmail()
                     : body.getPhone();
-        u.setUsername(uname);
-        u.setPassword(encoder.encode(body.getUser().getPassword()));
-        u.setRole(Role.PARENT);
-        body.setUser(u);
+        user.setUsername(uname);
+        user.setPassword(encoder.encode(body.getUser().getPassword()));
+        user.setRole(Role.PARENT);
+        body.setUser(user);
 
         return ParentDto.from(parents.save(body));
     }
 
     @PutMapping("{id}")
     public ParentDto edit(@PathVariable Long id,@RequestBody Parent in){
-        Parent p = parents.findById(id)
+        Parent parent = parents.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"parent "+id+" not found"));
-        if(in.getFullName()!=null) p.setFullName(in.getFullName());
-        if(in.getEmail()!=null)    p.setEmail(in.getEmail());
-        // if(in.getPassword()!=null) p.setPassword(in.getPassword());
-        return ParentDto.from(parents.save(p));
+        if(in.getFullName()!=null) parent.setFullName(in.getFullName());
+        if(in.getEmail()!=null)    parent.setEmail(in.getEmail());
+        // if(in.getPassword()!=null) parent.setPassword(in.getPassword());
+        return ParentDto.from(parents.save(parent));
     }
 
     @DeleteMapping("{id}")

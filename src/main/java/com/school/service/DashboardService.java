@@ -38,10 +38,10 @@ public class DashboardService {
         List<SchoolClass> all = classRepo.findAll();
         List<Occupancy>   out = new ArrayList<>();
 
-        for (SchoolClass c : all) {
-            int cap = (c.getCapacity() == null) ? 30 : c.getCapacity();
-            Long enrolled = studentRepo.countBySchoolClass_Id(c.getId());
-            out.add(new Occupancy(c.getId(), c.getName(), cap, enrolled));
+        for (SchoolClass cls : all) {
+            int cap = (cls.getCapacity() == null) ? 30 : cls.getCapacity();
+            Long enrolled = studentRepo.countBySchoolClass_Id(cls.getId());
+            out.add(new Occupancy(cls.getId(), cls.getName(), cap, enrolled));
         }
 
         return out;

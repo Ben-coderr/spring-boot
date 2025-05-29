@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/lessons")
@@ -19,14 +20,19 @@ public class LessonController {
 
     @GetMapping
     public List<LessonDto> list(){
-        return lessons.findAll().stream().map(LessonDto::from).toList();
+        List<Lesson> all = lessons.findAll();
+        List<LessonDto> out = new ArrayList<>();
+        for (Lesson lesson : all) {
+            out.add(LessonDto.from(lesson));
+        }
+        return out;
     }
 
     @GetMapping("{id}")
     public LessonDto get(@PathVariable Long id){
-        Lesson l = lessons.findById(id)
+        Lesson lesson = lessons.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"lesson "+id+" not found"));
-        return LessonDto.from(l);
+        return LessonDto.from(lesson);
     }
 
     @PostMapping
@@ -41,17 +47,17 @@ public class LessonController {
 
     @PutMapping("{id}")
     public LessonDto edit(@PathVariable Long id,@RequestBody Lesson in){
-        Lesson l = lessons.findById(id)
+        Lesson lesson = lessons.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"lesson "+id+" not found"));
-        if(in.getTopic()!=null)       l.setTopic(in.getTopic());
-        if(in.getLessonDate()!=null)  l.setLessonDate(in.getLessonDate());
-        if(in.getDay()!=null)         l.setDay(in.getDay());
-        if(in.getStartTime()!=null)   l.setStartTime(in.getStartTime());
-        if(in.getEndTime()!=null)     l.setEndTime(in.getEndTime());
-        if(in.getSubject()!=null)     l.setSubject(in.getSubject());
-        if(in.getTeacher()!=null)     l.setTeacher(in.getTeacher());
-        if(in.getSchoolClass()!=null) l.setSchoolClass(in.getSchoolClass());
-        return LessonDto.from(lessons.save(l));
+        if(in.getTopic()!=null)       lesson.setTopic(in.getTopic());
+        if(in.getLessonDate()!=null)  lesson.setLessonDate(in.getLessonDate());
+        if(in.getDay()!=null)         lesson.setDay(in.getDay());
+        if(in.getStartTime()!=null)   lesson.setStartTime(in.getStartTime());
+        if(in.getEndTime()!=null)     lesson.setEndTime(in.getEndTime());
+        if(in.getSubject()!=null)     lesson.setSubject(in.getSubject());
+        if(in.getTeacher()!=null)     lesson.setTeacher(in.getTeacher());
+        if(in.getSchoolClass()!=null) lesson.setSchoolClass(in.getSchoolClass());
+        return LessonDto.from(lessons.save(lesson));
     }
 
     @DeleteMapping("{id}")

@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/exams")
@@ -18,14 +19,19 @@ public class ExamController {
 
     @GetMapping
     public List<ExamDto> list(){
-        return exams.findAll().stream().map(ExamDto::from).toList();
+        List<Exam> all = exams.findAll();
+        List<ExamDto> out = new ArrayList<>();
+        for (Exam exam : all) {
+            out.add(ExamDto.from(exam));
+        }
+        return out;
     }
 
     @GetMapping("{id}")
     public ExamDto get(@PathVariable Long id){
-        Exam e = exams.findById(id)
+        Exam exam = exams.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"exam "+id+" not found"));
-        return ExamDto.from(e);
+        return ExamDto.from(exam);
     }
 
     @PostMapping
@@ -40,11 +46,11 @@ public class ExamController {
 
     @PutMapping("{id}")
     public ExamDto update(@PathVariable Long id,@RequestBody Exam in){
-        Exam e = exams.findById(id)
+        Exam exam = exams.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"exam "+id+" not found"));
-        if(in.getTitle()!=null)    e.setTitle(in.getTitle());
-        if(in.getExamDate()!=null) e.setExamDate(in.getExamDate());
-        return ExamDto.from(exams.save(e));
+        if(in.getTitle()!=null)    exam.setTitle(in.getTitle());
+        if(in.getExamDate()!=null) exam.setExamDate(in.getExamDate());
+        return ExamDto.from(exams.save(exam));
     }
 
     @DeleteMapping("{id}")

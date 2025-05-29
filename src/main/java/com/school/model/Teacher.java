@@ -23,7 +23,7 @@ public class Teacher {
 
 
     public User getUser()          { return user; }
-    public void setUser(User u)    { this.user = u; }
+    public void setUser(User user) { this.user = user; }
 
     @ManyToOne(fetch = FetchType.LAZY)
     private Subject subject;            

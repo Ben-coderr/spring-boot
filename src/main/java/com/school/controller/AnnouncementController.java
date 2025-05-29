@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/announcements")
@@ -18,14 +19,19 @@ public class AnnouncementController {
 
     @GetMapping
     public List<AnnouncementDto> list(){
-        return announces.findAll().stream().map(AnnouncementDto::from).toList();
+        List<Announcement> all = announces.findAll();
+        List<AnnouncementDto> out = new ArrayList<>();
+        for (Announcement announcement : all) {
+            out.add(AnnouncementDto.from(announcement));
+        }
+        return out;
     }
 
     @GetMapping("{id}")
     public AnnouncementDto get(@PathVariable Long id){
-        Announcement a = announces.findById(id)
+        Announcement announcement = announces.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"announcement "+id+" not found"));
-        return AnnouncementDto.from(a);
+        return AnnouncementDto.from(announcement);
     }
 
     @PostMapping
@@ -40,11 +46,11 @@ public class AnnouncementController {
 
     @PutMapping("{id}")
     public AnnouncementDto update(@PathVariable Long id,@RequestBody Announcement in){
-        Announcement a = announces.findById(id)
+        Announcement announcement = announces.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"announcement "+id+" not found"));
-        if(in.getTitle()!=null)   a.setTitle(in.getTitle());
-        if(in.getContent()!=null) a.setContent(in.getContent());
-        return AnnouncementDto.from(announces.save(a));
+        if(in.getTitle()!=null)   announcement.setTitle(in.getTitle());
+        if(in.getContent()!=null) announcement.setContent(in.getContent());
+        return AnnouncementDto.from(announces.save(announcement));
     }
 
     @DeleteMapping("{id}")

@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/admins")
@@ -30,15 +31,20 @@ public class AdminController {
 
     @GetMapping
     public List<AdminDto> list(){
-        return admins.findAll().stream().map(AdminDto::from).toList();
+        List<Admin> all = admins.findAll();
+        List<AdminDto> out = new ArrayList<>();
+        for (Admin admin : all) {
+            out.add(AdminDto.from(admin));
+        }
+        return out;
     }
 
     @GetMapping("{id}")
     public AdminDto get(@PathVariable Long id){
-        Admin a = admins.findById(id)
+        Admin admin = admins.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,"admin "+id+" not found"));
-        return AdminDto.from(a);
+        return AdminDto.from(admin);
     }
 
     @PostMapping
@@ -52,13 +58,13 @@ public class AdminController {
 
     @PutMapping("{id}")
     public AdminDto update(@PathVariable Long id,@RequestBody Admin in){
-        Admin a = admins.findById(id)
+        Admin admin = admins.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,"admin "+id+" not found"));
-        if(in.getFullName()!=null) a.setFullName(in.getFullName());
-        if(in.getEmail()!=null)    a.setEmail(in.getEmail());
-        if(in.getPassword()!=null) a.setPassword(in.getPassword());
-        return AdminDto.from(admins.save(a));
+        if(in.getFullName()!=null) admin.setFullName(in.getFullName());
+        if(in.getEmail()!=null)    admin.setEmail(in.getEmail());
+        if(in.getPassword()!=null) admin.setPassword(in.getPassword());
+        return AdminDto.from(admins.save(admin));
     }
 
     @DeleteMapping("{id}")
@@ -71,9 +77,9 @@ public class AdminController {
 
     @PostMapping("/approve/{userId}")
     public void approve(@PathVariable Long userId){
-        User u = users.findById(userId)
+        User user = users.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"user not found"));
-        u.setApproved(true);
-        users.save(u);
+        user.setApproved(true);
+        users.save(user);
     }
 }

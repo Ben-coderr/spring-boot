@@ -22,7 +22,7 @@ public class Parent {
 
 
     public User getUser()          { return user; }
-    public void setUser(User u)    { this.user = u; }
+    public void setUser(User user) { this.user = user; }
 
     @Column(insertable = false, updatable = false)
     private java.time.LocalDateTime createdAt;   // for auditing and it is filled automaticlly by the db

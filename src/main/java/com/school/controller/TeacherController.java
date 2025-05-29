@@ -4,7 +4,6 @@ import com.school.model.Role;
 import com.school.model.Teacher;
 import com.school.model.User;
 import com.school.repository.TeacherRepository;
-import com.school.dto.ParentDto;
 import com.school.dto.TeacherDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -12,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/teachers")
@@ -35,14 +35,19 @@ public class TeacherController {
 
     @GetMapping
     public List<TeacherDto> listTeachers() {
-        return teachers.findAll().stream().map(TeacherDto::from).toList();
+        List<Teacher> all = teachers.findAll();
+        List<TeacherDto> out = new ArrayList<>();
+        for (Teacher teacher : all) {
+            out.add(TeacherDto.from(teacher));
+        }
+        return out;
     }
 
     @GetMapping("{id}")
     public TeacherDto getTeacher(@PathVariable Long id) {
-        Teacher t = teachers.findById(id)
+        Teacher teacher = teachers.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "teacher " + id + " not found"));
-        return TeacherDto.from(t);
+        return TeacherDto.from(teacher);
     }
 
     @PostMapping
@@ -54,14 +59,14 @@ public class TeacherController {
             "password");
 
         // build the user (username = email if present, else phone)
-        User u = new User();
+        User user = new User();
         String uname = (body.getEmail() != null && !body.getEmail().isBlank())
                     ? body.getEmail()
                     : body.getPhone();
-        u.setUsername(uname);
-        u.setPassword(encoder.encode(body.getUser().getPassword()));
-        u.setRole(Role.TEACHER);
-        body.setUser(u);
+        user.setUsername(uname);
+        user.setPassword(encoder.encode(body.getUser().getPassword()));
+        user.setRole(Role.TEACHER);
+        body.setUser(user);
 
         return TeacherDto.from(teachers.save(body));
     }
@@ -69,21 +74,21 @@ public class TeacherController {
     @PutMapping("{id}")
     public TeacherDto updateTeacher(@PathVariable Long id, @RequestBody Teacher in) {
 
-        Teacher t = teachers.findById(id)
+        Teacher teacher = teachers.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "teacher " + id + " not found"));
 
-        if (in.getFullName() != null) t.setFullName(in.getFullName());
+        if (in.getFullName() != null) teacher.setFullName(in.getFullName());
 
         if (in.getEmail() != null) {
             if (!in.getEmail().contains("@"))
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid email");
-            t.setEmail(in.getEmail());
+            teacher.setEmail(in.getEmail());
         }
 
-        // if (in.getPassword() != null) t.setPassword(in.getPassword());
-        if (in.getSubject()  != null) t.setSubject(in.getSubject());
+        // if (in.getPassword() != null) teacher.setPassword(in.getPassword());
+        if (in.getSubject()  != null) teacher.setSubject(in.getSubject());
 
-        return TeacherDto.from(teachers.save(t));
+        return TeacherDto.from(teachers.save(teacher));
     }
 
     @DeleteMapping("{id}")

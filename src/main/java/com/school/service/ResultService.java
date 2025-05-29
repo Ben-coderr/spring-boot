@@ -58,12 +58,12 @@ public class ResultService {
                         HttpStatus.NOT_FOUND, "mark scheme not defined"));
 
         double sum = 0;
-        for (MarkComponent c : scheme.getComponents()) {
+        for (MarkComponent component : scheme.getComponents()) {
             Double raw = resultRepo
-                    .averageForStudentComponent(studentId, c.getId());
+                    .averageForStudentComponent(studentId, component.getId());
 
             if (raw == null) raw = 0d;
-            sum += raw * c.getWeight() / 100.0;
+            sum += raw * component.getWeight() / 100.0;
         }
         return sum;
     }

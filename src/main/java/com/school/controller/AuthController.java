@@ -52,16 +52,16 @@ public class AuthController {
     public void signupStudent(@RequestBody SignupReq req){
         need(req.username(),"username");
         need(req.password(),"password");
-        User u = new User();
-        u.setUsername(req.username());
-        u.setPassword(encoder.encode(req.password()));
-        u.setRole(Role.STUDENT);
-        u.setApproved(false);
+        User user = new User();
+        user.setUsername(req.username());
+        user.setPassword(encoder.encode(req.password()));
+        user.setRole(Role.STUDENT);
+        user.setApproved(false);
         Student s = new Student();
         s.setFullName(req.fullName());
         s.setEmail(req.email());
         s.setPhone(req.phone());
-        s.setUser(u);
+        s.setUser(user);
         students.save(s);
     }
 
@@ -70,16 +70,16 @@ public class AuthController {
     public void signupTeacher(@RequestBody SignupReq req){
         need(req.username(),"username");
         need(req.password(),"password");
-        User u = new User();
-        u.setUsername(req.username());
-        u.setPassword(encoder.encode(req.password()));
-        u.setRole(Role.TEACHER);
-        u.setApproved(false);
+        User user = new User();
+        user.setUsername(req.username());
+        user.setPassword(encoder.encode(req.password()));
+        user.setRole(Role.TEACHER);
+        user.setApproved(false);
         Teacher t = new Teacher();
         t.setFullName(req.fullName());
         t.setEmail(req.email());
         t.setPhone(req.phone());
-        t.setUser(u);
+        t.setUser(user);
         teachers.save(t);
     }
 
@@ -88,16 +88,16 @@ public class AuthController {
     public void signupParent(@RequestBody SignupReq req){
         need(req.username(),"username");
         need(req.password(),"password");
-        User u = new User();
-        u.setUsername(req.username());
-        u.setPassword(encoder.encode(req.password()));
-        u.setRole(Role.PARENT);
-        u.setApproved(false);
+        User user = new User();
+        user.setUsername(req.username());
+        user.setPassword(encoder.encode(req.password()));
+        user.setRole(Role.PARENT);
+        user.setApproved(false);
         Parent p = new Parent();
         p.setFullName(req.fullName());
         p.setEmail(req.email());
         p.setPhone(req.phone());
-        p.setUser(u);
+        p.setUser(user);
         parents.save(p);
     }
 
@@ -108,38 +108,40 @@ public class AuthController {
                 new UsernamePasswordAuthenticationToken(
                         req.username(), req.password()));
 
-        User u = (User) auth.getPrincipal();
+        User user = (User) auth.getPrincipal();
 
         //refuse unapproved accounts
-        if (!u.isApproved()) {
+        if (!user.isApproved()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,"Account not approved");
         }
         
 
-        String token = jwt.generateToken(u);
+        String token = jwt.generateToken(user);
 
         return new LoginResponse(
                 token,
-                u.getRole().name(),
-                u.getId(),
-                resolveFullName(u)
+                user.getRole().name(),
+                user.getId(),
+                resolveFullName(user)
         );
     }
 
     /** Pick the “owning” entity and return its fullName, or fallback to username */
-    private String resolveFullName(User u) {
-        Long uid = u.getId();
-        Role r   = u.getRole();
+    private String resolveFullName(User user) {
+        Long uid = user.getId();
+        Role r   = user.getRole();
 
         return switch (r) {
             case TEACHER -> teachers.findByUser_Id(uid)
-                                    .map(t -> t.getFullName()).orElse(u.getUsername());
-            case PARENT  -> parents .findByUser_Id(uid)
-                                    .map(p -> p.getFullName()).orElse(u.getUsername());
+                                    .map(t -> t.getFullName())
+                                    .orElse(user.getUsername());
+            case PARENT  -> parents.findByUser_Id(uid)
+                                    .map(p -> p.getFullName())
+                                    .orElse(user.getUsername());
             case STUDENT -> students.findByUser_Id(uid)
-                                    .map(s -> s.getFullName()).orElse(u.getUsername());
-            case ADMIN   -> admins  .findByUser_Id(uid)
-                                    .map(a -> a.getFullName()).orElse(u.getUsername());
+                                    .map(s -> s.getFullName())
+                                    .orElse(user.getUsername());
+            case ADMIN   -> user.getUsername();
         };
     }
 

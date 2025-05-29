@@ -8,11 +8,11 @@ import java.time.LocalTime;
 public record LessonDto(Long id, String topic, LocalDate lessonDate, String day,
                         LocalTime startTime, LocalTime endTime,
                         Long subjectId, Long teacherId, Long classId) {
-    public static LessonDto from(Lesson l) {
-        Long sid = (l.getSubject() != null) ? l.getSubject().getId() : null;
-        Long tid = (l.getTeacher() != null) ? l.getTeacher().getId() : null;
-        Long cid = (l.getSchoolClass() != null) ? l.getSchoolClass().getId() : null;
-        return new LessonDto(l.getId(), l.getTopic(), l.getLessonDate(), l.getDay(),
-                l.getStartTime(), l.getEndTime(), sid, tid, cid);
+    public static LessonDto from(Lesson lesson) {
+        Long sid = (lesson.getSubject() != null) ? lesson.getSubject().getId() : null;
+        Long tid = (lesson.getTeacher() != null) ? lesson.getTeacher().getId() : null;
+        Long cid = (lesson.getSchoolClass() != null) ? lesson.getSchoolClass().getId() : null;
+        return new LessonDto(lesson.getId(), lesson.getTopic(), lesson.getLessonDate(), lesson.getDay(),
+                lesson.getStartTime(), lesson.getEndTime(), sid, tid, cid);
     }
 }

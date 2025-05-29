@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/grades")
@@ -19,14 +20,19 @@ public class GradeController {
 
     @GetMapping
     public List<GradeDto> list(){
-        return grades.findAll().stream().map(g -> new GradeDto(g.getId(), g.getLevel())).toList();
+        List<Grade> all = grades.findAll();
+        List<GradeDto> out = new ArrayList<>();
+        for (Grade grade : all) {
+            out.add(new GradeDto(grade.getId(), grade.getLevel()));
+        }
+        return out;
     }
 
     @GetMapping("{id}")
     public GradeDto get(@PathVariable Long id){
-        Grade g = grades.findById(id)
+        Grade grade = grades.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"grade "+id+" not found"));
-        return new GradeDto(g.getId(), g.getLevel());
+        return new GradeDto(grade.getId(), grade.getLevel());
     }
 
 
@@ -40,10 +46,10 @@ public class GradeController {
 
     @PutMapping("{id}")
     public GradeDto edit(@PathVariable Long id,@RequestBody Grade in){
-        Grade g = grades.findById(id)
+        Grade grade = grades.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"grade "+id+" not found"));
-        if(in.getLevel()!=null) g.setLevel(in.getLevel());
-        return new GradeDto(grades.save(g).getId(), g.getLevel());
+        if(in.getLevel()!=null) grade.setLevel(in.getLevel());
+        return new GradeDto(grades.save(grade).getId(), grade.getLevel());
     }
 
     @DeleteMapping("{id}")

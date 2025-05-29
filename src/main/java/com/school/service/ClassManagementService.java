@@ -13,7 +13,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+
 
 
 @Service
@@ -79,14 +79,16 @@ public class ClassManagementService {
         classRepo.save(newClass);
 
         // move everyone except repeaters
-        List<Student> movers = studentRepo.findBySchoolClass_Id(classId)
-                                          .stream()
-                                          .filter(s -> repeaters == null || !repeaters.contains(s.getId()))
-                                          .collect(Collectors.toList());
+        List<Student> movers = new ArrayList<>();
+        for (Student pupil : studentRepo.findBySchoolClass_Id(classId)) {
+            if (repeaters == null || !repeaters.contains(pupil.getId())) {
+                movers.add(pupil);
+            }
+        }
 
-        for (Student s : movers) {
-            s.setSchoolClass(newClass);
-            studentRepo.save(s);
+        for (Student student : movers) {
+            student.setSchoolClass(newClass);
+            studentRepo.save(student);
         }
     }
 
@@ -96,11 +98,11 @@ public class ClassManagementService {
         List<Student> pupils = studentRepo.findBySchoolClass_Id(classId);
 
         List<StudentRank> temp = new ArrayList<>();
-        for (Student s : pupils) {
-            Double avg = studentRepo.averageScore(s.getId());
+        for (Student student : pupils) {
+            Double avg = studentRepo.averageScore(student.getId());
             if (avg == null) avg = 0d;
 
-            temp.add(new StudentRank(s, avg));
+            temp.add(new StudentRank(student, avg));
         }
 
         

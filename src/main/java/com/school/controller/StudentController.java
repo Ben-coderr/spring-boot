@@ -14,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/students")
@@ -43,18 +44,20 @@ public class StudentController {
 
     @GetMapping
     public List<StudentDto> list() {
-        return students.findAll()
-                       .stream()
-                       .map(StudentMapper::toDto)
-                       .toList();
+        List<Student> all = students.findAll();
+        List<StudentDto> out = new ArrayList<>();
+        for (Student student : all) {
+            out.add(StudentMapper.toDto(student));
+        }
+        return out;
     }
 
     @GetMapping("{id}")
     public StudentDto get(@PathVariable Long id) {
-        Student s = students.findById(id)
+        Student student = students.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "student not found"));
-        return StudentMapper.toDto(s);
+        return StudentMapper.toDto(student);
     }
 
     @GetMapping("{id}/attendance/percentage")
@@ -74,15 +77,15 @@ public class StudentController {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST, "password required inside user{}");
 
-        User u = new User();
+        User user = new User();
         String uname = (body.getEmail() != null && !body.getEmail().isBlank())
                      ? body.getEmail()
                      : body.getPhone();
-        u.setUsername(uname);
-        u.setPassword(encoder.encode(body.getUser().getPassword()));
-        u.setRole(Role.STUDENT);
+        user.setUsername(uname);
+        user.setPassword(encoder.encode(body.getUser().getPassword()));
+        user.setRole(Role.STUDENT);
 
-        body.setUser(u);
+        body.setUser(user);
 
 
         return StudentMapper.toDto(students.save(body));  

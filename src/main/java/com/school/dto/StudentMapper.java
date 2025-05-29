@@ -7,20 +7,20 @@ import org.springframework.web.server.ResponseStatusException;
 
 public final class StudentMapper {
 
-    public static StudentDto toDto(Student s) {
-        Grade g = (s.getSchoolClass() != null) ? s.getSchoolClass().getGrade() : null;
-        GradeDto gd = (g == null) ? null : new GradeDto(g.getId(), g.getLevel());
+    public static StudentDto toDto(Student student) {
+        Grade grade = (student.getSchoolClass() != null) ? student.getSchoolClass().getGrade() : null;
+        GradeDto gradeDto = (grade == null) ? null : new GradeDto(grade.getId(), grade.getLevel());
 
-        SchoolClass c = s.getSchoolClass();
-        SchoolClassDto cd = (c == null) ? null : new SchoolClassDto(c.getId(), c.getName(), gd);
+        SchoolClass classEntity = student.getSchoolClass();
+        SchoolClassDto classDto = (classEntity == null) ? null : new SchoolClassDto(classEntity.getId(), classEntity.getName(), gradeDto);
 
         return new StudentDto(
-                s.getId(),
-                s.getFullName(),
-                s.getEmail(),
-                cd,
-                s.getMatricule(),
-                s.getPlaceOfBirth()
+                student.getId(),
+                student.getFullName(),
+                student.getEmail(),
+                classDto,
+                student.getMatricule(),
+                student.getPlaceOfBirth()
         );
     }
 
@@ -33,10 +33,10 @@ public final class StudentMapper {
         if (dto.placeOfBirth() != null) target.setPlaceOfBirth(dto.placeOfBirth());
 
         if (dto.schoolClass() != null && dto.schoolClass().id() != null) {
-            SchoolClass c = classes.findById(dto.schoolClass().id())
+            SchoolClass classEntity = classes.findById(dto.schoolClass().id())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "class not found"));
-            target.setSchoolClass(c);
+            target.setSchoolClass(classEntity);
         }
     }
 

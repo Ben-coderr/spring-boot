@@ -30,8 +30,8 @@ public class AttendanceService {
 
         int total   = rows.size();
         int present = 0;
-        for (Attendance a : rows)
-            if ("PRESENT".equalsIgnoreCase(a.getStatus()))
+        for (Attendance record : rows)
+            if ("PRESENT".equalsIgnoreCase(record.getStatus()))
                 present++;
 
         double pct = (present * 100.0) / total;

@@ -6,9 +6,9 @@ import java.time.LocalDateTime;
 
 public record AnnouncementDto(Long id, String title, String content,
                               LocalDateTime publishedAt, Long classId) {
-    public static AnnouncementDto from(Announcement a) {
-        Long cid = (a.getSchoolClass() != null) ? a.getSchoolClass().getId() : null;
-        return new AnnouncementDto(a.getId(), a.getTitle(), a.getContent(),
-                a.getPublishedAt(), cid);
+    public static AnnouncementDto from(Announcement announcement) {
+        Long cid = (announcement.getSchoolClass() != null) ? announcement.getSchoolClass().getId() : null;
+        return new AnnouncementDto(announcement.getId(), announcement.getTitle(), announcement.getContent(),
+                announcement.getPublishedAt(), cid);
     }
 }

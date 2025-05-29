@@ -11,6 +11,7 @@ import java.time.LocalDate;
 
 import java.util.List;
 import java.util.Set;
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/attendances")
@@ -30,14 +31,19 @@ public class AttendanceController {
 
     @GetMapping
     public List<AttendanceDto> listAttendances() {
-        return attendances.findAll().stream().map(AttendanceDto::from).toList();
+        List<Attendance> all = attendances.findAll();
+        List<AttendanceDto> out = new ArrayList<>();
+        for (Attendance attendance : all) {
+            out.add(AttendanceDto.from(attendance));
+        }
+        return out;
     }
 
     @GetMapping("{id}")
     public AttendanceDto getAttendance(@PathVariable Long id) {
-        Attendance a = attendances.findById(id)
+        Attendance attendance = attendances.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "attendance " + id + " not found"));
-        return AttendanceDto.from(a);
+        return AttendanceDto.from(attendance);
     }
 
     @GetMapping("/student/{sid}/percent")
@@ -70,9 +76,9 @@ public class AttendanceController {
     public List<Attendance> bulk(@RequestBody List<Attendance> list){
         if(list == null || list.isEmpty())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"empty payload");
-        for(Attendance a : list){
-            if(a.getDate() == null) a.setDate(LocalDate.now());
-            if(a.getStatus() == null || !allowed.contains(a.getStatus().toUpperCase()))
+        for(Attendance entry : list){
+            if(entry.getDate() == null) entry.setDate(LocalDate.now());
+            if(entry.getStatus() == null || !allowed.contains(entry.getStatus().toUpperCase()))
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"status must be PRESENT, ABSENT or LATE");
         }
         return attendances.saveAll(list);
@@ -82,20 +88,20 @@ public class AttendanceController {
     @PutMapping("{id}")
     public AttendanceDto updateAttendance(@PathVariable Long id, @RequestBody Attendance in) {
 
-        Attendance a = attendances.findById(id)
+        Attendance attendance = attendances.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "attendance " + id + " not found"));
 
         if (in.getStatus() != null) {
             if (!allowed.contains(in.getStatus()))
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid status");
-            a.setStatus(in.getStatus());
+            attendance.setStatus(in.getStatus());
         }
 
-        if (in.getDate() != null) a.setDate(in.getDate());
-        if (in.getStudent() != null) a.setStudent(in.getStudent());
-        if (in.getLesson()  != null) a.setLesson(in.getLesson());
+        if (in.getDate() != null) attendance.setDate(in.getDate());
+        if (in.getStudent() != null) attendance.setStudent(in.getStudent());
+        if (in.getLesson()  != null) attendance.setLesson(in.getLesson());
 
-        return AttendanceDto.from(attendances.save(a));
+        return AttendanceDto.from(attendances.save(attendance));
     }
 
     @DeleteMapping("{id}")

@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/assignments")
@@ -18,14 +19,19 @@ public class AssignmentController {
 
     @GetMapping
     public List<AssignmentDto> list(){
-        return assignments.findAll().stream().map(AssignmentDto::from).toList();
+        List<Assignment> all = assignments.findAll();
+        List<AssignmentDto> out = new ArrayList<>();
+        for (Assignment assignment : all) {
+            out.add(AssignmentDto.from(assignment));
+        }
+        return out;
     }
 
     @GetMapping("{id}")
     public AssignmentDto get(@PathVariable Long id){
-        Assignment a = assignments.findById(id)
+        Assignment assignment = assignments.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"assignment "+id+" not found"));
-        return AssignmentDto.from(a);
+        return AssignmentDto.from(assignment);
     }
 
     @PostMapping
@@ -40,11 +46,11 @@ public class AssignmentController {
 
     @PutMapping("{id}")
     public AssignmentDto update(@PathVariable Long id,@RequestBody Assignment in){
-        Assignment a = assignments.findById(id)
+        Assignment assignment = assignments.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"assignment "+id+" not found"));
-        if(in.getTitle()!=null)   a.setTitle(in.getTitle());
-        if(in.getDueDate()!=null) a.setDueDate(in.getDueDate());
-        return AssignmentDto.from(assignments.save(a));
+        if(in.getTitle()!=null)   assignment.setTitle(in.getTitle());
+        if(in.getDueDate()!=null) assignment.setDueDate(in.getDueDate());
+        return AssignmentDto.from(assignments.save(assignment));
     }
 
     @DeleteMapping("{id}")

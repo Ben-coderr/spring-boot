@@ -9,6 +9,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.school.service.ResultService;
 
 import java.util.List;
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/results")
@@ -25,14 +26,19 @@ public class ResultController {
 
     @GetMapping
     public List<ResultDto> list(){
-        return results.findAll().stream().map(ResultDto::from).toList();
+        List<Result> all = results.findAll();
+        List<ResultDto> out = new ArrayList<>();
+        for (Result result : all) {
+            out.add(ResultDto.from(result));
+        }
+        return out;
     }
 
     @GetMapping("{id}")
     public ResultDto get(@PathVariable Long id){
-        Result r = results.findById(id)
+        Result result = results.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"result "+id+" not found"));
-        return ResultDto.from(r);
+        return ResultDto.from(result);
     }
 
     @GetMapping("/student/{id}/average")
@@ -67,10 +73,10 @@ public class ResultController {
 
     @PutMapping("{id}")
     public ResultDto update(@PathVariable Long id,@RequestBody Result in){
-        Result r = results.findById(id)
+        Result result = results.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"result "+id+" not found"));
-        if(in.getScore()!=null) r.setScore(in.getScore());
-        return ResultDto.from(results.save(r));
+        if(in.getScore()!=null) result.setScore(in.getScore());
+        return ResultDto.from(results.save(result));
     }
 
     @DeleteMapping("{id}")
