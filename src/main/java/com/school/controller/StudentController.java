@@ -11,7 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-
+import com.school.model.Parent;
+import com.school.model.SchoolClass;
 import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
