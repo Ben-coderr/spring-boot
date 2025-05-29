@@ -15,6 +15,7 @@ CREATE TABLE grade (
 
 CREATE TABLE subject (
   id   BIGINT AUTO_INCREMENT PRIMARY KEY,
+  coefficient INT NOT NULL,
   name VARCHAR(80) NOT NULL UNIQUE
 );
 
