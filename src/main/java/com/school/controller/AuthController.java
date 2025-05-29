@@ -116,13 +116,14 @@ public class AuthController { // endpoints for auth
         }
         
 
-        String token = jwt.generateToken(user);
+        String fullName = resolveFullName(user);
+        String token = jwt.generateToken(user, fullName);
 
         return new LoginResponse(
                 token,
                 user.getRole().name(),
                 user.getId(),
-                resolveFullName(user)
+                fullName
         );
     }
 

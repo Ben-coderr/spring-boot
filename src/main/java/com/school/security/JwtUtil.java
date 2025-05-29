@@ -30,6 +30,26 @@ import javax.crypto.SecretKey;
                    .signWith(key)
                    .compact();
     }
+
+    // token with extra claims
+    public String generate(String username, String role, Long userId, String fullName) {
+        Instant now = Instant.now();
+        return Jwts.builder()
+                   .subject(username)
+                   .claim("role", role)
+                   .claim("userId", userId)
+                    //For abdenour front end
+                   .claim("fullName", fullName)
+                   .issuedAt(Date.from(now))
+                   .expiration(Date.from(now.plusSeconds(86_400)))   // 1 day
+                   .signWith(key)
+                   .compact();
+    }
+
+    public String generateToken(User user, String fullName) { // from user object
+        return generate(user.getUsername(), user.getRole().name(), user.getId(), fullName);
+    }
+
     public String generateToken(User user) { // from user object
         return generate(user.getUsername(), user.getRole().name());
     }
