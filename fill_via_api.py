@@ -252,6 +252,7 @@ def create_results(s, host, students, exams):
                 "score": round(rand.uniform(30, 100), 1),
                 "student": {"id": sid},
                 "exam": {"id": eid},
+                "kind":    rand.choice(["CC", "EXAM"]),
                 "isFinal": rand.choice([True, False])
             })
 
