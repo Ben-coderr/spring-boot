@@ -1,0 +1,1209 @@
+spring-boot/
+├── .git/
+│   ├── branches/
+│   ├── hooks/
+│   │   ├── applypatch-msg.sample
+│   │   ├── commit-msg.sample
+│   │   ├── fsmonitor-watchman.sample
+│   │   ├── post-update.sample
+│   │   ├── pre-applypatch.sample
+│   │   ├── pre-commit.sample
+│   │   ├── pre-merge-commit.sample
+│   │   ├── pre-push.sample
+│   │   ├── pre-rebase.sample
+│   │   ├── pre-receive.sample
+│   │   ├── prepare-commit-msg.sample
+│   │   ├── push-to-checkout.sample
+│   │   ├── sendemail-validate.sample
+│   │   └── update.sample
+│   ├── info/
+│   │   └── exclude
+│   ├── logs/
+│   │   ├── refs/
+│   │   │   ├── heads/
+│   │   │   │   ├── Auth-implementation
+│   │   │   │   ├── main
+│   │   │   │   ├── simple-code-structure
+│   │   │   │   ├── sql-version
+│   │   │   │   ├── Swagger
+│   │   │   │   ├── test
+│   │   │   │   ├── Test-sql-seeds
+│   │   │   │   ├── test-Swagger
+│   │   │   │   └── testing-auth
+│   │   │   └── remotes/
+│   │   │       └── origin/
+│   │   │           ├── Auth-implementation
+│   │   │           ├── HEAD
+│   │   │           ├── main
+│   │   │           ├── prject-edushpere
+│   │   │           ├── simple-code-structure
+│   │   │           ├── Swagger
+│   │   │           └── Test-sql-seeds
+│   │   └── HEAD
+│   ├── objects/
+│   │   ├── 00/
+│   │   │   └── e1b9f542a5bd029019b7a389009628d275191d
+│   │   ├── 01/
+│   │   │   ├── 19df61c6a27b574351c748e45e35c812bce9e2
+│   │   │   ├── 91d65dce2feaf0d3b0497b2cab3aa66dd04f6d
+│   │   │   └── e2b97ef852b699aaa0e6760847a1232cfda142
+│   │   ├── 02/
+│   │   │   └── 95396c0dfdfdfb3ba9dbf696926a53db6844f8
+│   │   ├── 03/
+│   │   │   ├── 2b57607563a41c235842dca1cbf27802e4ba1f
+│   │   │   ├── 40f93d324e57db5735ac440f1b1fa31b776817
+│   │   │   └── 8bbc1630cff4d3d27a3547997f93171822b7d2
+│   │   ├── 04/
+│   │   │   └── 4eec2a89e9f1d4501ec8d7340afdc9196df984
+│   │   ├── 05/
+│   │   │   ├── dada9f6b795ab92a55df019931ffbe8a0472c5
+│   │   │   └── dc9960b5139ab5bd5914d5f324932e428ab3bc
+│   │   ├── 08/
+│   │   │   └── bcef95b15297c65ec2474efb0bbfaed36d7894
+│   │   ├── 0a/
+│   │   │   ├── b670c00f3dd02bf8d766f7ad306ce5f2ba4254
+│   │   │   └── b9efbc6a0df8e3efb617475a8d03d3c0d00ce0
+│   │   ├── 0d/
+│   │   │   └── 94242c294cf439e0629776a2b926f910807e85
+│   │   ├── 0e/
+│   │   │   └── 594866915c7e4e6807de7db542781d6f108371
+│   │   ├── 10/
+│   │   │   ├── 174695228cc484cc9f5b8482b38c5ea1e68a64
+│   │   │   ├── 3cd4a649dc07555115332e8c8b4613a609ee98
+│   │   │   ├── 472f9073fecfd5f78af718149f499e728011cc
+│   │   │   ├── d76d0273f42a9042bddeb517aa5ec7ecc1bf0a
+│   │   │   └── faa2e0587c93e52b53ec33eb3cb52f04884c54
+│   │   ├── 11/
+│   │   │   ├── 178864c53ca662d72f4135ede2b233cc40e85e
+│   │   │   └── 77dc2d47848030fe9548e13ed3382367ea0392
+│   │   ├── 12/
+│   │   │   ├── 5760e5cf706a9b885b13ca6097275c9e35afb1
+│   │   │   └── 5c6cddb4293df4ee09d1ea4e5eb22fb1c60c68
+│   │   ├── 13/
+│   │   │   ├── 288099c09c790e04d227ed14b48e6b5366ecc7
+│   │   │   ├── 2980fcddec4470e228bef52cb11beb47249029
+│   │   │   ├── 390d65cbc544cb410bf0a53dc48358e7dbd345
+│   │   │   ├── 5045d6150f83e971ccc3b9c1cbf19780d52b57
+│   │   │   └── e2252e62721e358cff5c23c0cbfb9b84d0094f
+│   │   ├── 14/
+│   │   │   └── e794ec170afaeb58ecc421563d0cacec5c16a8
+│   │   ├── 15/
+│   │   │   ├── 85d0315a6a0204d72f850ad4488bbc59048beb
+│   │   │   ├── de40974e263040ab5436ae599b77c64a48225d
+│   │   │   └── ece05ca8f668575938cbdabd31c377cb022b6a
+│   │   ├── 17/
+│   │   │   ├── 245ab3aefde778fab804d1062d4544695e1308
+│   │   │   └── b6c897282777f5fd82e3ad38f3a2638c2b9118
+│   │   ├── 18/
+│   │   │   ├── 15f25d34c6d10843a8bafb53c45b694b29a594
+│   │   │   └── 85c0e87d78463a70f118d6039d9568d0707c3c
+│   │   ├── 19/
+│   │   │   ├── 5fca213039ad476036f553ef8d0f8dd953eae4
+│   │   │   ├── 731c8213c30e71101dc3084fe50adcbd5d5802
+│   │   │   └── edb66afb1d633404fe422bb24712043b6ebc83
+│   │   ├── 1a/
+│   │   │   ├── 210b11399506b0eaeb50aa05a3af60c04ed291
+│   │   │   ├── 5492b778e7f0e984db1eb39bf9b246b226850e
+│   │   │   ├── 6be44bca942f1f80193a81a8cb6c2782aa430a
+│   │   │   └── a3b7072443fe68b99fd3b8e20fe13209278a28
+│   │   ├── 1b/
+│   │   │   └── d7f143cb97a5de4324137ea607c13ac2d8f146
+│   │   ├── 1c/
+│   │   │   ├── 07554f85821292b9dff2402943a018c7a29cb4
+│   │   │   └── d12be43e50129ceb916f6cc8082983637e7fa3
+│   │   ├── 1d/
+│   │   │   ├── 08aca9e591abedac31acaafc16606df3b51184
+│   │   │   └── 1a13c7cfde7de0a0971adb7441d69786738519
+│   │   ├── 1e/
+│   │   │   ├── 1331531a5d7f9df1b57ca93a966b0daf8826d0
+│   │   │   ├── 2794c733aa20dfcbe53c21ae6518973ad3b54d
+│   │   │   ├── 6dfa1165e24360c56adf8cf006ff2b10657981
+│   │   │   ├── 8b04207fd5361dbe6ad4208ac59107e6d925e3
+│   │   │   ├── 993a42fe54463ed04ab3a0177e3118083417db
+│   │   │   └── fda87f98740503e70c5000c736c43f4e7f82b4
+│   │   ├── 1f/
+│   │   │   ├── 5e9596817330d72bdb22c9b146327538d562c2
+│   │   │   └── ad6fa264c8b9227ab978f7c2bcac9e44edf9c3
+│   │   ├── 21/
+│   │   │   ├── 429b352eda3aeb7d66b9ea29242f7cb25c6a3a
+│   │   │   ├── 64a09997535f22a6387dc8ede5e56f14963684
+│   │   │   ├── b427bf167cba9bb05a9ce4d405f28ecfaba21a
+│   │   │   └── f543e5e2311d2c07490df232f135cc0600efc4
+│   │   ├── 22/
+│   │   │   └── cb3a88d3e8d29d1014f673ddf47e741e965aa0
+│   │   ├── 24/
+│   │   │   ├── 2b5380d8728893244cc002ffa44c8d49e5cf2f
+│   │   │   └── 6356a0f927707103f3d99f72374048b481e12a
+│   │   ├── 25/
+│   │   │   └── 9cac28c3d23c72415f820d9b087906d0a078b9
+│   │   ├── 26/
+│   │   │   ├── 1d3b0110371756c4145584ac92954151c43c82
+│   │   │   ├── 6fe9f1aed4d318807a7fb68194c66f95395095
+│   │   │   └── 8d521fef914675c8f80fbb432d0169d981933a
+│   │   ├── 27/
+│   │   │   ├── 0b7dd7b1fad79dbaa4b5539d69b4875d1c77cf
+│   │   │   ├── 858f4120d51f13ee33e47799b17952fb55e6c8
+│   │   │   └── d71558c80e19ceca20ad0ac277d09e6ffbbb8c
+│   │   ├── 28/
+│   │   │   ├── 2ff2c6588f01f57a29ed25c7bd64007f6566a3
+│   │   │   ├── 64f0e2ca708fe9ddfcb66c64f172854cc7f304
+│   │   │   └── feb2f1a57233ad8e62ca9639446696f8568e58
+│   │   ├── 29/
+│   │   │   └── 5c4c689cdb9f835d8975f13303b3a2aab60ca1
+│   │   ├── 2a/
+│   │   │   └── a94f7c27af316419edf61dcba7ecbf820450e2
+│   │   ├── 2c/
+│   │   │   └── 308b0ff193416e851ead6f34f9a1b35e74b215
+│   │   ├── 2d/
+│   │   │   └── fe68e0b4969281cad8a6c2b20843c53bbe315f
+│   │   ├── 2e/
+│   │   │   └── b3dcc01e032c7edf34cdf2e968b6ff68bf0cd8
+│   │   ├── 2f/
+│   │   │   └── b86267006fd9a13c869ba658e2f1611c6b22db
+│   │   ├── 30/
+│   │   │   └── 2f5f22dc85d8930d2d5254f7e47ebccff9afac
+│   │   ├── 31/
+│   │   │   ├── 388d43854ccd25613e15e5a3c1c8cecefbbef1
+│   │   │   └── 7a5b9bcf07ff14d615d9708efc72024352f780
+│   │   ├── 34/
+│   │   │   └── 907b36e892ff6f60fd743604d332680ef9bf50
+│   │   ├── 36/
+│   │   │   └── caba80cf6ff3e48cb4bd03d8510eb46e54881d
+│   │   ├── 37/
+│   │   │   ├── 855ff5367cb7282d97021c03c8e2b33a1dbca4
+│   │   │   └── a550a6b76dd70d6b724d0f6138f4e33b5338bd
+│   │   ├── 39/
+│   │   │   ├── 13e9645681e7f2dbfa2002ecd3e4b6880396b9
+│   │   │   ├── 2ebb453ed259ad5dd94622227ac9321b2b71bf
+│   │   │   └── 678a67aa70bd6bb2a5a9411186acb4dfe25b37
+│   │   ├── 3a/
+│   │   │   ├── a5d3bbc340c8ea2b02dbfb6be25c35fdb9e530
+│   │   │   └── ba155840bf450fe4b8752e228ef9868712ffaf
+│   │   ├── 3b/
+│   │   │   └── 54865435840bc95d5a8c752ff8a3272cee9d8e
+│   │   ├── 3c/
+│   │   │   └── 4c56c0f0ff282c46f02c379bff64123a224529
+│   │   ├── 3d/
+│   │   │   └── 724627e9f63d165932242b06e8e585b527ba84
+│   │   ├── 3e/
+│   │   │   ├── 0adef3d7f6b51bc4c9accd0e788dacfb5c85d2
+│   │   │   └── 9f1c2ef16a4b527b382bc9cff6ef5ce21a74e3
+│   │   ├── 3f/
+│   │   │   └── 1ea5caa6f67e68e45f25a60a5ff308d18fdebf
+│   │   ├── 40/
+│   │   │   └── 9a4966577ec66278b320c1c0db6ef38b2ddb93
+│   │   ├── 41/
+│   │   │   └── d7c73861894778395f869bfd15720418cec225
+│   │   ├── 42/
+│   │   │   ├── 54bb472a0376ca5359ab3fbd2967f32b60866c
+│   │   │   ├── 5ac59d03a96325134552d8efe6bfad94196e2e
+│   │   │   ├── 8850c4a9a1dea78def058240cb8d9cbb1d13a6
+│   │   │   ├── a4bb63cc37ca9e2f0d7cc8cfaf383967ae38dc
+│   │   │   └── f97cf45b32f6e789a79a2de0e3a11dfd697d86
+│   │   ├── 43/
+│   │   │   ├── 02a528c72f825d50cd989a35d517036fbbbe12
+│   │   │   └── 2c10469d789041d92aebc746244e5cadbec6b9
+│   │   ├── 44/
+│   │   │   ├── 2655c6ac26a2508ff0f918326efa5ffe9c6b14
+│   │   │   └── 97c2d88c90b2bd6b93eb67c3d69fe7e5facd5c
+│   │   ├── 45/
+│   │   │   └── 19f241a2647fdf11878708d9affb10e438f0fe
+│   │   ├── 46/
+│   │   │   └── 3cd624951ae20f02176f00dfdbb4e85165cbd0
+│   │   ├── 47/
+│   │   │   ├── 1d95303a506609b2c4bd3ff9de26bdf4f0e98d
+│   │   │   └── bee34084d491cac904f45d9f313394c429e086
+│   │   ├── 48/
+│   │   │   ├── a5727259c38bb38fada1cc1acc601ce59bf409
+│   │   │   └── cc12c858cb83e9d6e94b0f676b6502bd6e2355
+│   │   ├── 49/
+│   │   │   ├── 06079c8270a64183c96768e189b8f927a8bfbe
+│   │   │   └── b08314e3f7e00aac102a76e1480d71c04e999a
+│   │   ├── 4a/
+│   │   │   └── e68004bee5bf9b64bd924f029300bc62581a38
+│   │   ├── 4b/
+│   │   │   ├── 801e2dbc36f0b764da47f39a5911a1089abeaa
+│   │   │   └── d63d66646fe7330cf6b35094c6fe6fd7d774d9
+│   │   ├── 4c/
+│   │   │   ├── 2078956bb3964dafe5dd9326cc83d71f2a94ac
+│   │   │   ├── b0fabffc6d6ecdb1f2f185a003098f144cd294
+│   │   │   └── d71d51ca04ae3bb1f71720927d685540ff72c3
+│   │   ├── 4d/
+│   │   │   ├── 755854b4bcce3aa5af79249d9dedabc52bf062
+│   │   │   ├── 7bfdb77ae045cd61f2dd0f197e244e6114c612
+│   │   │   └── 8dfd09ce0b32a7a3d92fb5fda211cfef5e91bb
+│   │   ├── 4f/
+│   │   │   ├── 4a9ebf994d69adf33d3f6e1f083cd3ce013c46
+│   │   │   └── b66df6696960030cae72a0274b16a8cdffe626
+│   │   ├── 50/
+│   │   │   └── 5a7d7a198b05b60a49d760f06598b740456dcd
+│   │   ├── 51/
+│   │   │   └── 601f5f21ab939489d7b3f62922e49410bd8449
+│   │   ├── 52/
+│   │   │   ├── ce7156b12b1c8a0786f13a989ad432e815be3d
+│   │   │   └── e4af0960fce1bae476e61ba9d101dc88469c80
+│   │   ├── 53/
+│   │   │   └── 592a137c4a18f3028f8e694af7c18b655a82c7
+│   │   ├── 55/
+│   │   │   └── bcfeae5e29ee296a4bbc20306e71b48823f935
+│   │   ├── 56/
+│   │   │   ├── 0d3f7aa5dc282b62a1590626c67cc9aa52f45a
+│   │   │   ├── 1b9716b95c32e9732c0a78006be9b639a0b552
+│   │   │   ├── 2271fdb22e70b9203a123f1101a8e2a23f3a94
+│   │   │   ├── 44cb4bde0406a17e80189671df4fbcd293bf4e
+│   │   │   └── cc214b1e8c156f8cb5f9add7c577ccb8f2e651
+│   │   ├── 57/
+│   │   │   └── 06847d7de713d13602c2e4a52288373e6ec939
+│   │   ├── 59/
+│   │   │   └── 7f8220751d6cf0a06f4c11658a1a623622c17c
+│   │   ├── 5a/
+│   │   │   ├── dff3ffc89aa716f9433d326b4b178d803b48f7
+│   │   │   └── e18c4adf1f9f2d8e98207fa4d04f448a34eea4
+│   │   ├── 5b/
+│   │   │   ├── 3cd2dc5e60f67dde5919766bdbb50e9c3f241d
+│   │   │   └── 8058793c498cc11f9335114c7a88251aaed57f
+│   │   ├── 5c/
+│   │   │   └── 365fd37498303bcbd8e7089b02918ac2189941
+│   │   ├── 5d/
+│   │   │   └── 6e278c428002e6764a681a7901164c17103755
+│   │   ├── 5e/
+│   │   │   ├── c420965415a27fc7daae2559847fbf1b925ba2
+│   │   │   └── e129d7150f0dfff5f4f75b3362803b67ab9b0f
+│   │   ├── 5f/
+│   │   │   └── 5f7cf1ce1a55476bc9951fd91cb071d8bfde0c
+│   │   ├── 60/
+│   │   │   ├── bc2121fa69c855b425bda9213add869c1883b8
+│   │   │   └── e802e993823100c19d1f4727c841653d164b8c
+│   │   ├── 61/
+│   │   │   ├── 00ab776349f0cb43e160a9b8cd265cb95482da
+│   │   │   └── 06c284695d24286347b1fb1972b0e041f3a968
+│   │   ├── 62/
+│   │   │   ├── 2e4cd503bbe3df2adecef8edae01846a2107ba
+│   │   │   └── f0e93c236b7106695a960158424d1a94348bdf
+│   │   ├── 64/
+│   │   │   ├── 03059ee7f399869eaee819526520a1cb732699
+│   │   │   ├── 3783c43febbe8177893364adb5c66a32546e13
+│   │   │   ├── 5a7b21f0dc0c787cdcc605a8afcc19a536195b
+│   │   │   ├── 6ed2eb22bb70573f4a6f538072a7b72e816a60
+│   │   │   └── d7f2826f6b8758df015ddb6a740c57d1bc0580
+│   │   ├── 66/
+│   │   │   ├── d3f4ac68a456ff206e4a1feba4cbc43069e31b
+│   │   │   └── ee8aaec1e4c3090dd44acec48f8ca0d425ccaa
+│   │   ├── 67/
+│   │   │   ├── 3184219c16194ef35446dced42754e70088260
+│   │   │   └── 8ea846ff69311eaa022cf68c5a394de998c4bd
+│   │   ├── 68/
+│   │   │   └── 11bd5d395d58224eef8c2710ff139ddb570921
+│   │   ├── 69/
+│   │   │   ├── 958b4c121a8377e8d3c536707bd295075f517c
+│   │   │   └── 987c6ac71ed05876954b12b2cdba2bdf03a202
+│   │   ├── 6b/
+│   │   │   ├── 0a068af4ca6d6f4cec6a94aa5483d4d39e1538
+│   │   │   ├── c3b0cbebfcdc62d441dae42dc59b9c6ec668d7
+│   │   │   └── eb3562f4e469af346e84cd4128292e444ad9a5
+│   │   ├── 6c/
+│   │   │   └── dc37925a02a358d732f6792bc0f91f49559261
+│   │   ├── 6d/
+│   │   │   ├── 64ef10c8500657e3c8bee2e116802c86337b28
+│   │   │   └── 96a66a55f9fc486d30c52f5f115b4de6ceb659
+│   │   ├── 6e/
+│   │   │   ├── 2216d5a442ae73ba355937e819dcc37cfc1f48
+│   │   │   ├── ba1bbc43aca6979c090da9fcee55e1704c22d2
+│   │   │   ├── cc82864c1f203be0180d85ddb0324f9a9cf87f
+│   │   │   └── cceb09d16a5efcbe454d832ae795b18a90bf3a
+│   │   ├── 70/
+│   │   │   ├── 11fb2dac9d2746d55085ea5a964d105e760bff
+│   │   │   ├── 25a6abde8948a47e0a58a86f3d8c1e05ead3fd
+│   │   │   └── 406cd138342b22353147abb597c597a1a89685
+│   │   ├── 71/
+│   │   │   ├── 9874f7d6a6a33d528cf2ef04cc1ec1e0d22ca1
+│   │   │   └── b650428b78387e9072672af35200a3f41313b2
+│   │   ├── 74/
+│   │   │   ├── 31354b03323563c784a5844bd698a78d739cbd
+│   │   │   ├── ab2242469598b0f1e3dd7f781bd5008174093a
+│   │   │   └── b0c345345112b808b294a027543795b4465bb2
+│   │   ├── 75/
+│   │   │   ├── 7a26b5aa3ba4a91d85c5690cdfb636929234f9
+│   │   │   ├── 7eaf301ed8b5ef602ad22f20f626e803698266
+│   │   │   └── 92cd17bcaedd38f6fb9c32a9e8b3ac0b584c39
+│   │   ├── 76/
+│   │   │   ├── 139d5137feacac6486aa259fd128a9ba723467
+│   │   │   └── 2e1327fb3433f64bcf0345a0e6224547909e96
+│   │   ├── 78/
+│   │   │   ├── 5c4fb0ec18acc697e9ca79cdf663aab2a2a12a
+│   │   │   └── ab0f620921825e99f1656b1dfab3856df4a0ab
+│   │   ├── 79/
+│   │   │   ├── 5d1cfb8ad8dd0b8e378aaaec12a1c5cb0d0f1f
+│   │   │   └── f3e03878cdd07a57b29b95b7dcc647e012d7b2
+│   │   ├── 7a/
+│   │   │   ├── 25611f14b628919d2b44cae74bac833029f168
+│   │   │   └── da7d048bf4d2fa9790446acaf0125b3ab5f47d
+│   │   ├── 7b/
+│   │   │   └── ca1be111a47fd03f48e4da03d2add342cb4d38
+│   │   ├── 7c/
+│   │   │   └── 05a66f5bd3f6f266d32a4d8f9a212d999f35c8
+│   │   ├── 7d/
+│   │   │   ├── 0cb74af9f25c2c6463586a1fa24a43dfe2e79e
+│   │   │   ├── 1919ea7ceefe06785155ada5642f6244ec6b38
+│   │   │   └── 81663946ff8ce9b8fdf703388589c094b889ef
+│   │   ├── 7e/
+│   │   │   └── 69561e41386f654992ba7571d5038ba533be81
+│   │   ├── 7f/
+│   │   │   ├── 9085c9284688e477b9b292ffd3312247eb09c2
+│   │   │   └── c4151f8368f0dec6fa7df54604db4bcc662b98
+│   │   ├── 80/
+│   │   │   ├── 046c2d5bc9d9cca242f0b219e67a31b4b14aca
+│   │   │   ├── 3fe08da9248a783914210c438833fad8a84f34
+│   │   │   ├── 54606b9f7ebdbbf51af00874d5ef3d9db04991
+│   │   │   ├── 6f9cfb395a09a9b86d30845b9e3637a350f539
+│   │   │   └── a68b3089c3e27739856a68b3003aef3f99c0fd
+│   │   ├── 82/
+│   │   │   └── fe3ed1acdef5660b9295eae143682c0c898b95
+│   │   ├── 83/
+│   │   │   └── 6bedb8d7d0a7a139319fc2d23a0a0f1b304250
+│   │   ├── 84/
+│   │   │   ├── 4befee23e684a6a3b247a9c4184c7b61e82757
+│   │   │   └── d15a1bbf6b0ffc249d6b9213c4850b0658e8d4
+│   │   ├── 85/
+│   │   │   └── e1f62df5c067ca9d6561ab81b026ccaaedf71c
+│   │   ├── 86/
+│   │   │   ├── 8d2117172f850dbf11506e252811423174cd59
+│   │   │   ├── b2a5a638daced4b692d62ffd33f107ba6fbe4d
+│   │   │   └── f6ce4aa7adfe664ad68c39158fcfaa7d464456
+│   │   ├── 87/
+│   │   │   ├── 656a256fa1468a97887a8712ca18ef0b2f4592
+│   │   │   └── 798f3712a588f553e54815fb1901da8206fe50
+│   │   ├── 88/
+│   │   │   ├── bb6a8f8db67a5388a203ebe9de4e0c2f49a3ff
+│   │   │   └── e124b529385b3e98a6a1bea0f00faaee20dc60
+│   │   ├── 89/
+│   │   │   └── 9e593bfb4ebfc81d4685154406dd4d9f1ab94a
+│   │   ├── 8a/
+│   │   │   ├── 0ac847221e683343c3f49dfb4ce7ef4cce7f3f
+│   │   │   ├── 37dcef6dddebfdac113ed3ad241abf29d4520c
+│   │   │   └── d0ec928bcf4fc0b39bf3dff8fc47d4edc92933
+│   │   ├── 8b/
+│   │   │   └── de2a33b3277fcf5ac2f49163b5426f4da6f6a7
+│   │   ├── 8c/
+│   │   │   └── 237515ec38333fa049a258ed2bb315fce9c060
+│   │   ├── 8d/
+│   │   │   ├── 61bf00053743f5548d94cb412d971dfffdd944
+│   │   │   └── c28293b5b962c15aca0505c5b7973a5794832f
+│   │   ├── 8f/
+│   │   │   └── 83e3decd6688be743e8db90c83a5f8066c8311
+│   │   ├── 91/
+│   │   │   ├── 1925e584f7cd6f1d673e662937047743abb815
+│   │   │   └── 83576dfa2b8b86cb0739935a3fe94ad4d02772
+│   │   ├── 92/
+│   │   │   └── 242400ec34572a5d44aa129799c1dfa1aff376
+│   │   ├── 94/
+│   │   │   └── f1c799017ab149d9a474e0ef3235572514fc1e
+│   │   ├── 96/
+│   │   │   ├── 43cfe17de7fb3c7966673c1d2c441f03ab007c
+│   │   │   └── 8079fdf24f78ffbdbac6fc352c9234f5940d2b
+│   │   ├── 99/
+│   │   │   └── 528218d02d977343ec8f539d5e63603800409b
+│   │   ├── 9a/
+│   │   │   ├── 421775812a42e4637f8a41cab762ec7ec72ca4
+│   │   │   ├── 661df65f63d87619ae23cd1811dd6220b80691
+│   │   │   └── 7d71cd59392a76cb605ce1ffcb924460913fc0
+│   │   ├── 9c/
+│   │   │   ├── c92b0b896da134d8cc6af82b46c89e7e687c51
+│   │   │   ├── cf8e54326678380db294563b57a94b7bf023da
+│   │   │   └── f770c67f39722a17949fbf43f07b07d143938d
+│   │   ├── 9d/
+│   │   │   ├── 5e6c7fce36acfc3900c2d951aefcd144af80df
+│   │   │   └── f3defd31ff6b8092b44b99c1759a01ea5425bf
+│   │   ├── 9e/
+│   │   │   ├── 58b7258d27d545e9d631c92a2e5492167fa3e0
+│   │   │   ├── 89a65d82a1436ae1ad37f6837c54954d60159e
+│   │   │   └── c0b3b747f495342bba9bb75c0e6b6faa7d0cae
+│   │   ├── 9f/
+│   │   │   ├── 21062bfb247b1ce555553409cf02f5049e0a80
+│   │   │   └── 9f0299064f3c2694f063bbccf530369cfc193d
+│   │   ├── a0/
+│   │   │   ├── 36c49c2e7e7ff127820ba67caa85495334b5b5
+│   │   │   └── a1541d73cd4f25b26cc8dcbdeaadc59cefb7b6
+│   │   ├── a1/
+│   │   │   ├── a9657d6de146605f616f6f11f5e5e22caf9ada
+│   │   │   ├── bef53577c82b1e274d71d61cc39d0ea37cf554
+│   │   │   └── f5c9f1164bc3155b41760a2d02ca08ebccc65e
+│   │   ├── a2/
+│   │   │   └── 6c11a2232773bdb9e5ba3595432b03053ee034
+│   │   ├── a3/
+│   │   │   └── db9aaf2cde75bdd9234e3aad886957dc1a34ee
+│   │   ├── a4/
+│   │   │   ├── a3c7eb528dc8d8436d89a24ddc88df766a16f0
+│   │   │   ├── f5ffe0b80b304ff660a6949748bbdb0fccbfb0
+│   │   │   └── fb078d0878122df356dbfdb95a6d4a8cfe3dd4
+│   │   ├── a5/
+│   │   │   ├── 17a97d685ec1fb57b6e25a668134532a40be61
+│   │   │   ├── 8d8434b6f67effe325b6734f5bea30b2e1968f
+│   │   │   ├── 98034f4619caca5dd95701b099a9708c8dca29
+│   │   │   └── c671985f5bf38316e05850859854eacdfac7c3
+│   │   ├── a8/
+│   │   │   └── 9da6e9c12f660697610a92da031a6c5f4248d9
+│   │   ├── a9/
+│   │   │   ├── 4456c7a5dd4c37419418b61c3975557e33d30f
+│   │   │   └── 4eaa7d6e22dcbc25925afac9d2f25e0ea0a557
+│   │   ├── aa/
+│   │   │   └── 8ef4103f359cca6f54535d9bca372323aa3053
+│   │   ├── ac/
+│   │   │   └── 644eac34c008b446ed61b3cd4d15261467116b
+│   │   ├── ad/
+│   │   │   ├── 2db59dcb7285d7d8db3f57a5c6a139ffe86071
+│   │   │   ├── 444f0609159c609a0ef854ada4398c26b767b0
+│   │   │   └── f5e6062ceffb823704b84d2396ada565c89721
+│   │   ├── ae/
+│   │   │   └── 422568b75956001188ce7acedec465c79ce223
+│   │   ├── af/
+│   │   │   ├── 50d33d94f73ee30ed750f73599a1aaf97ed68d
+│   │   │   ├── 77d26d085fe18f2945c6614710470e7d5b81b7
+│   │   │   └── 84923a29a2f244108c47605a727404273111de
+│   │   ├── b0/
+│   │   │   ├── 047ca72ea80a5aedc33cbfe787da747b57e301
+│   │   │   ├── 0f202d736a4bbf5cd8d1fab02018dcf4bedd44
+│   │   │   └── 671963eba6c4930f57e2d3268485af85e91346
+│   │   ├── b1/
+│   │   │   └── 9ae47624c49ac460514ed0d46a50a73d1e4f12
+│   │   ├── b2/
+│   │   │   └── c165c6fcc0945d3f8af9eed2a62c1be7646ab8
+│   │   ├── b3/
+│   │   │   ├── 1fb3a5acc39c7891c9d05950aa879870416732
+│   │   │   ├── 3c445bd13796d8bedae6dd5dc6712bd66d3838
+│   │   │   └── d9b3db92e4bfd40a7e0c26e7ef64bfa5f77695
+│   │   ├── b4/
+│   │   │   └── 654090ced45559cbdc0199c2443998d192a727
+│   │   ├── b5/
+│   │   │   └── 47ef5bdd68939458388c4f4f00b6dd948220ff
+│   │   ├── b6/
+│   │   │   └── 6901e08c9c04d0af2c0f945a87ca54385460bd
+│   │   ├── b8/
+│   │   │   └── ebd8fcdd3d720fa6d9e9981660dc37f2507220
+│   │   ├── b9/
+│   │   │   └── 69842ef261ec1a07b3ee5ef9cb3eccfcb458e9
+│   │   ├── ba/
+│   │   │   ├── 8c5a98cb292094d796f22f3e52a32a9fadbb04
+│   │   │   └── e335dc836696df9e35c1403e44ba372091e0d5
+│   │   ├── bb/
+│   │   │   └── 8283a5f737a847bdfd965815d7625169d3eed7
+│   │   ├── bc/
+│   │   │   ├── 78f425637b6b33571c00305d4d1a93eb9043da
+│   │   │   ├── d576fe177d698c8f3af46cbeedbfbdc01468af
+│   │   │   └── f9303b894dff53fdd78be72030f419dcfcaffa
+│   │   ├── bd/
+│   │   │   ├── 086fe40f74745e103799a3169c1f55284edb00
+│   │   │   ├── 56c2d4fe629579da2dcbf92f82eeecf8a0ed1b
+│   │   │   ├── a7f007000793b5517747509b498fa570abd91d
+│   │   │   └── dc63c1f8a790081e1b8cee5d4e640d8023321d
+│   │   ├── be/
+│   │   │   ├── 8c578a017cfd7461ac5dbd7d2086463c7e77b1
+│   │   │   └── 9966e32117093dcfa47ec872234269259f6786
+│   │   ├── bf/
+│   │   │   └── 4a1e5a77bacc819fc2af2b9b7a138d976acb15
+│   │   ├── c0/
+│   │   │   ├── 393b3c2b0fe594e9ae5ed2efa7fc0f9f601b06
+│   │   │   └── a0d349f9c420af821ba42f07ea44494ae3ba9e
+│   │   ├── c2/
+│   │   │   ├── 140d6d65d0f78ca6dcdcaf688f722dbea13354
+│   │   │   └── 6f34e784776b2d26ade03df4becb7eee35f7c3
+│   │   ├── c3/
+│   │   │   ├── 00db419f3114ffb5b3388b07f1a608c4774a4d
+│   │   │   ├── 2ec50fc19b869e282df07f902ec2e308e1f289
+│   │   │   ├── a747e08f33546e1b7f34e10ac360d39eb123b7
+│   │   │   └── e8e8684b513dd25897e59beaf584a75e4c7813
+│   │   ├── c5/
+│   │   │   └── e04311463678d85a4c6c18bbe290d5cde4e161
+│   │   ├── c6/
+│   │   │   └── 6799479430fcde84f3235bacd2be2061dd2761
+│   │   ├── c7/
+│   │   │   └── d02d40322ac1247f70291af3a6df2b92eaacb3
+│   │   ├── c8/
+│   │   │   └── 0424324aeb73de537ae91dab609fc31f1c77f7
+│   │   ├── c9/
+│   │   │   └── ca3a48d86cd3f4be1c63095969fd0ab341b0ce
+│   │   ├── ca/
+│   │   │   ├── 072df4a39c5bd2019fff4784030f7b3f401bd7
+│   │   │   ├── 23e3030db61e4a31d30024acc0c63a02ae3c88
+│   │   │   ├── a97aeafa006b294e9e563095c25074b763af6e
+│   │   │   ├── acb2435e14a521625d4b21209a19ec7c7376f5
+│   │   │   └── f75a1a1a3febc1109916c51172fe8a562c9a0f
+│   │   ├── cb/
+│   │   │   ├── 3b35fbf4ff902d86444d7bcb171f420766eb51
+│   │   │   └── 58cff9cc3e11780a272ef85a603b13cebdf3b8
+│   │   ├── cc/
+│   │   │   ├── 12478d2d1d4f90f6656381d537919521c5137e
+│   │   │   ├── f039e96b0a102b5867a11305bbce26b105f9e7
+│   │   │   └── fe199f4475eb9cc1e0a79c8094224bdd999bc7
+│   │   ├── cd/
+│   │   │   ├── 4f70a56048cf2155e0399bc8740e0d0e29c500
+│   │   │   └── c710426d459592adb19ddfa9ec0389c0b98a57
+│   │   ├── ce/
+│   │   │   └── 1f825545f8d274a80273fcbfc427b3ee68ef5c
+│   │   ├── cf/
+│   │   │   └── dbf0627de31ad77e434fbbda2f7bf6e607a3d4
+│   │   ├── d0/
+│   │   │   └── dfe4a4822fbb9871b335706871c79f12770e16
+│   │   ├── d1/
+│   │   │   └── 407c8e92a415d80c9b382b7373bcf18906de70
+│   │   ├── d2/
+│   │   │   ├── 0c4cfc40ccd487261e8bc9f10a9bc366e6cb12
+│   │   │   ├── 8092cf9944b9f26776ae0a7e9405d04c657efd
+│   │   │   ├── a883b725aecea5e3e3fad3bdd14917c98c8656
+│   │   │   └── efe0b99858a4cf82304dfcd5c428b1bafefbd9
+│   │   ├── d3/
+│   │   │   └── a2ab39b4da1e3abb54529a7a3f40ebe302d78a
+│   │   ├── d4/
+│   │   │   └── a4ac0d1f54b089f6ad05d55200e7aa77e90c04
+│   │   ├── d5/
+│   │   │   └── b012509ca1e4128e3bab61b679288abb6fa37d
+│   │   ├── d6/
+│   │   │   ├── 2809b0d166e914295a9bb6a133b301018259cc
+│   │   │   ├── 55dc0fb573f54cc1ff047fef07f46d82570f6f
+│   │   │   ├── c1da745e0a6b41a1b96d87d5ce4e76a212b42e
+│   │   │   └── dd4a34fe7d8e2581a45d8034633febc1b6e2aa
+│   │   ├── d8/
+│   │   │   ├── aaf4469a229018be0604bc2b30ac4a6c8d6b40
+│   │   │   └── d715f166b0580323bd8808df18f06870112407
+│   │   ├── d9/
+│   │   │   ├── 10e15e03db6e28803f47cb9049041650382a1c
+│   │   │   ├── d3a5bf186a3fc03e267fcab4901c23e82115fa
+│   │   │   └── ff7ae21973f18524d1ffdfb8c33bccd11ad952
+│   │   ├── da/
+│   │   │   ├── 3a682a7b0d6fc35aec76d0055847a4fef15451
+│   │   │   ├── a1e4c3a18cd2e57e61fb65c185cd6b1915f854
+│   │   │   ├── a8b9e4d18bd247a90847250707aa10a9ad30d7
+│   │   │   └── f2297ec5e03142db0490635282294f84038c58
+│   │   ├── db/
+│   │   │   └── 44e0228fa0c371c1492e8c315c88d841d922df
+│   │   ├── dc/
+│   │   │   └── c3589789f3ffa4ba4cc0fa9d9c9d5597ca70aa
+│   │   ├── de/
+│   │   │   └── 67d8bdfe7d9bfbdaeafdc625bd2e6b9d68b7ce
+│   │   ├── df/
+│   │   │   ├── 3648fa9d5472b8d752024bef981c0f3651780e
+│   │   │   ├── 39bff52213d308a96ffe50d3bf89f619f0e4ce
+│   │   │   ├── 4b3c48b86cad32be7ca78737a588ea9ff27ed4
+│   │   │   ├── 7048c586fe9ade394b190b7a39b93205db77ce
+│   │   │   └── aec77df738459e57eeda2a22c863d0a4ebdd39
+│   │   ├── e0/
+│   │   │   └── 089203ebf7469f7ee89b26979c3a7e2de1d564
+│   │   ├── e1/
+│   │   │   ├── a3af7d33c6fbc4ee446744940a8e24ebc31f49
+│   │   │   └── b96ccb7d6e7fdf846bb8bc0b9cf6abb5d5f4bb
+│   │   ├── e2/
+│   │   │   ├── 599fa1960d88ec387c1cd2defda63dd6f88a7a
+│   │   │   ├── 5ea2bf41111ca632915ced50ed6059e3b5275c
+│   │   │   └── 9e7c52f9d68ebebf03387ae9f7977ec581797d
+│   │   ├── e3/
+│   │   │   ├── 76a2548db2b0e86a8d5265a3e551162227da2e
+│   │   │   ├── 7979cd5d07389907009e85697872cfa5ef547d
+│   │   │   └── a6d3c2b01b02dd3963b5a4e8e25da6f7e59c12
+│   │   ├── e4/
+│   │   │   ├── 1bb7180c9402feae81c33da58945e2bfb7539d
+│   │   │   └── 3341466d0ffcdf8f8e9dcd6dfbab6b12715a55
+│   │   ├── e5/
+│   │   │   └── 58dcf8a16a2b10639e9c9ddaec2d0914fd313f
+│   │   ├── e6/
+│   │   │   ├── 304520011cc513265130c455ff5551bb4a08f2
+│   │   │   ├── 347379e2ac4f044c15aaee6908d42577630848
+│   │   │   └── baa4f490609db84d3287bd6d6650affdee7751
+│   │   ├── e7/
+│   │   │   └── ec8ff9c5dc174efbc56d554a98337265f51ba3
+│   │   ├── e8/
+│   │   │   └── 55cc00c4b3234e84b14aa06a9100e1d7239362
+│   │   ├── e9/
+│   │   │   └── 72043f0bce45f67617d871b7c5ece7d4651e9a
+│   │   ├── ea/
+│   │   │   └── 64d0fcaed97c31f20251ad2c5019d76524e719
+│   │   ├── ec/
+│   │   │   └── 726d944e5cd7a0ab2e4453760048c9522f1fa9
+│   │   ├── ed/
+│   │   │   └── 823777ae687d2cb270966985b8fcb7792553d3
+│   │   ├── ee/
+│   │   │   ├── 51260ae26524ab46a4af05920d09ec84a85bde
+│   │   │   └── 7473180bcda109a19904979e592f5851eb75df
+│   │   ├── ef/
+│   │   │   └── 076be020cd3d2af8eb88b957c59f7f23527144
+│   │   ├── f1/
+│   │   │   ├── 032fa51079e867e41c4c104fae4106533e0872
+│   │   │   ├── 3c5fbf1d20806838aedb37d9d3eb078a263592
+│   │   │   ├── 3f8056fafd78140016bcfea623fbf4ad83baf1
+│   │   │   └── b7f7d1a49fb85d7612a5be1717017084ae463a
+│   │   ├── f2/
+│   │   │   ├── 28a803437de424d2ea63beca312eb50a24c3be
+│   │   │   └── 4e178edbe4ff6b7c0d70150982534f034f07ba
+│   │   ├── f3/
+│   │   │   └── 12dd0f0506664a3bc1762fde1e5413b2c72831
+│   │   ├── f4/
+│   │   │   ├── 857736f08ea4b767400698a58e1a320bcc2773
+│   │   │   └── 8f05d8f697cb767d321e2800aea80d8c27f788
+│   │   ├── f5/
+│   │   │   ├── 046099b954f213146b5163791b3eb651316c58
+│   │   │   ├── 37fd720541ee74e3a9abaa99906b58d14877b0
+│   │   │   └── ee014d72a887fa9af250c6701696a444787c41
+│   │   ├── f6/
+│   │   │   ├── 91797991711d59373505fdb2acc6b5da97e4b6
+│   │   │   ├── a7fb3efdbe0996badc40b37ca0b20b4dbb6db8
+│   │   │   └── a9af777194769cd6546cf5450d845f8d0e491e
+│   │   ├── f8/
+│   │   │   ├── 22461a5d795c72d5db3c48055390046aa2f1ef
+│   │   │   └── e80c1fdaf7e6903a36bf219df8b42e6f6c04fd
+│   │   ├── fa/
+│   │   │   ├── 5bfd9517330c77a374a29acdb2bedceb179eb6
+│   │   │   └── f01767eb822efaa6a8bcc6618891eee96d4cb6
+│   │   ├── fb/
+│   │   │   ├── 59999d218267fe5e2d1c5306b1925f4d7e4e73
+│   │   │   ├── b98e8015c7272b6a827b3e3dc43f64bca095dc
+│   │   │   └── d45b2ec89e66732fd5c9f85af12e2a5e3adabb
+│   │   ├── fc/
+│   │   │   ├── 4f8991ad0dad9a68776c2f7aead8ac4ebe8f2c
+│   │   │   └── d85a56f2e43734229c3d48177327a1a8426316
+│   │   ├── fd/
+│   │   │   ├── 422313ade9cca87531f6bc3ec840c335af9077
+│   │   │   ├── 85203ea82353067c024e95d54350cfd4cb92e9
+│   │   │   └── c93d279cf7a90032eeef920ff8c5048aa87f42
+│   │   ├── fe/
+│   │   │   └── 8255990f01eb9bde4a744181e9c2d6278be2ff
+│   │   ├── info/
+│   │   └── pack/
+│   │       ├── pack-4803549975bebfdb2e8762ac51fcf9ddb7aae19b.idx
+│   │       ├── pack-4803549975bebfdb2e8762ac51fcf9ddb7aae19b.pack
+│   │       ├── pack-54afdd90f5d153774bdd69fe5108d2b83b9c2093.idx
+│   │       ├── pack-54afdd90f5d153774bdd69fe5108d2b83b9c2093.pack
+│   │       └── pack-54afdd90f5d153774bdd69fe5108d2b83b9c2093.rev
+│   ├── refs/
+│   │   ├── heads/
+│   │   │   ├── Auth-implementation
+│   │   │   ├── main
+│   │   │   ├── simple-code-structure
+│   │   │   ├── sql-version
+│   │   │   ├── Swagger
+│   │   │   ├── test
+│   │   │   ├── Test-sql-seeds
+│   │   │   ├── test-Swagger
+│   │   │   └── testing-auth
+│   │   ├── remotes/
+│   │   │   └── origin/
+│   │   │       ├── Auth-implementation
+│   │   │       ├── HEAD
+│   │   │       ├── main
+│   │   │       ├── prject-edushpere
+│   │   │       ├── simple-code-structure
+│   │   │       ├── Swagger
+│   │   │       └── Test-sql-seeds
+│   │   └── tags/
+│   ├── COMMIT_EDITMSG
+│   ├── config
+│   ├── description
+│   ├── FETCH_HEAD
+│   ├── HEAD
+│   ├── index
+│   ├── ORIG_HEAD
+│   ├── packed-refs
+│   └── REBASE_HEAD
+├── .vscode/
+│   └── settings.json
+├── __pycache__/
+├── seed_out/
+│   └── seed_log.ndjson
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── com/
+│   │   │       └── school/
+│   │   │           ├── admin/
+│   │   │           │   ├── controller/
+│   │   │           │   │   └── AdminController.java
+│   │   │           │   ├── dto/
+│   │   │           │   │   └── AdminDTO.java
+│   │   │           │   ├── model/
+│   │   │           │   │   └── Admin.java
+│   │   │           │   ├── repository/
+│   │   │           │   │   └── AdminRepository.java
+│   │   │           │   └── service/
+│   │   │           │       └── AdminService.java
+│   │   │           ├── announcement/
+│   │   │           │   ├── controller/
+│   │   │           │   │   └── AnnouncementController.java
+│   │   │           │   ├── dto/
+│   │   │           │   │   └── AnnouncementDTO.java
+│   │   │           │   ├── model/
+│   │   │           │   │   └── Announcement.java
+│   │   │           │   ├── repository/
+│   │   │           │   │   └── AnnouncementRepository.java
+│   │   │           │   └── service/
+│   │   │           │       └── AnnouncementService.java
+│   │   │           ├── assignment/
+│   │   │           │   ├── controller/
+│   │   │           │   │   └── AssignmentController.java
+│   │   │           │   ├── dto/
+│   │   │           │   │   └── AssignmentDTO.java
+│   │   │           │   ├── model/
+│   │   │           │   │   └── Assignment.java
+│   │   │           │   ├── repository/
+│   │   │           │   │   └── AssignmentRepository.java
+│   │   │           │   └── service/
+│   │   │           │       └── AssignmentService.java
+│   │   │           ├── attendance/
+│   │   │           │   ├── controller/
+│   │   │           │   │   └── AttendanceController.java
+│   │   │           │   ├── dto/
+│   │   │           │   │   └── AttendanceDTO.java
+│   │   │           │   ├── model/
+│   │   │           │   │   └── Attendance.java
+│   │   │           │   ├── repository/
+│   │   │           │   │   └── AttendanceRepository.java
+│   │   │           │   └── service/
+│   │   │           │       └── AttendanceService.java
+│   │   │           ├── auth/
+│   │   │           │   └── AuthController.java
+│   │   │           ├── common/
+│   │   │           │   ├── audit/
+│   │   │           │   │   └── Auditable.java
+│   │   │           │   ├── enums/
+│   │   │           │   │   ├── Gender.java
+│   │   │           │   │   ├── Role.java
+│   │   │           │   │   └── StudentStatus.java
+│   │   │           │   └── exception/
+│   │   │           │       ├── CapacityExceededException.java
+│   │   │           │       ├── NotFoundException.java
+│   │   │           │       └── RestExceptionHandler.java
+│   │   │           ├── config/
+│   │   │           │   ├── JpaAuditConfig.java
+│   │   │           │   ├── OpenApiConfig.java
+│   │   │           │   ├── SecurityBeans.java
+│   │   │           │   └── WebAppConfig.java
+│   │   │           ├── event/
+│   │   │           │   ├── controller/
+│   │   │           │   │   └── EventController.java
+│   │   │           │   ├── dto/
+│   │   │           │   │   └── EventDTO.java
+│   │   │           │   ├── model/
+│   │   │           │   │   └── Event.java
+│   │   │           │   ├── repository/
+│   │   │           │   │   └── EventRepository.java
+│   │   │           │   └── service/
+│   │   │           │       └── EventService.java
+│   │   │           ├── exam/
+│   │   │           │   ├── controller/
+│   │   │           │   │   └── ExamController.java
+│   │   │           │   ├── dto/
+│   │   │           │   │   └── ExamDTO.java
+│   │   │           │   ├── model/
+│   │   │           │   │   └── Exam.java
+│   │   │           │   ├── repository/
+│   │   │           │   │   └── ExamRepository.java
+│   │   │           │   └── service/
+│   │   │           │       └── ExamService.java
+│   │   │           ├── grade/
+│   │   │           │   ├── controller/
+│   │   │           │   │   └── GradeController.java
+│   │   │           │   ├── dto/
+│   │   │           │   │   └── GradeDTO.java
+│   │   │           │   ├── model/
+│   │   │           │   │   └── Grade.java
+│   │   │           │   ├── repository/
+│   │   │           │   │   └── GradeRepository.java
+│   │   │           │   └── service/
+│   │   │           │       └── GradeService.java
+│   │   │           ├── lesson/
+│   │   │           │   ├── controller/
+│   │   │           │   │   └── LessonController.java
+│   │   │           │   ├── dto/
+│   │   │           │   │   └── LessonDTO.java
+│   │   │           │   ├── model/
+│   │   │           │   │   ├── DayOfWeek.java
+│   │   │           │   │   └── Lesson.java
+│   │   │           │   ├── repository/
+│   │   │           │   │   └── LessonRepository.java
+│   │   │           │   └── service/
+│   │   │           │       └── LessonService.java
+│   │   │           ├── parent/
+│   │   │           │   ├── controller/
+│   │   │           │   │   └── ParentController.java
+│   │   │           │   ├── dto/
+│   │   │           │   │   └── ParentDTO.java
+│   │   │           │   ├── model/
+│   │   │           │   │   └── Parent.java
+│   │   │           │   ├── repository/
+│   │   │           │   │   └── ParentRepository.java
+│   │   │           │   └── service/
+│   │   │           │       └── ParentService.java
+│   │   │           ├── result/
+│   │   │           │   ├── controller/
+│   │   │           │   │   └── ResultController.java
+│   │   │           │   ├── dto/
+│   │   │           │   │   └── ResultDTO.java
+│   │   │           │   ├── model/
+│   │   │           │   │   └── Result.java
+│   │   │           │   ├── repository/
+│   │   │           │   │   └── ResultRepository.java
+│   │   │           │   └── service/
+│   │   │           │       └── ResultService.java
+│   │   │           ├── schoolclass/
+│   │   │           │   ├── controller/
+│   │   │           │   │   └── SchoolClassController.java
+│   │   │           │   ├── dto/
+│   │   │           │   │   └── SchoolClassDTO.java
+│   │   │           │   ├── model/
+│   │   │           │   │   └── SchoolClass.java
+│   │   │           │   ├── repository/
+│   │   │           │   │   └── SchoolClassRepository.java
+│   │   │           │   └── service/
+│   │   │           │       └── SchoolClassService.java
+│   │   │           ├── security/
+│   │   │           │   ├── roles/
+│   │   │           │   │   ├── IsAdmin.java
+│   │   │           │   │   ├── IsAdminOrTeacher.java
+│   │   │           │   │   ├── IsParent.java
+│   │   │           │   │   ├── IsStudent
+│   │   │           │   │   └── IsTeacher.java
+│   │   │           │   ├── DbUserDetailsService.java
+│   │   │           │   ├── JwtFilter.java
+│   │   │           │   ├── JwtUtil.java
+│   │   │           │   └── SecurityConfig.java
+│   │   │           ├── student/
+│   │   │           │   ├── controller/
+│   │   │           │   │   └── StudentController.java
+│   │   │           │   ├── dto/
+│   │   │           │   │   └── StudentDTO.java
+│   │   │           │   ├── model/
+│   │   │           │   │   └── Student.java
+│   │   │           │   ├── repository/
+│   │   │           │   │   └── StudentRepository.java
+│   │   │           │   └── service/
+│   │   │           │       └── StudentService.java
+│   │   │           ├── subject/
+│   │   │           │   ├── controller/
+│   │   │           │   │   └── SubjectController.java
+│   │   │           │   ├── dto/
+│   │   │           │   │   └── SubjectDTO.java
+│   │   │           │   ├── model/
+│   │   │           │   │   └── Subject.java
+│   │   │           │   ├── repository/
+│   │   │           │   │   └── SubjectRepository.java
+│   │   │           │   └── service/
+│   │   │           │       └── SubjectService.java
+│   │   │           ├── teacher/
+│   │   │           │   ├── controller/
+│   │   │           │   │   └── TeacherController.java
+│   │   │           │   ├── dto/
+│   │   │           │   │   └── TeacherDTO.java
+│   │   │           │   ├── model/
+│   │   │           │   │   └── Teacher.java
+│   │   │           │   ├── repository/
+│   │   │           │   │   └── TeacherRepository.java
+│   │   │           │   └── service/
+│   │   │           │       └── TeacherService.java
+│   │   │           ├── util/
+│   │   │           │   └── PasswordHash.java
+│   │   │           └── SchoolManagementApplication.java
+│   │   └── resources/
+│   │       ├── db/
+│   │       │   └── migration/
+│   │       │       ├── V10__create_exam_table.sql
+│   │       │       ├── V11__create_assignment_table.sql
+│   │       │       ├── V12__create_result_table.sql
+│   │       │       ├── V13__create_attendance_table.sql
+│   │       │       ├── V14__create_event_table.sql
+│   │       │       ├── V15__create_announcement_table.sql
+│   │       │       ├── V16__add_class_fk_to_student.sql
+│   │       │       ├── V17__create_teacher_subject_table.sql
+│   │       │       ├── V18__alter_student_add_profile_fields.sql
+│   │       │       ├── V19__create_parent_student_table.sql
+│   │       │       ├── V1__create_admin_table.sql
+│   │       │       ├── V20__add_audit_columns.sql
+│   │       │       ├── V21__add_capacity_and_supervisor_to_class.sql
+│   │       │       ├── V22__add_schedule_to_lesson.sql
+│   │       │       ├── V23__create_teacher_class_table.sql
+│   │       │       ├── V24__student_grade_and_grade_level.sql
+│   │       │       ├── V25__extend_student_profile.sql
+│   │       │       ├── V26__auth_columns.sql
+│   │       │       ├── V27__password_not_null.sql
+│   │       │       ├── V2__create_student_table.sql
+│   │       │       ├── V3__create_teacher_table.sql
+│   │       │       ├── V4__create_parent_table.sql
+│   │       │       ├── V5__create_grade_table.sql
+│   │       │       ├── V6__create_class_table.sql
+│   │       │       ├── V7__rename_class_table.sql
+│   │       │       ├── V8__create_subject_table.sql
+│   │       │       └── V9__create_lesson_table.sql
+│   │       └── application.properties
+│   └── test/
+│       └── java/
+├── target/
+│   ├── classes/
+│   │   ├── com/
+│   │   │   └── school/
+│   │   │       ├── admin/
+│   │   │       │   ├── controller/
+│   │   │       │   │   └── AdminController.class
+│   │   │       │   ├── dto/
+│   │   │       │   │   ├── AdminDTO$AdminDTOBuilder.class
+│   │   │       │   │   └── AdminDTO.class
+│   │   │       │   ├── model/
+│   │   │       │   │   ├── Admin$AdminBuilder.class
+│   │   │       │   │   └── Admin.class
+│   │   │       │   ├── repository/
+│   │   │       │   │   └── AdminRepository.class
+│   │   │       │   └── service/
+│   │   │       │       └── AdminService.class
+│   │   │       ├── announcement/
+│   │   │       │   ├── controller/
+│   │   │       │   │   └── AnnouncementController.class
+│   │   │       │   ├── dto/
+│   │   │       │   │   ├── AnnouncementDTO$AnnouncementDTOBuilder.class
+│   │   │       │   │   └── AnnouncementDTO.class
+│   │   │       │   ├── model/
+│   │   │       │   │   ├── Announcement$AnnouncementBuilder.class
+│   │   │       │   │   └── Announcement.class
+│   │   │       │   ├── repository/
+│   │   │       │   │   └── AnnouncementRepository.class
+│   │   │       │   └── service/
+│   │   │       │       └── AnnouncementService.class
+│   │   │       ├── assignment/
+│   │   │       │   ├── controller/
+│   │   │       │   │   └── AssignmentController.class
+│   │   │       │   ├── dto/
+│   │   │       │   │   ├── AssignmentDTO$AssignmentDTOBuilder.class
+│   │   │       │   │   └── AssignmentDTO.class
+│   │   │       │   ├── model/
+│   │   │       │   │   ├── Assignment$AssignmentBuilder.class
+│   │   │       │   │   └── Assignment.class
+│   │   │       │   ├── repository/
+│   │   │       │   │   └── AssignmentRepository.class
+│   │   │       │   └── service/
+│   │   │       │       └── AssignmentService.class
+│   │   │       ├── attendance/
+│   │   │       │   ├── controller/
+│   │   │       │   │   └── AttendanceController.class
+│   │   │       │   ├── dto/
+│   │   │       │   │   ├── AttendanceDTO$AttendanceDTOBuilder.class
+│   │   │       │   │   └── AttendanceDTO.class
+│   │   │       │   ├── model/
+│   │   │       │   │   ├── Attendance$AttendanceBuilder.class
+│   │   │       │   │   ├── Attendance$Status.class
+│   │   │       │   │   └── Attendance.class
+│   │   │       │   ├── repository/
+│   │   │       │   │   └── AttendanceRepository.class
+│   │   │       │   └── service/
+│   │   │       │       └── AttendanceService.class
+│   │   │       ├── auth/
+│   │   │       │   ├── AuthController$LoginDTO.class
+│   │   │       │   ├── AuthController$TokenDTO.class
+│   │   │       │   └── AuthController.class
+│   │   │       ├── common/
+│   │   │       │   ├── audit/
+│   │   │       │   │   └── Auditable.class
+│   │   │       │   ├── enums/
+│   │   │       │   │   ├── Gender.class
+│   │   │       │   │   ├── Role.class
+│   │   │       │   │   └── StudentStatus.class
+│   │   │       │   └── exception/
+│   │   │       │       ├── CapacityExceededException.class
+│   │   │       │       ├── NotFoundException.class
+│   │   │       │       └── RestExceptionHandler.class
+│   │   │       ├── config/
+│   │   │       │   ├── JpaAuditConfig$AuditorAwareImpl.class
+│   │   │       │   ├── JpaAuditConfig.class
+│   │   │       │   ├── OpenApiConfig.class
+│   │   │       │   ├── SecurityBeans.class
+│   │   │       │   └── WebAppConfig.class
+│   │   │       ├── event/
+│   │   │       │   ├── controller/
+│   │   │       │   │   └── EventController.class
+│   │   │       │   ├── dto/
+│   │   │       │   │   ├── EventDTO$EventDTOBuilder.class
+│   │   │       │   │   └── EventDTO.class
+│   │   │       │   ├── model/
+│   │   │       │   │   ├── Event$EventBuilder.class
+│   │   │       │   │   └── Event.class
+│   │   │       │   ├── repository/
+│   │   │       │   │   └── EventRepository.class
+│   │   │       │   └── service/
+│   │   │       │       └── EventService.class
+│   │   │       ├── exam/
+│   │   │       │   ├── controller/
+│   │   │       │   │   └── ExamController.class
+│   │   │       │   ├── dto/
+│   │   │       │   │   ├── ExamDTO$ExamDTOBuilder.class
+│   │   │       │   │   └── ExamDTO.class
+│   │   │       │   ├── model/
+│   │   │       │   │   ├── Exam$ExamBuilder.class
+│   │   │       │   │   └── Exam.class
+│   │   │       │   ├── repository/
+│   │   │       │   │   └── ExamRepository.class
+│   │   │       │   └── service/
+│   │   │       │       └── ExamService.class
+│   │   │       ├── grade/
+│   │   │       │   ├── controller/
+│   │   │       │   │   └── GradeController.class
+│   │   │       │   ├── dto/
+│   │   │       │   │   ├── GradeDTO$GradeDTOBuilder.class
+│   │   │       │   │   └── GradeDTO.class
+│   │   │       │   ├── model/
+│   │   │       │   │   ├── Grade$GradeBuilder.class
+│   │   │       │   │   └── Grade.class
+│   │   │       │   ├── repository/
+│   │   │       │   │   └── GradeRepository.class
+│   │   │       │   └── service/
+│   │   │       │       └── GradeService.class
+│   │   │       ├── lesson/
+│   │   │       │   ├── controller/
+│   │   │       │   │   └── LessonController.class
+│   │   │       │   ├── dto/
+│   │   │       │   │   ├── LessonDTO$LessonDTOBuilder.class
+│   │   │       │   │   └── LessonDTO.class
+│   │   │       │   ├── model/
+│   │   │       │   │   ├── DayOfWeek.class
+│   │   │       │   │   ├── Lesson$LessonBuilder.class
+│   │   │       │   │   └── Lesson.class
+│   │   │       │   ├── repository/
+│   │   │       │   │   └── LessonRepository.class
+│   │   │       │   └── service/
+│   │   │       │       └── LessonService.class
+│   │   │       ├── parent/
+│   │   │       │   ├── controller/
+│   │   │       │   │   └── ParentController.class
+│   │   │       │   ├── dto/
+│   │   │       │   │   ├── ParentDTO$ParentDTOBuilder.class
+│   │   │       │   │   └── ParentDTO.class
+│   │   │       │   ├── model/
+│   │   │       │   │   ├── Parent$ParentBuilder.class
+│   │   │       │   │   └── Parent.class
+│   │   │       │   ├── repository/
+│   │   │       │   │   └── ParentRepository.class
+│   │   │       │   └── service/
+│   │   │       │       └── ParentService.class
+│   │   │       ├── result/
+│   │   │       │   ├── controller/
+│   │   │       │   │   └── ResultController.class
+│   │   │       │   ├── dto/
+│   │   │       │   │   ├── ResultDTO$ResultDTOBuilder.class
+│   │   │       │   │   └── ResultDTO.class
+│   │   │       │   ├── model/
+│   │   │       │   │   ├── Result$ResultBuilder.class
+│   │   │       │   │   └── Result.class
+│   │   │       │   ├── repository/
+│   │   │       │   │   └── ResultRepository.class
+│   │   │       │   └── service/
+│   │   │       │       └── ResultService.class
+│   │   │       ├── schoolclass/
+│   │   │       │   ├── controller/
+│   │   │       │   │   └── SchoolClassController.class
+│   │   │       │   ├── dto/
+│   │   │       │   │   ├── SchoolClassDTO$SchoolClassDTOBuilder.class
+│   │   │       │   │   └── SchoolClassDTO.class
+│   │   │       │   ├── model/
+│   │   │       │   │   ├── SchoolClass$SchoolClassBuilder.class
+│   │   │       │   │   └── SchoolClass.class
+│   │   │       │   ├── repository/
+│   │   │       │   │   └── SchoolClassRepository.class
+│   │   │       │   └── service/
+│   │   │       │       └── SchoolClassService.class
+│   │   │       ├── security/
+│   │   │       │   ├── roles/
+│   │   │       │   │   ├── IsAdmin.class
+│   │   │       │   │   ├── IsAdminOrTeacher.class
+│   │   │       │   │   ├── IsParent.class
+│   │   │       │   │   └── IsTeacher.class
+│   │   │       │   ├── DbUserDetailsService.class
+│   │   │       │   ├── JwtFilter.class
+│   │   │       │   ├── JwtUtil.class
+│   │   │       │   └── SecurityConfig.class
+│   │   │       ├── student/
+│   │   │       │   ├── controller/
+│   │   │       │   │   └── StudentController.class
+│   │   │       │   ├── dto/
+│   │   │       │   │   ├── StudentDTO$StudentDTOBuilder.class
+│   │   │       │   │   └── StudentDTO.class
+│   │   │       │   ├── model/
+│   │   │       │   │   ├── Student$StudentBuilder.class
+│   │   │       │   │   └── Student.class
+│   │   │       │   ├── repository/
+│   │   │       │   │   └── StudentRepository.class
+│   │   │       │   └── service/
+│   │   │       │       └── StudentService.class
+│   │   │       ├── subject/
+│   │   │       │   ├── controller/
+│   │   │       │   │   └── SubjectController.class
+│   │   │       │   ├── dto/
+│   │   │       │   │   ├── SubjectDTO$SubjectDTOBuilder.class
+│   │   │       │   │   └── SubjectDTO.class
+│   │   │       │   ├── model/
+│   │   │       │   │   ├── Subject$SubjectBuilder.class
+│   │   │       │   │   └── Subject.class
+│   │   │       │   ├── repository/
+│   │   │       │   │   └── SubjectRepository.class
+│   │   │       │   └── service/
+│   │   │       │       └── SubjectService.class
+│   │   │       ├── teacher/
+│   │   │       │   ├── controller/
+│   │   │       │   │   └── TeacherController.class
+│   │   │       │   ├── dto/
+│   │   │       │   │   ├── TeacherDTO$TeacherDTOBuilder.class
+│   │   │       │   │   └── TeacherDTO.class
+│   │   │       │   ├── model/
+│   │   │       │   │   ├── Teacher$TeacherBuilder.class
+│   │   │       │   │   └── Teacher.class
+│   │   │       │   ├── repository/
+│   │   │       │   │   └── TeacherRepository.class
+│   │   │       │   └── service/
+│   │   │       │       └── TeacherService.class
+│   │   │       ├── util/
+│   │   │       │   └── PasswordHash.class
+│   │   │       └── SchoolManagementApplication.class
+│   │   ├── db/
+│   │   │   └── migration/
+│   │   │       ├── V10__create_exam_table.sql
+│   │   │       ├── V11__create_assignment_table.sql
+│   │   │       ├── V12__create_result_table.sql
+│   │   │       ├── V13__create_attendance_table.sql
+│   │   │       ├── V14__create_event_table.sql
+│   │   │       ├── V15__create_announcement_table.sql
+│   │   │       ├── V16__add_class_fk_to_student.sql
+│   │   │       ├── V17__create_teacher_subject_table.sql
+│   │   │       ├── V18__alter_student_add_profile_fields.sql
+│   │   │       ├── V19__create_parent_student_table.sql
+│   │   │       ├── V1__create_admin_table.sql
+│   │   │       ├── V20__add_audit_columns.sql
+│   │   │       ├── V21__add_capacity_and_supervisor_to_class.sql
+│   │   │       ├── V22__add_schedule_to_lesson.sql
+│   │   │       ├── V23__create_teacher_class_table.sql
+│   │   │       ├── V24__student_grade_and_grade_level.sql
+│   │   │       ├── V25__extend_student_profile.sql
+│   │   │       ├── V26__auth_columns.sql
+│   │   │       ├── V27__password_not_null.sql
+│   │   │       ├── V2__create_student_table.sql
+│   │   │       ├── V3__create_teacher_table.sql
+│   │   │       ├── V4__create_parent_table.sql
+│   │   │       ├── V5__create_grade_table.sql
+│   │   │       ├── V6__create_class_table.sql
+│   │   │       ├── V7__rename_class_table.sql
+│   │   │       ├── V8__create_subject_table.sql
+│   │   │       └── V9__create_lesson_table.sql
+│   │   └── application.properties
+│   ├── generated-sources/
+│   │   └── annotations/
+│   ├── generated-test-sources/
+│   │   └── test-annotations/
+│   ├── maven-status/
+│   │   └── maven-compiler-plugin/
+│   │       ├── compile/
+│   │       │   └── default-compile/
+│   │       │       ├── createdFiles.lst
+│   │       │       └── inputFiles.lst
+│   │       └── testCompile/
+│   │           └── default-testCompile/
+│   │               ├── createdFiles.lst
+│   │               └── inputFiles.lst
+│   └── test-classes/
+├── .DS_Store
+├── .gitignore
+├── code_dump.txt
+├── dir.py
+├── docker
+├── pom.xml
+├── RunMyCode.py
+└── seed.py

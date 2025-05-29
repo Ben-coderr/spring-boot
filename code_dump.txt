@@ -1,0 +1,5136 @@
+BOF: RunMyCode.py
+#!/usr/bin/env python3
+"""
+RunMyCode.py – one-click dev bootstrap
+
+ • prints OS / Python
+ • checks Docker *daemon* is up
+ • ensures a clean MySQL 8.0 on localhost:3307  (root/secret)
+ • (re)creates schema  `schooldb`
+ • launches the Spring-Boot app (mvn clean spring-boot:run)
+ • waits until the app is **running** then inserts a Super-Admin row
+"""
+
+from __future__ import annotations
+import os, platform, re, shutil, subprocess as sp, sys, time
+from pathlib import Path
+from urllib.request import urlopen
+from urllib.error   import URLError
+
+CONTAINER   = "school-mysql-8"
+ROOT_PW     = "secret"
+PORT        = "3307"          # host → container:3306
+APP_PORT    = 8082            # Spring
+ADMIN_EMAIL = "admin@example.com"
+ADMIN_PW_BCRYPT = (
+    "$2a$10$MtDv8oylmbWc9LzB/k3jYuz1kAkdNhkw1h1lOsuF9GIBKMsOF1iSm"
+)  # raw: pa55w0rd
+
+# ─── shell helpers ────────────────────────────────────────────────────────
+def sh(cmd: list[str] | str, *, capture=False, check=True, env=None) -> str | None:
+    if isinstance(cmd, str):
+        cmd = cmd.split()
+    try:
+        if capture:
+            return sp.check_output(cmd, text=True, env=env)
+        sp.run(cmd, check=check, env=env)
+    except sp.CalledProcessError as err:
+        if capture and err.output:
+            print(err.output, file=sys.stderr)
+        raise
+
+def docker(*args: str, capture=False) -> str | None:
+    return sh(["docker", *args], capture=capture)
+
+def header(k: str, v: str) -> None:
+    print(f"🏷️  {k:<10}: {v}")
+
+# ─── validations ─────────────────────────────────────────────────────────
+def assert_docker_running() -> None:
+    """Fail early if Docker socket/daemon is unavailable."""
+    try:
+        docker("info", "--format", "'{{json .ServerVersion}}'", capture=True)
+    except (FileNotFoundError, sp.CalledProcessError):
+        sys.exit("❌  Docker daemon not running (or CLI not installed). Please start Docker Desktop / service.")
+
+def port_in_use() -> str | None:
+    """Return container-ID already bound to host-port 3307, else None."""
+    out = docker("ps", "--format", "{{.ID}}\t{{.Ports}}", capture=True)
+    for line in out.strip().splitlines():
+        cid, ports = line.split("\t", 1)
+        if re.search(fr"(0\.0\.0\.0|\:\:):{PORT}->3306", ports):
+            return cid
+    return None
+
+# ─── MySQL orchestration ────────────────────────────────────────────────
+def ensure_fresh_mysql() -> str:
+    """Guarantee a fresh MySQL container and return its ID."""
+    # delete stale container with our *name*
+    try:
+        docker("inspect", CONTAINER, capture=True)
+        print(f"ℹ️   Removing previous container '{CONTAINER}' …")
+        docker("rm", "-f", CONTAINER)
+    except sp.CalledProcessError:
+        pass
+
+    culprit = port_in_use()
+    if culprit:
+        img = docker("inspect", "-f", "{{.Config.Image}}", culprit, capture=True).strip()
+        print(
+            f"⚠️  Port {PORT} already used by container {culprit[:12]} (image: {img}).\n"
+            "   Deleting it may erase important data that lives in that container."
+        )
+        if input("   ➜  Remove it and continue? [y/N] ").strip().lower() != "y":
+            sys.exit("🚫  Aborted – existing container kept intact.")
+        print("🗑️   Removing conflicting container …")
+        docker("rm", "-f", culprit)
+
+    print("🚢  Launching MySQL 8.0 container …")
+    cid = docker(
+        "run", "-d",
+        "--name", CONTAINER,
+        "-e", f"MYSQL_ROOT_PASSWORD={ROOT_PW}",
+        "-p", f"{PORT}:3306",
+        "mysql:8.0",
+        capture=True
+    ).strip()
+
+    # wait until MySQL is ready
+    print("⏳  Waiting for MySQL to accept connections", end="", flush=True)
+    for _ in range(60):
+        try:
+            docker("exec", "-i", cid,
+                   "mysql", "-uroot", f"-p{ROOT_PW}", "-e", "SELECT 1;")
+            print(" ✅")
+            return cid
+        except sp.CalledProcessError:
+            time.sleep(1)
+            print(".", end="", flush=True)
+    sys.exit("\n❌  MySQL did not start within 60 s – aborting.")
+
+def reset_schema(cid: str) -> None:
+    print("🔄  Re-creating schema `schooldb` …")
+    docker("exec", "-i", cid,
+           "mysql", "-uroot", f"-p{ROOT_PW}",
+           "-e", (
+               "DROP DATABASE IF EXISTS schooldb;"
+               "CREATE DATABASE schooldb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+           ))
+
+def insert_admin(cid: str) -> None:
+    print("➕  Inserting Super-Admin row …")
+    docker("exec", "-i", cid,
+           "mysql", "-uroot", f"-p{ROOT_PW}", "schooldb",
+           "-e", (
+               "INSERT INTO admin (full_name,email,password,role) VALUES "
+               f"('Super Admin','{ADMIN_EMAIL}','{ADMIN_PW_BCRYPT}','ADMIN') "
+               "ON DUPLICATE KEY UPDATE password=VALUES(password);"
+           ))
+
+# ─── Spring-Boot launcher ───────────────────────────────────────────────
+def wait_for_app() -> None:
+    """Poll http://localhost:8082 until reachable (max 90 s)."""
+    url = f"http://localhost:{APP_PORT}"
+    for _ in range(90):
+        try:
+            urlopen(url, timeout=2).read(1)
+            return
+        except URLError:
+            time.sleep(1)
+
+def run_spring_boot(cid: str) -> None:
+    print("\n🚀  Building & starting Spring-Boot application …\n")
+
+    mvn = (Path(".") / "mvnw").as_posix() if Path("mvnw").exists() else shutil.which("mvn") or shutil.which("mvn.cmd")
+    if not mvn:
+        sys.exit("❌  Maven not found – install it or add the Maven Wrapper (mvnw).")
+
+    proc = sp.Popen(
+        [mvn, "clean", "spring-boot:run"],
+        stdout=sp.PIPE,
+        stderr=sp.STDOUT,
+        text=True,
+        bufsize=1,
+        universal_newlines=True
+    )
+
+    admin_done = False
+    try:
+        for raw in iter(proc.stdout.readline, ''):        
+            line = raw.rstrip('\n')
+            print(line)
+            if not admin_done and (
+                "Tomcat started on port" in line
+                or "Started SchoolManagementApplication" in line
+            ):
+                # wait_for_app()
+                insert_admin(cid)
+                admin_done = True
+                print(
+                    "\n✅  Super-Admin ready  →  http://localhost:8082"
+                    f"\n   email : {ADMIN_EMAIL}"
+                    "\n   pass  : pa55w0rd\n"
+                )
+        proc.wait()
+        if proc.returncode != 0:
+            sys.exit(f"❌  Spring-Boot terminated with exit-code {proc.returncode}.")
+    except KeyboardInterrupt:
+        print("\n⏹️  CTRL-C – stopping Spring-Boot …")
+        proc.terminate()
+        proc.wait(10)
+    finally:
+        if not admin_done:
+            try:
+                insert_admin(cid)
+            except Exception:
+                pass   # ignore if MySQL/App gone
+
+# ─── MAIN ────────────────────────────────────────────────────────────────
+def main() -> None:
+    header("OS",      f"{platform.system()} {platform.release()} ({platform.version()})")
+    header("Python",  platform.python_version())
+
+    assert_docker_running()
+    cid = ensure_fresh_mysql()
+    reset_schema(cid)
+    run_spring_boot(cid)
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n⏹️  Aborted by user.")
+EOF: RunMyCode.py
+
+BOF: dir.py
+#!/usr/bin/env python3
+"""
+dump_code_with_tree.py
+
+Save *all* source files (wrapped with BOF/EOF) plus an ASCII directory tree
+into an *output* directory.
+
+Usage
+-----
+python dump_code_with_tree.py <SOURCE_DIR> <OUTPUT_DIR>
+"""
+
+import argparse
+from pathlib import Path
+from typing import Iterable
+
+# ───── file types we treat as “code” ──────────────────────────────────────────
+TEXT_EXTENSIONS = {
+    ".py", ".java", ".js", ".ts", ".jsx", ".tsx",
+    ".c", ".cpp", ".h", ".hpp",
+    ".rb", ".go", ".rs", ".php",
+    ".html", ".css", ".scss", ".md",
+    ".yaml", ".yml", ".json", ".xml", ".sql",
+}
+
+# ───── helpers ────────────────────────────────────────────────────────────────
+def iter_code_files(root: Path) -> Iterable[Path]:
+    for path in root.rglob("*"):
+        if path.is_file() and path.suffix.lower() in TEXT_EXTENSIONS:
+            yield path
+
+
+def safe_read(path: Path) -> str:
+    return path.read_text(encoding="utf-8", errors="replace")
+
+
+# ASCII-tree drawing constants
+TREE_BRANCH, TREE_LAST, TREE_PIPE, TREE_BLANK = "├── ", "└── ", "│   ", "    "
+
+def build_tree(root: Path) -> str:
+    lines = [root.name + "/"]
+
+    def _walk(folder: Path, prefix: str = ""):
+        entries = sorted(folder.iterdir(), key=lambda p: (p.is_file(), p.name.lower()))
+        for idx, entry in enumerate(entries):
+            conn = TREE_LAST if idx == len(entries) - 1 else TREE_BRANCH
+            lines.append(f"{prefix}{conn}{entry.name}" + ("/" if entry.is_dir() else ""))
+            if entry.is_dir():
+                _walk(entry, prefix + (TREE_BLANK if conn == TREE_LAST else TREE_PIPE))
+
+    _walk(root)
+    return "\n".join(lines)
+
+
+# ───── main ───────────────────────────────────────────────────────────────────
+def main() -> None:
+    ap = argparse.ArgumentParser(description="Dump code files + tree into OUTPUT_DIR")
+    ap.add_argument("source_dir", type=Path, help="root directory to scan")
+    ap.add_argument("output_dir", type=Path, help="where to write code_dump.txt and tree.txt")
+    args = ap.parse_args()
+
+    src: Path = args.source_dir.resolve()
+    out_dir: Path = args.output_dir.resolve()
+
+    if not src.is_dir():
+        ap.error(f"{src} is not a directory.")
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    # ---- write code_dump.txt ----
+    dump_path = out_dir / "code_dump.txt"
+    with dump_path.open("w", encoding="utf-8") as fh:
+        for file in iter_code_files(src):
+            rel = file.relative_to(src)
+            content = safe_read(file)
+            fh.write(f"BOF: {rel}\n")
+            fh.write(content)
+            if not content.endswith("\n"):
+                fh.write("\n")
+            fh.write(f"EOF: {rel}\n\n")
+    print(f"✅  Code dumped to {dump_path}")
+
+    # ---- write tree.txt ----
+    tree_path = out_dir / "tree.txt"
+    tree_path.write_text(build_tree(src), encoding="utf-8")
+    print(f"✅  Directory tree written to {tree_path}")
+
+
+if __name__ == "__main__":
+    main()
+EOF: dir.py
+
+BOF: pom.xml
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.4.4</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.com</groupId>
+    <artifactId>school-management</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <properties>
+        <java.version>17</java.version>
+        <flyway.version>11.7.2</flyway.version>
+        <mysql.version>8.3.0</mysql.version>
+        <lombok.version>1.18.38</lombok.version>
+    </properties>
+
+    <!-- ── DEPENDENCIES ─────────────────────────────────────────── -->
+    <dependencies>
+        <!-- Spring -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+
+        <!-- Database -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <version>${mysql.version}</version>
+        </dependency>
+        <!-- Flyway migration engine -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+            <version>${flyway.version}</version>
+        </dependency>
+
+
+        <!-- ⬇️ ADD inside <dependencies> … </dependencies> -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <!-- JWT helper -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.12.5</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.12.5</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.12.5</version>
+            <scope>runtime</scope>
+        </dependency>
+
+
+
+        <!-- MySQL dialect for Flyway 10+ -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-mysql</artifactId>
+            <version>${flyway.version}</version>
+        </dependency>
+
+
+        <!-- Lombok (only once, inside <dependencies>) -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Tests -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Swagger dependencies -->
+            <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.8.6</version>   <!-- or the latest that matches your Spring Boot major -->
+            </dependency>
+
+    </dependencies>
+
+    
+    
+
+    <!-- ── BUILD PLUGINS ────────────────────────────────────────── -->
+    <build>
+        <plugins>
+            <!-- Enable Lombok annotation processing -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <release>${java.version}</release>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                <version>${flyway.version}</version>
+                <!-- connection details so you don’t have to pass -D props every time -->
+                <configuration>
+                    <url>jdbc:mysql://localhost:3307/schooldb?allowPublicKeyRetrieval=true&amp;useSSL=false&amp;serverTimezone=UTC</url>
+                    <user>root</user>
+                    <password>admin</password>
+                </configuration>
+            </plugin>
+
+            <!-- Spring Boot -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+EOF: pom.xml
+
+BOF: seed.py
+#!/usr/bin/env python3
+"""
+seed.py – populate the Spring-Boot School-Management API
+⚠  Requires the April/May 2025 auth changes (BCrypt hashing on server side)
+"""
+
+from __future__ import annotations
+
+import argparse
+import itertools
+import json
+import random
+import string
+import sys
+from datetime import date, datetime, timedelta
+from pathlib import Path
+from typing import Final
+
+import requests
+from faker import Faker
+from tqdm import tqdm
+
+fake = Faker()
+TIMEOUT: Final = 30
+
+# ─────── constants ────────────────────────────────────────────
+GENDERS   : Final[list[str]] = ["MALE", "FEMALE"]
+STATUSES  : Final[list[str]] = ["ACTIVE", "GRADUATED", "INACTIVE"]
+GRADES    : Final[list[int]] = [1, 2, 3]
+
+CLASSES_PER_G  = 3
+TEACHERS       = 15
+SUBJECTS       = ["Maths", "Science", "English", "History", "Geography"]
+STUDENTS_PER_C = 25
+LESSONS_PER_SC = 2
+
+ATTENDANCE_RATE = 0.92
+WEEK_DAYS       = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"]
+BLOOD_TYPES     = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
+# ──────────────────────────────────────────────────────────────
+
+
+# ─────── helpers ──────────────────────────────────────────────
+def random_password(n: int = 10) -> str:
+    alphabet = string.ascii_letters + string.digits
+    return "".join(random.choices(alphabet, k=n))
+
+
+def add_years(d: date, *, years: int) -> date:
+    """d + N years while keeping 28 Feb if target year has no 29 Feb."""
+    try:
+        return d.replace(year=d.year + years)
+    except ValueError:                       # 29 Feb → non-leap year
+        return d.replace(year=d.year + years, day=28)
+
+
+def rand_status() -> str:
+    """PRESENT ≈ 92 %, ABSENT ≈ 6 %, LATE ≈ 2 %."""
+    return random.choices(
+        ["PRESENT", "ABSENT", "LATE"],
+        weights=[ATTENDANCE_RATE, 1 - ATTENDANCE_RATE - 0.02, 0.02],
+    )[0]
+
+
+def post(url: str, payload: dict, session: requests.Session, logf) -> int:
+    """POST JSON, log result, return new `id`."""
+    r = session.post(url, json=payload, timeout=TIMEOUT)
+    r.raise_for_status()
+    res = r.json()
+    print("⇧", url.replace(session.base_url, ""), "→", res["id"], flush=True)
+    logf.write(
+        json.dumps({"url": url, "payload": payload, "response": res}, ensure_ascii=False)
+        + "\n"
+    )
+    return res["id"]
+
+
+def obtain_token(base_url: str, email: str, pwd: str) -> str:
+    """Login as admin → JWT."""
+    r = requests.post(
+        f"{base_url.rstrip('/')}/auth/login",
+        json={"email": email, "password": pwd},
+        timeout=TIMEOUT,
+    )
+    r.raise_for_status()
+    return r.json()["token"]
+
+
+def safe_get(session: requests.Session, url: str) -> dict:
+    """GET JSON, retry once on a transient 403 (tx not committed yet)."""
+    r = session.get(url, timeout=TIMEOUT)
+    if r.status_code == 403:
+        r = session.get(url, timeout=TIMEOUT)
+    r.raise_for_status()
+    return r.json()
+
+
+# ─────── main seeding routine ─────────────────────────────────
+def seed(base_url: str, out_dir: Path, *, session: requests.Session) -> None:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    logf = (out_dir / "seed_log.ndjson").open("w", encoding="utf-8")
+    s = session                    # alias for brevity
+
+    # ---------- Grades ----------
+    grade_ids = [post(f"{s.base_url}/grades", {"level": lvl}, s, logf) for lvl in GRADES]
+
+    # ---------- Teachers ----------
+    teacher_ids = [
+        post(
+            f"{s.base_url}/teachers",
+            {
+                "fullName": fake.name(),
+                "email"   : fake.unique.ascii_safe_email(),
+                "password": random_password(),          # NEW – required
+            },
+            s,
+            logf,
+        )
+        for _ in range(TEACHERS)
+    ]
+
+    # ---------- Subjects ----------
+    subj_ids = [post(f"{s.base_url}/subjects", {"name": n}, s, logf) for n in SUBJECTS]
+
+    # ---------- Classes ----------
+    class_ids: list[int] = []
+    for gid in grade_ids:
+        for idx in range(1, CLASSES_PER_G + 1):
+            cname = f"{fake.random_uppercase_letter()}-{idx}"
+            capacity  = random.randint(25, 35)
+            supervisor = random.choice(teacher_ids) if random.random() < 0.7 else None
+            payload = {"name": cname, "gradeId": gid, "capacity": capacity}
+            if supervisor:
+                payload["supervisorId"] = supervisor
+            class_ids.append(post(f"{s.base_url}/classes", payload, s, logf))
+
+    # ---------- Students ----------
+    class_to_grade = {
+        cid: safe_get(s, f"{s.base_url}/classes/{cid}")["gradeId"] for cid in class_ids
+    }
+
+    student_ids: list[int] = []
+    for cid in class_ids:
+        for _ in range(STUDENTS_PER_C):
+            dob = fake.date_of_birth(minimum_age=6, maximum_age=18)
+            payload = {
+                "fullName"      : fake.name(),
+                "surname"       : fake.last_name(),
+                "username"      : fake.user_name(),
+                "email"         : fake.unique.ascii_safe_email(),
+                "img"           : fake.image_url(width=200, height=200),
+                "bloodType"     : random.choice(BLOOD_TYPES),
+                "classId"       : cid,
+                "gradeId"       : class_to_grade[cid],
+                "dateOfBirth"   : dob.isoformat(),
+                "gender"        : random.choice(GENDERS),
+                "phone"         : fake.phone_number(),
+                "address"       : fake.address().replace("\n", ", "),
+                "enrollmentDate": add_years(dob, years=6).isoformat(),
+                "status"        : random.choice(STATUSES),
+                "password"      : random_password(),
+            }
+            student_ids.append(post(f"{s.base_url}/students", payload, s, logf))
+
+    # ---------- Parents (2 per child) ----------
+    for stu in student_ids:
+        for fn in (fake.name_female(), fake.name_male()):
+            post(
+                f"{s.base_url}/parents",
+                {
+                    "fullName": fn,
+                    "email"   : fake.unique.ascii_safe_email(),
+                    "password": random_password(),       # NEW – required
+                    "childIds": [stu],
+                },
+                s,
+                logf,
+            )
+
+    # ---------- Lessons · Exams · Assignments · Results ----------
+    lesson_ids: list[int] = []
+    today = date.today()
+
+    for cid, sid in itertools.product(class_ids, subj_ids):
+        for _ in range(LESSONS_PER_SC):
+            tid = random.choice(teacher_ids)
+            day = random.choice(WEEK_DAYS)
+            start_hour = random.randint(8, 14)
+            start_time = f"{start_hour:02d}:00"
+            end_time   = f"{start_hour + random.choice([1, 1, 2]):02d}:00"
+
+            l_id = post(
+                f"{s.base_url}/lessons",
+                {
+                    "topic"    : fake.sentence(nb_words=4),
+                    "day"      : day,
+                    "startTime": start_time,
+                    "endTime"  : end_time,
+                    "subjectId": sid,
+                    "teacherId": tid,
+                    "classId"  : cid,
+                },
+                s,
+                logf,
+            )
+            lesson_ids.append(l_id)
+
+            exam_id = post(
+                f"{s.base_url}/exams",
+                {
+                    "title"   : f"Quiz {fake.word()}",
+                    "examDate": str(today + timedelta(days=random.randint(1, 45))),
+                    "lessonId": l_id,
+                },
+                s,
+                logf,
+            )
+
+            post(
+                f"{s.base_url}/assignments",
+                {
+                    "title"   : f"HW {random.randint(1,60)}",
+                    "dueDate" : str(today + timedelta(days=random.randint(2, 20))),
+                    "lessonId": l_id,
+                },
+                s,
+                logf,
+            )
+
+            class_students = [
+                stu for stu in student_ids
+                if safe_get(s, f"{s.base_url}/students/{stu}")["classId"] == cid
+            ]
+            for stu in class_students:
+                post(
+                    f"{s.base_url}/results",
+                    {
+                        "score"    : round(random.uniform(40, 100), 1),
+                        "studentId": stu,
+                        "examId"   : exam_id,
+                    },
+                    s,
+                    logf,
+                )
+
+    # ---------- Attendance ----------
+    for l_id in tqdm(lesson_ids, desc="Attendance"):
+        clid = safe_get(s, f"{s.base_url}/lessons/{l_id}")["classId"]
+        pupils = [
+            stu for stu in student_ids
+            if safe_get(s, f"{s.base_url}/students/{stu}")["classId"] == clid
+        ]
+        for stu in pupils:
+            post(
+                f"{s.base_url}/attendances",
+                {"status": rand_status(), "studentId": stu, "lessonId": l_id},
+                s,
+                logf,
+            )
+
+    # ---------- Events & Announcements ----------
+    for cid in class_ids + [None]:      # None ⇒ whole-school
+        for _ in range(5):
+            now = datetime.utcnow()
+            post(
+                f"{s.base_url}/events",
+                {
+                    "title"      : fake.sentence(nb_words=6),
+                    "description": fake.paragraph(),
+                    "startsAt"   : now.isoformat(),
+                    "endsAt"     : (now + timedelta(hours=2)).isoformat(),
+                    "classId"    : cid,
+                },
+                s,
+                logf,
+            )
+            post(
+                f"{s.base_url}/announcements",
+                {
+                    "title"      : fake.sentence(nb_words=4),
+                    "content"    : fake.paragraph(nb_sentences=4),
+                    "publishedAt": now.isoformat(),
+                    "classId"    : cid,
+                },
+                s,
+                logf,
+            )
+
+    logf.close()
+    print(f"\n✔  Seeding complete – log written to {logf.name}")
+
+
+# ─────── CLI entry-point ──────────────────────────────────────
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser(description="Seed the School-Management API")
+    ap.add_argument("--base-url",    default="http://localhost:8082/api")
+    ap.add_argument("--out-dir",     default="seed_out")
+    ap.add_argument("--admin-email", default="admin@example.com")
+    ap.add_argument("--admin-pass",  default="pa55w0rd")
+    cfg = ap.parse_args()
+
+    try:
+        token = obtain_token(cfg.base_url, cfg.admin_email, cfg.admin_pass)
+    except requests.HTTPError as e:
+        sys.exit("❌  Login failed: " + e.response.text[:300])
+
+    with requests.Session() as sess:
+        sess.base_url = cfg.base_url.rstrip("/")
+        sess.headers["Authorization"] = f"Bearer {token}"
+        try:
+            seed(cfg.base_url, Path(cfg.out_dir), session=sess)
+        except requests.HTTPError as err:
+            sys.exit("❌  Aborted: " + err.response.text[:400])
+EOF: seed.py
+
+BOF: .vscode/settings.json
+{
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "java.compile.nullAnalysis.mode": "automatic"
+}
+EOF: .vscode/settings.json
+
+BOF: src/main/java/com/school/SchoolManagementApplication.java
+package com.school;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class SchoolManagementApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(SchoolManagementApplication.class, args);
+    }
+}
+EOF: src/main/java/com/school/SchoolManagementApplication.java
+
+BOF: src/main/java/com/school/util/PasswordHash.java
+package com.school.util;
+
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+
+public class PasswordHash {
+    public static void main(String[] args) {
+        if (args.length == 0) {
+            System.err.println("usage: PasswordHash <plainPassword>");
+            System.exit(1);
+        }
+        System.out.println(new BCryptPasswordEncoder().encode(args[0]));
+    }
+}
+EOF: src/main/java/com/school/util/PasswordHash.java
+
+BOF: src/main/java/com/school/config/WebAppConfig.java
+package com.school.config;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+// import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+// import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+@Configuration
+// @EnableWebMvc
+public class WebAppConfig implements WebMvcConfigurer {
+    @Value("${frontend.origin}")
+    private String allowedOrigin;
+
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**")
+                .allowedOrigins(allowedOrigin)
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .maxAge(3600);
+    }
+
+//     @Override
+//     public void addResourceHandlers(ResourceHandlerRegistry registry) {
+//         // Add resource handlers for Swagger UI
+//         registry.addResourceHandler("/swagger-ui/**")
+//                 .addResourceLocations("classpath:/META-INF/resources/webjars/swagger-ui/")
+//                 .resourceChain(false);
+                
+//         registry.addResourceHandler("/webjars/**")
+//                 .addResourceLocations("classpath:/META-INF/resources/webjars/")
+//                 .resourceChain(false);
+//     }
+}
+EOF: src/main/java/com/school/config/WebAppConfig.java
+
+BOF: src/main/java/com/school/config/OpenApiConfig.java
+package com.school.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.filter.ForwardedHeaderFilter;
+
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Contact;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.info.License;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
+
+@Configuration
+public class OpenApiConfig {
+
+    private static final String SECURITY_SCHEME_NAME = "Bearer Authentication";
+
+    @Bean
+    public OpenAPI openAPI() {
+        return new OpenAPI()
+                .info(new Info()
+                        .title("School API")
+                        .description("REST API for School Management System")
+                        .version("1.0")
+                        .contact(new Contact()
+                                .name("School Tech Team")
+                                .email("support@school.com"))
+                        .license(new License()
+                                .name("Apache 2.0")
+                                .url("http://www.apache.org/licenses/LICENSE-2.0.html")))
+                .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
+                .components(new Components()
+                        .addSecuritySchemes(SECURITY_SCHEME_NAME, new SecurityScheme()
+                                .name(SECURITY_SCHEME_NAME)
+                                .type(SecurityScheme.Type.HTTP)
+                                .scheme("bearer")
+                                .bearerFormat("JWT")
+                                .description("Enter JWT Bearer token **_only_**")));
+    }
+    
+    /**
+     * This bean helps with proxy servers and forwarded headers
+     * Useful if your application is behind a load balancer or reverse proxy
+     */
+    @Bean
+    public ForwardedHeaderFilter forwardedHeaderFilter() {
+        return new ForwardedHeaderFilter();
+    }
+}
+EOF: src/main/java/com/school/config/OpenApiConfig.java
+
+BOF: src/main/java/com/school/config/SecurityBeans.java
+package com.school.config;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+@Configuration
+public class SecurityBeans {
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+}
+EOF: src/main/java/com/school/config/SecurityBeans.java
+
+BOF: src/main/java/com/school/config/JpaAuditConfig.java
+package com.school.config;
+
+import java.util.Optional;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.domain.AuditorAware;
+import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+/**
+ * Enables @CreatedDate / @LastModifiedDate handling.
+ * AuditorAware returns the username; for now we stub "system".
+ * When JWT auth is in place we’ll pull from SecurityContext.
+ */
+@Configuration
+@EnableJpaAuditing
+public class JpaAuditConfig {
+
+    @Configuration
+    static class AuditorAwareImpl implements AuditorAware<String> {
+        @Override public Optional<String> getCurrentAuditor() {
+        return Optional.of(
+            SecurityContextHolder.getContext().getAuthentication() == null
+                ? "system"
+                : SecurityContextHolder.getContext().getAuthentication().getName());
+        }
+    }
+}
+EOF: src/main/java/com/school/config/JpaAuditConfig.java
+
+BOF: src/main/java/com/school/security/JwtUtil.java
+package com.school.security;
+
+
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.stereotype.Component;
+
+import java.time.Instant;
+import java.util.Date;
+import java.util.List;
+
+@Component
+public class JwtUtil {
+
+ 
+    private final byte[] key;
+   private final JwtParser parser;
+
+    public JwtUtil(@Value("${security.jwt.secret}") String secret) {
+        this.key    = secret.getBytes();
+        this.parser = Jwts.parser().verifyWith(Keys.hmacShaKeyFor(key)).build();
+   }
+
+    public String generate(String email, String role) {
+         return Jwts.builder()
+                   .subject(email)
+                   .claim("role", role)
+                   .issuedAt(new Date())
+                   .expiration(Date.from(Instant.now().plusSeconds(8*3600)))
+                   .signWith(Keys.hmacShaKeyFor(key))
+                   .compact();
+    }
+
+    public UsernamePasswordAuthenticationToken parse(String token) {
+        Claims c = parser.parseSignedClaims(token).getPayload();
+        String email = c.getSubject();
+        String role  = c.get("role", String.class);
+        return new UsernamePasswordAuthenticationToken(
+                email, null, List.of(new SimpleGrantedAuthority("ROLE_" + role)));
+    }
+}
+
+EOF: src/main/java/com/school/security/JwtUtil.java
+
+BOF: src/main/java/com/school/security/SecurityConfig.java
+package com.school.security;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.Collections;
+
+import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
+
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
+@RequiredArgsConstructor
+public class SecurityConfig {
+    
+    private final JwtFilter jwtFilter;
+    private final UserDetailsService uds;
+    private final PasswordEncoder encoder;
+    
+    // All paths that should be publicly accessible
+    private static final String[] WHITE_LIST_URLS = {
+        // Swagger UI v3 (OpenAPI)
+        "/v3/api-docs",
+        "/v3/api-docs/**",
+        "/v3/api-docs.yaml",
+        "/swagger-ui/**",
+        "/swagger-ui.html",
+        "/swagger-resources/**",
+        "/webjars/**",
+        
+        // Auth endpoints
+        "/api/auth/**",
+        
+        // Actuator endpoints if needed
+        "/actuator/**"
+    };
+
+    @Bean
+    public AuthenticationManager authManager(HttpSecurity http) throws Exception {
+        return http.getSharedObject(AuthenticationManagerBuilder.class)
+                .userDetailsService(uds)
+                .passwordEncoder(encoder)
+                .and().build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        // Restrict origins in production
+        configuration.setAllowedOrigins(Arrays.asList(
+            "http://localhost:3000",  // Next.js dev server
+            "https://your-production-domain.com"  // Production frontend
+        ));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList(
+            "authorization", 
+            "content-type", 
+            "x-requested-with",
+            "cache-control"
+        ));
+        configuration.setExposedHeaders(Arrays.asList(
+            "authorization", 
+            "content-type",
+            "x-auth-token"
+        ));
+        configuration.setAllowCredentials(true);  // Allow cookies/credentials
+        configuration.setMaxAge(3600L);  // 1 hour cache
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .csrf(csrf -> csrf.disable())
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
+            .headers(headers -> headers
+                .frameOptions(frameOpt -> frameOpt.disable())
+                .contentSecurityPolicy(csp -> csp
+                    .policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'")
+                )
+            )
+            .authorizeHttpRequests(auth -> {
+                auth.requestMatchers(WHITE_LIST_URLS).permitAll();
+                
+                // Example role-based access (adjust to your needs)
+                auth.requestMatchers("/api/admin/**").hasRole("ADMIN");
+                auth.requestMatchers("/api/teacher/**").hasRole("TEACHER");
+                auth.requestMatchers("/api/parent/**").hasRole("PARENT");
+                auth.requestMatchers("/api/student/**").hasRole("STUDENT");
+                auth.anyRequest().authenticated();
+            })
+            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+}
+EOF: src/main/java/com/school/security/SecurityConfig.java
+
+BOF: src/main/java/com/school/security/JwtFilter.java
+package com.school.security;
+
+import jakarta.servlet.*;
+import jakarta.servlet.http.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+import java.io.IOException;
+
+@Component
+@RequiredArgsConstructor
+public class JwtFilter extends OncePerRequestFilter {
+
+    private final JwtUtil jwt;
+
+    @Override protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res,
+                                              FilterChain chain) throws IOException, ServletException {
+        String hdr = req.getHeader("Authorization");
+        if (hdr != null && hdr.startsWith("Bearer ")) {
+            var auth = jwt.parse(hdr.substring(7));
+            SecurityContextHolder.getContext().setAuthentication(auth);
+        }
+        chain.doFilter(req, res);
+    }
+}
+EOF: src/main/java/com/school/security/JwtFilter.java
+
+BOF: src/main/java/com/school/security/DbUserDetailsService.java
+package com.school.security;
+
+import com.school.admin.repository.AdminRepository;
+import com.school.teacher.repository.TeacherRepository;
+import com.school.parent.repository.ParentRepository;
+import com.school.student.repository.StudentRepository;
+import com.school.common.enums.Role;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.userdetails.*;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class DbUserDetailsService implements UserDetailsService {
+
+    private final AdminRepository   admins;
+    private final TeacherRepository teachers;
+    private final ParentRepository  parents;
+    private final StudentRepository students;
+    private final PasswordEncoder   encoder;   // keep for seeding
+
+    @Override
+    public UserDetails loadUserByUsername(String email) {
+        return admins.findByEmail(email).map(this::map)
+            .orElseGet(() -> teachers.findByEmail(email).map(this::map)
+            .orElseGet(() -> parents.findByEmail(email).map(this::map)
+            .orElseGet(() -> students.findByEmail(email).map(this::map)
+            .orElseThrow(() -> new UsernameNotFoundException(email)))));
+    }
+
+
+    private UserDetails map(Object u) {
+        String pw; Role role;
+        if (u instanceof com.school.admin.model.Admin a)         { pw = a.getPassword(); role = a.getRole(); }
+        else if (u instanceof com.school.teacher.model.Teacher t){ pw = t.getPassword(); role = t.getRole(); }
+        else if (u instanceof com.school.parent.model.Parent p)  { pw = p.getPassword(); role = p.getRole(); }
+        else                                                     { pw = ((com.school.student.model.Student)u).getPassword();
+                                                                    role = ((com.school.student.model.Student)u).getRole(); }
+
+        return User.withUsername(getEmail(u))
+                   .password(pw)
+                   .authorities(role.asAuthority())
+                   .build();
+    }
+
+ private String getEmail(Object o) {
+     if (o instanceof com.school.admin.model.Admin a) {
+         return a.getEmail();
+     } else if (o instanceof com.school.teacher.model.Teacher t) {
+         return t.getEmail();
+     } else if (o instanceof com.school.parent.model.Parent p) {
+         return p.getEmail();
+     } else { // Student
+         return ((com.school.student.model.Student) o).getEmail();
+     }
+ }
+}
+EOF: src/main/java/com/school/security/DbUserDetailsService.java
+
+BOF: src/main/java/com/school/auth/AuthController.java
+package com.school.auth;
+
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.school.security.JwtUtil;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+
+@RestController
+@RequestMapping("/api/auth")
+@RequiredArgsConstructor
+@Tag(name = "Authentication", description = "API for authentication and token management")
+public class AuthController {
+
+    private final AuthenticationManager authMgr;
+    private final JwtUtil jwt;
+
+    @Operation(summary = "User login", description = "Authenticates a user and returns a JWT token")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Login successful",
+                content = @Content(schema = @Schema(implementation = TokenDTO.class))),
+        @ApiResponse(responseCode = "401", description = "Invalid credentials")
+    })
+    @PostMapping("/login")
+    public TokenDTO login(
+            @Parameter(description = "Login credentials", required = true,
+                     schema = @Schema(implementation = LoginDTO.class))
+            @RequestBody LoginDTO in) {
+        Authentication auth = authMgr.authenticate(
+                new UsernamePasswordAuthenticationToken(in.email(), in.password()));
+        String role = auth.getAuthorities().iterator().next().getAuthority();
+        return new TokenDTO(jwt.generate(in.email(), role.replace("ROLE_", "")));
+    }
+
+    /* ── tiny records for payload ───────── */
+    @Schema(description = "Login request with email and password")
+    public record LoginDTO(
+            @Schema(description = "User email", example = "admin@school.com") 
+            String email, 
+            
+            @Schema(description = "User password", example = "password123") 
+            String password) {}
+    
+    @Schema(description = "JWT token response")
+    public record TokenDTO(
+            @Schema(description = "JWT authentication token", 
+                   example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...") 
+            String token) {}
+}
+EOF: src/main/java/com/school/auth/AuthController.java
+
+BOF: src/main/java/com/school/event/dto/EventDTO.java
+package com.school.event.dto;
+
+import lombok.*;
+
+import java.time.LocalDateTime;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class EventDTO {
+    private Long id;
+    private String title;
+    private String description;
+    private LocalDateTime startsAt;
+    private LocalDateTime endsAt;
+    private Long classId;        // null for global event
+}
+EOF: src/main/java/com/school/event/dto/EventDTO.java
+
+BOF: src/main/java/com/school/event/repository/EventRepository.java
+package com.school.event.repository;
+
+import com.school.event.model.Event;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface EventRepository extends JpaRepository<Event, Long> { }
+EOF: src/main/java/com/school/event/repository/EventRepository.java
+
+BOF: src/main/java/com/school/event/controller/EventController.java
+package com.school.event.controller;
+
+import com.school.event.dto.EventDTO;
+import com.school.event.service.EventService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/events")
+@RequiredArgsConstructor
+public class EventController {
+
+    private final EventService svc;
+
+    @GetMapping
+    public List<EventDTO> getAll() { return svc.findAll(); }
+
+    @GetMapping("/{id}")
+    public EventDTO getOne(@PathVariable Long id) { return svc.findById(id); }
+
+    @PostMapping
+    public ResponseEntity<EventDTO> create(@RequestBody EventDTO dto) {
+        EventDTO saved = svc.create(dto);
+        return ResponseEntity.created(URI.create("/api/events/" + saved.getId())).body(saved);
+    }
+
+    @PutMapping("/{id}")
+    public EventDTO update(@PathVariable Long id, @RequestBody EventDTO dto) {
+        return svc.update(id, dto);
+    }
+
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) { svc.delete(id); }
+}
+EOF: src/main/java/com/school/event/controller/EventController.java
+
+BOF: src/main/java/com/school/event/model/Event.java
+package com.school.event.model;
+
+import com.school.schoolclass.model.SchoolClass;
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class Event {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private String title;             // "Sports Day"
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    private LocalDateTime startsAt;
+    private LocalDateTime endsAt;
+
+    /** Null ⇒ whole-school event; non-null ⇒ only that class. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    private SchoolClass schoolClass;
+}
+EOF: src/main/java/com/school/event/model/Event.java
+
+BOF: src/main/java/com/school/event/service/EventService.java
+package com.school.event.service;
+
+import com.school.common.exception.NotFoundException;
+import com.school.event.dto.EventDTO;
+import com.school.event.model.Event;
+import com.school.event.repository.EventRepository;
+import com.school.schoolclass.repository.SchoolClassRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+import org.springframework.transaction.annotation.Transactional;
+
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class EventService {
+
+    private final EventRepository repo;
+    private final SchoolClassRepository classRepo;
+    @Transactional(readOnly = true)
+    public List<EventDTO> findAll() { return repo.findAll().stream().map(this::toDto).toList(); }
+
+    public EventDTO findById(Long id) {
+        return toDto(repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Event " + id + " not found")));
+    }
+
+    public EventDTO create(EventDTO dto) { return toDto(repo.save(toEntity(dto))); }
+
+    public EventDTO update(Long id, EventDTO dto) {
+        Event e = repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Event " + id + " not found"));
+        e.setTitle(dto.getTitle());
+        e.setDescription(dto.getDescription());
+        e.setStartsAt(dto.getStartsAt());
+        e.setEndsAt(dto.getEndsAt());
+        e.setSchoolClass(resolveClass(dto.getClassId()));
+        return toDto(repo.save(e));
+    }
+
+    public void delete(Long id) {
+        if (!repo.existsById(id)) throw new NotFoundException("Event " + id + " not found");
+        repo.deleteById(id);
+    }
+
+    /* ---------- helpers ---------- */
+    private EventDTO toDto(Event e) {
+        return EventDTO.builder()
+                .id(e.getId())
+                .title(e.getTitle())
+                .description(e.getDescription())
+                .startsAt(e.getStartsAt())
+                .endsAt(e.getEndsAt())
+                .classId(e.getSchoolClass() == null ? null : e.getSchoolClass().getId())
+                .build();
+    }
+
+    private Event toEntity(EventDTO d) {
+        return Event.builder()
+                .title(d.getTitle())
+                .description(d.getDescription())
+                .startsAt(d.getStartsAt())
+                .endsAt(d.getEndsAt())
+                .schoolClass(resolveClass(d.getClassId()))
+                .build();
+    }
+
+    private com.school.schoolclass.model.SchoolClass resolveClass(Long id) {
+        if (id == null) return null;
+        return classRepo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Class " + id + " not found"));
+    }
+}
+EOF: src/main/java/com/school/event/service/EventService.java
+
+BOF: src/main/java/com/school/teacher/dto/TeacherDTO.java
+package com.school.teacher.dto;
+
+import lombok.*;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class TeacherDTO {
+    private Long id;
+    private String fullName;
+    private String email;
+    private String password;
+}
+EOF: src/main/java/com/school/teacher/dto/TeacherDTO.java
+
+BOF: src/main/java/com/school/teacher/repository/TeacherRepository.java
+package com.school.teacher.repository;
+
+import com.school.teacher.model.Teacher;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
+import java.util.Optional;
+public interface TeacherRepository extends JpaRepository<Teacher, Long> {
+    // derived-query: Spring Data figures the JPQL out for you
+    List<Teacher> findAllBySubjects_Id(Long subjectId);
+    Optional<Teacher> findByEmail(String email);
+}
+EOF: src/main/java/com/school/teacher/repository/TeacherRepository.java
+
+BOF: src/main/java/com/school/teacher/controller/TeacherController.java
+package com.school.teacher.controller;
+
+// import com.school.security.roles.IsAdmin;
+import com.school.security.roles.IsAdminOrTeacher;
+// import com.school.security.roles.IsTeacher;
+import com.school.teacher.dto.TeacherDTO;
+import com.school.teacher.service.TeacherService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/teachers")
+@RequiredArgsConstructor
+public class TeacherController {
+
+    private final TeacherService svc;
+    @IsAdminOrTeacher    
+    @GetMapping
+    public List<TeacherDTO> getAll() { return svc.findAll(); }
+
+    @IsAdminOrTeacher    
+    @GetMapping("/{id}")
+    public TeacherDTO getOne(@PathVariable Long id) { return svc.findById(id); }
+
+    @IsAdminOrTeacher    
+    @PostMapping
+    public ResponseEntity<TeacherDTO> create(@RequestBody TeacherDTO dto) {
+        TeacherDTO saved = svc.create(dto);
+        return ResponseEntity.created(URI.create("/api/teachers/" + saved.getId())).body(saved);
+    }
+
+    @IsAdminOrTeacher    
+    @PutMapping("/{id}")
+    public TeacherDTO update(@PathVariable Long id, @RequestBody TeacherDTO dto) {
+        return svc.update(id, dto);
+    }
+
+    @IsAdminOrTeacher    
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) { svc.delete(id); }
+}
+EOF: src/main/java/com/school/teacher/controller/TeacherController.java
+
+BOF: src/main/java/com/school/teacher/model/Teacher.java
+package com.school.teacher.model;
+import com.school.subject.model.Subject;
+
+import java.util.HashSet;
+import java.util.Set;
+
+import com.school.common.audit.Auditable;
+import com.school.common.enums.Role;
+import com.school.schoolclass.model.SchoolClass;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class Teacher extends Auditable {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private String fullName;
+
+    @Column(nullable = false, unique = true)
+    private String email;
+
+    @Column(nullable = false)
+    private String password;
+
+    @Builder.Default
+@Enumerated(EnumType.STRING)
+@Column(nullable = false, length = 20)
+private Role role = Role.TEACHER;
+
+    @ManyToMany
+    @JoinTable(name = "teacher_subject",
+            joinColumns = @JoinColumn(name = "teacher_id"),
+            inverseJoinColumns = @JoinColumn(name = "subject_id"))
+    @Builder.Default
+    private Set<Subject> subjects = new HashSet<>();
+
+    @Builder.Default
+    @ManyToMany
+    @JoinTable(name = "teacher_class",
+        joinColumns        = @JoinColumn(name = "teacher_id"),
+        inverseJoinColumns = @JoinColumn(name = "class_id"))
+    private Set<SchoolClass> classes = new HashSet<>();
+
+}
+EOF: src/main/java/com/school/teacher/model/Teacher.java
+
+BOF: src/main/java/com/school/teacher/service/TeacherService.java
+package com.school.teacher.service;
+
+import com.school.teacher.dto.TeacherDTO;
+import com.school.teacher.model.Teacher;
+import com.school.teacher.repository.TeacherRepository;
+import com.school.common.enums.Role;
+import com.school.common.exception.NotFoundException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class TeacherService {
+
+    private final TeacherRepository repo;
+    private final PasswordEncoder encoder;
+
+    @Transactional(readOnly = true)
+    public List<TeacherDTO> findAll() {
+        List<Teacher> entities = repo.findAll();
+        List<TeacherDTO> result = new ArrayList<>();
+
+        for (Teacher t : entities) {
+            result.add(toDto(t));
+        }
+        return result;
+    }
+
+    public TeacherDTO findById(Long id) {
+        Optional<Teacher> opt = repo.findById(id);
+
+        if (opt.isEmpty()) {
+            throw new NotFoundException("Teacher " + id + " not found");
+        }
+
+        return toDto(opt.get());
+    }
+
+    public TeacherDTO create(TeacherDTO dto) {
+
+        if (dto.getPassword() == null || dto.getPassword().trim().isEmpty()) {
+            throw new IllegalArgumentException("password is required");
+        }
+
+        // build entity “old-school” style
+        Teacher teacher = new Teacher();
+        teacher.setFullName(dto.getFullName());
+        teacher.setEmail(dto.getEmail());
+        teacher.setPassword(encoder.encode(dto.getPassword()));
+        teacher.setRole(Role.TEACHER);
+
+        Teacher saved = repo.save(teacher);
+        return toDto(saved);
+    }
+    public TeacherDTO update(Long id, TeacherDTO dto) {
+
+        Optional<Teacher> opt = repo.findById(id);
+        if (opt.isEmpty()) {
+            throw new NotFoundException("Teacher " + id + " not found");
+        }
+
+        Teacher t = opt.get();
+        t.setFullName(dto.getFullName());
+        t.setEmail(dto.getEmail());
+
+        Teacher saved = repo.save(t);
+        return toDto(saved);
+    }
+    public void delete(Long id) {
+        if (!repo.existsById(id)) {
+            throw new NotFoundException("Teacher " + id + " not found");
+        }
+        repo.deleteById(id);
+    }
+    public List<TeacherDTO> findBySubject(Long subjectId) {
+
+        List<Teacher> teachers = repo.findAllBySubjects_Id(subjectId);
+
+        if (teachers.isEmpty()) {
+            throw new NotFoundException("No teachers found for subject " + subjectId);
+        }
+
+        List<TeacherDTO> dtoList = new ArrayList<>();
+        for (Teacher t : teachers) {
+            dtoList.add(toDto(t));
+        }
+        return dtoList;
+    }
+    private TeacherDTO toDto(Teacher t) {
+        TeacherDTO dto = new TeacherDTO();
+        dto.setId(t.getId());
+        dto.setFullName(t.getFullName());
+        dto.setEmail(t.getEmail());
+ 
+        return dto;
+    }
+}
+EOF: src/main/java/com/school/teacher/service/TeacherService.java
+
+BOF: src/main/java/com/school/announcement/dto/AnnouncementDTO.java
+package com.school.announcement.dto;
+
+import lombok.*;
+
+import java.time.LocalDateTime;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class AnnouncementDTO {
+    private Long id;
+    private String title;
+    private String content;
+    private LocalDateTime publishedAt;
+    private Long classId;          // null = global
+}
+EOF: src/main/java/com/school/announcement/dto/AnnouncementDTO.java
+
+BOF: src/main/java/com/school/announcement/repository/AnnouncementRepository.java
+package com.school.announcement.repository;
+
+import com.school.announcement.model.Announcement;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface AnnouncementRepository extends JpaRepository<Announcement, Long> { }
+EOF: src/main/java/com/school/announcement/repository/AnnouncementRepository.java
+
+BOF: src/main/java/com/school/announcement/controller/AnnouncementController.java
+package com.school.announcement.controller;
+
+import com.school.announcement.dto.AnnouncementDTO;
+import com.school.announcement.service.AnnouncementService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/announcements")
+@RequiredArgsConstructor
+public class AnnouncementController {
+
+    private final AnnouncementService svc;
+
+    @GetMapping
+    public List<AnnouncementDTO> getAll() { return svc.findAll(); }
+
+    @GetMapping("/{id}")
+    public AnnouncementDTO getOne(@PathVariable Long id) { return svc.findById(id); }
+
+    @PostMapping
+    public ResponseEntity<AnnouncementDTO> create(@RequestBody AnnouncementDTO dto) {
+        AnnouncementDTO saved = svc.create(dto);
+        return ResponseEntity.created(URI.create("/api/announcements/" + saved.getId())).body(saved);
+    }
+
+    @PutMapping("/{id}")
+    public AnnouncementDTO update(@PathVariable Long id, @RequestBody AnnouncementDTO dto) {
+        return svc.update(id, dto);
+    }
+
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) { svc.delete(id); }
+}
+EOF: src/main/java/com/school/announcement/controller/AnnouncementController.java
+
+BOF: src/main/java/com/school/announcement/model/Announcement.java
+package com.school.announcement.model;
+
+import com.school.schoolclass.model.SchoolClass;
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.time.LocalDateTime;
+
+@Entity
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class Announcement {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private String title;                  // "Exam timetable"
+
+    @Column(columnDefinition = "TEXT", nullable = false)
+    private String content;                // body text / HTML
+
+    @Column(nullable = false)
+    private LocalDateTime publishedAt;
+
+    /** Null ⇒ visible to everyone. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    private SchoolClass schoolClass;
+}
+EOF: src/main/java/com/school/announcement/model/Announcement.java
+
+BOF: src/main/java/com/school/announcement/service/AnnouncementService.java
+package com.school.announcement.service;
+
+import com.school.common.exception.NotFoundException;
+import com.school.announcement.dto.AnnouncementDTO;
+import com.school.announcement.model.Announcement;
+import com.school.announcement.repository.AnnouncementRepository;
+import com.school.schoolclass.repository.SchoolClassRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.springframework.transaction.annotation.Transactional;
+
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class AnnouncementService {
+
+    private final AnnouncementRepository repo;
+    private final SchoolClassRepository classRepo;
+    @Transactional(readOnly = true)
+    public List<AnnouncementDTO> findAll() {
+        return repo.findAll().stream().map(this::toDto).toList();
+    }
+
+    public AnnouncementDTO findById(Long id) {
+        return toDto(repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Announcement " + id + " not found")));
+    }
+
+    public AnnouncementDTO create(AnnouncementDTO dto) {
+        if (dto.getPublishedAt() == null) dto.setPublishedAt(LocalDateTime.now());
+        return toDto(repo.save(toEntity(dto)));
+    }
+
+    public AnnouncementDTO update(Long id, AnnouncementDTO dto) {
+        Announcement a = repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Announcement " + id + " not found"));
+        a.setTitle(dto.getTitle());
+        a.setContent(dto.getContent());
+        a.setPublishedAt(dto.getPublishedAt());
+        a.setSchoolClass(resolveClass(dto.getClassId()));
+        return toDto(repo.save(a));
+    }
+
+    public void delete(Long id) {
+        if (!repo.existsById(id)) throw new NotFoundException("Announcement " + id + " not found");
+        repo.deleteById(id);
+    }
+
+    /* ---------- helpers ---------- */
+    private AnnouncementDTO toDto(Announcement a) {
+        return AnnouncementDTO.builder()
+                .id(a.getId())
+                .title(a.getTitle())
+                .content(a.getContent())
+                .publishedAt(a.getPublishedAt())
+                .classId(a.getSchoolClass() == null ? null : a.getSchoolClass().getId())
+                .build();
+    }
+
+    private Announcement toEntity(AnnouncementDTO d) {
+        return Announcement.builder()
+                .title(d.getTitle())
+                .content(d.getContent())
+                .publishedAt(d.getPublishedAt())
+                .schoolClass(resolveClass(d.getClassId()))
+                .build();
+    }
+
+    private com.school.schoolclass.model.SchoolClass resolveClass(Long id) {
+        if (id == null) return null;
+        return classRepo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Class " + id + " not found"));
+    }
+}
+EOF: src/main/java/com/school/announcement/service/AnnouncementService.java
+
+BOF: src/main/java/com/school/lesson/dto/LessonDTO.java
+package com.school.lesson.dto;
+
+import java.time.LocalDate;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class LessonDTO {
+    private Long id;
+    private String topic;
+    private LocalDate lessonDate;
+    private Long subjectId;
+    private Long teacherId;
+    private Long classId;
+    private String day;             
+    private String startTime;       
+    private String endTime;        
+}
+EOF: src/main/java/com/school/lesson/dto/LessonDTO.java
+
+BOF: src/main/java/com/school/lesson/repository/LessonRepository.java
+package com.school.lesson.repository;
+
+import com.school.lesson.model.Lesson;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
+
+public interface LessonRepository extends JpaRepository<Lesson, Long> {
+    List<Lesson> findAllBySubject_Id(Long subjectId);
+}
+EOF: src/main/java/com/school/lesson/repository/LessonRepository.java
+
+BOF: src/main/java/com/school/lesson/controller/LessonController.java
+package com.school.lesson.controller;
+
+import com.school.lesson.dto.LessonDTO;
+import com.school.lesson.service.LessonService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/lessons")
+@RequiredArgsConstructor
+public class LessonController {
+
+    private final LessonService svc;
+
+    @GetMapping
+    public List<LessonDTO> getAll() { return svc.findAll(); }
+
+    @GetMapping("/{id}")
+    public LessonDTO getOne(@PathVariable Long id) { return svc.findById(id); }
+
+    @PostMapping
+    public ResponseEntity<LessonDTO> create(@RequestBody LessonDTO dto) {
+        LessonDTO saved = svc.create(dto);
+        return ResponseEntity.created(URI.create("/api/lessons/" + saved.getId())).body(saved);
+    }
+
+    @PutMapping("/{id}")
+    public LessonDTO update(@PathVariable Long id, @RequestBody LessonDTO dto) {
+        return svc.update(id, dto);
+    }
+
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) { svc.delete(id); }
+
+    /* ── placeholder sub-routes ─────────────────── */
+    @GetMapping("/{id}/exams")
+    public List<?> exams(@PathVariable Long id) { return List.of(); }
+
+    @GetMapping("/{id}/assignments")
+    public List<?> assignments(@PathVariable Long id) { return List.of(); }
+
+    @GetMapping("/{id}/attendances")
+    public List<?> attendances(@PathVariable Long id) { return List.of(); }
+}
+EOF: src/main/java/com/school/lesson/controller/LessonController.java
+
+BOF: src/main/java/com/school/lesson/model/DayOfWeek.java
+// src/main/java/com/school/lesson/model/DayOfWeek.java
+package com.school.lesson.model;
+
+public enum DayOfWeek {
+    MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY
+}
+EOF: src/main/java/com/school/lesson/model/DayOfWeek.java
+
+BOF: src/main/java/com/school/lesson/model/Lesson.java
+package com.school.lesson.model;
+import java.time.LocalTime;
+import com.school.lesson.model.DayOfWeek;
+import com.school.subject.model.Subject;
+import com.school.teacher.model.Teacher;
+import com.school.schoolclass.model.SchoolClass;
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.time.LocalDate;
+
+@Entity
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class Lesson {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private String topic;                   // e.g. "Fractions"
+
+    private LocalDate lessonDate;           // optional
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    private Subject subject;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    private Teacher teacher;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "class_id")       
+    private SchoolClass schoolClass;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 10)
+    private DayOfWeek day;
+
+    @Column(nullable = false)
+    private LocalTime startTime;
+
+    @Column(nullable = false)
+    private LocalTime endTime;
+}
+EOF: src/main/java/com/school/lesson/model/Lesson.java
+
+BOF: src/main/java/com/school/lesson/service/LessonService.java
+package com.school.lesson.service;
+
+import java.time.LocalTime;
+
+import com.school.common.exception.NotFoundException;
+import com.school.lesson.dto.LessonDTO;
+import com.school.lesson.model.Lesson;
+import com.school.lesson.repository.LessonRepository;
+import com.school.subject.repository.SubjectRepository;
+import com.school.teacher.repository.TeacherRepository;
+import com.school.schoolclass.repository.SchoolClassRepository;
+
+import lombok.RequiredArgsConstructor;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+import com.school.lesson.model.DayOfWeek;
+
+
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class LessonService {
+
+    private final LessonRepository repo;
+    private final SubjectRepository subjectRepo;
+    private final TeacherRepository teacherRepo;
+    private final SchoolClassRepository classRepo;
+    @Transactional(readOnly = true)
+    public List<LessonDTO> findAll() {
+        return repo.findAll().stream().map(this::toDto).toList();
+    }
+
+    public LessonDTO findById(Long id) {
+        return toDto(repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Lesson " + id + " not found")));
+    }
+
+    public LessonDTO create(LessonDTO dto) {
+
+        
+        if (dto.getStartTime().compareTo(dto.getEndTime()) >= 0) {
+            throw new IllegalArgumentException("startTime must be before endTime");
+        }
+
+        
+        return toDto(repo.save(toEntity(dto)));
+    }
+
+    public LessonDTO update(Long id, LessonDTO dto) {
+        if (dto.getStartTime().compareTo(dto.getEndTime()) >= 0) {
+                throw new IllegalArgumentException("startTime must be before endTime");
+                }
+        Lesson l = repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Lesson " + id + " not found"));
+        l.setTopic(dto.getTopic());
+        l.setLessonDate(dto.getLessonDate());
+        l.setSubject(subjectRepo.findById(dto.getSubjectId())
+                .orElseThrow(() -> new NotFoundException("Subject " + dto.getSubjectId() + " not found")));
+        l.setTeacher(teacherRepo.findById(dto.getTeacherId())
+                .orElseThrow(() -> new NotFoundException("Teacher " + dto.getTeacherId() + " not found")));
+        l.setSchoolClass(classRepo.findById(dto.getClassId())
+                .orElseThrow(() -> new NotFoundException("Class " + dto.getClassId() + " not found")));
+        return toDto(repo.save(l));
+    }
+
+    public void delete(Long id) {
+        if (!repo.existsById(id)) throw new NotFoundException("Lesson " + id + " not found");
+        repo.deleteById(id);
+    }
+    public List<LessonDTO> findBySubject(Long subjectId) {
+        List<Lesson> lessons = repo.findAllBySubject_Id(subjectId);
+        if (lessons.isEmpty()) {
+            throw new NotFoundException("No lessons found for subject " + subjectId);
+        }
+        return lessons.stream().map(this::toDto).toList();
+    }
+    /* ---------- mapping helpers ---------- */
+    private LessonDTO toDto(Lesson l) {
+        return LessonDTO.builder()
+                .id(l.getId())
+                .topic(l.getTopic())
+                .lessonDate(l.getLessonDate())
+                .day(l.getDay().name())
+                .startTime(l.getStartTime().toString())
+                .endTime(l.getEndTime().toString())
+                .subjectId(l.getSubject().getId())
+                .teacherId(l.getTeacher().getId())
+                .classId(l.getSchoolClass().getId())
+                .build();
+    }
+
+    private Lesson toEntity(LessonDTO d) {
+        return Lesson.builder()
+                .topic(d.getTopic())
+                .lessonDate(d.getLessonDate())
+                .day(DayOfWeek.valueOf(d.getDay()))
+                .startTime(LocalTime.parse(d.getStartTime()))
+                .endTime(LocalTime.parse(d.getEndTime()))
+                
+                .subject(subjectRepo.findById(d.getSubjectId())
+                        .orElseThrow(() -> new NotFoundException("Subject " + d.getSubjectId() + " not found")))
+                .teacher(teacherRepo.findById(d.getTeacherId())
+                        .orElseThrow(() -> new NotFoundException("Teacher " + d.getTeacherId() + " not found")))
+                .schoolClass(classRepo.findById(d.getClassId())
+                        .orElseThrow(() -> new NotFoundException("Class " + d.getClassId() + " not found")))
+                .build();
+    }
+    
+}
+EOF: src/main/java/com/school/lesson/service/LessonService.java
+
+BOF: src/main/java/com/school/exam/dto/ExamDTO.java
+package com.school.exam.dto;
+
+import lombok.*;
+
+import java.time.LocalDate;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class ExamDTO {
+    private Long id;
+    private String title;
+    private LocalDate examDate;
+    private Long lessonId;
+}
+EOF: src/main/java/com/school/exam/dto/ExamDTO.java
+
+BOF: src/main/java/com/school/exam/repository/ExamRepository.java
+package com.school.exam.repository;
+
+import com.school.exam.model.Exam;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ExamRepository extends JpaRepository<Exam, Long> { }
+EOF: src/main/java/com/school/exam/repository/ExamRepository.java
+
+BOF: src/main/java/com/school/exam/controller/ExamController.java
+package com.school.exam.controller;
+
+import com.school.exam.dto.ExamDTO;
+import com.school.exam.service.ExamService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/exams")
+@RequiredArgsConstructor
+public class ExamController {
+
+    private final ExamService svc;
+
+    @GetMapping
+    public List<ExamDTO> getAll() { return svc.findAll(); }
+
+    @GetMapping("/{id}")
+    public ExamDTO getOne(@PathVariable Long id) { return svc.findById(id); }
+
+    @PostMapping
+    public ResponseEntity<ExamDTO> create(@RequestBody ExamDTO dto) {
+        ExamDTO saved = svc.create(dto);
+        return ResponseEntity.created(URI.create("/api/exams/" + saved.getId())).body(saved);
+    }
+
+    @PutMapping("/{id}")
+    public ExamDTO update(@PathVariable Long id, @RequestBody ExamDTO dto) {
+        return svc.update(id, dto);
+    }
+
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) { svc.delete(id); }
+
+    /* ── placeholder sub-route ─────────── */
+    @GetMapping("/{id}/results")
+    public List<?> results(@PathVariable Long id) { return List.of(); }
+}
+EOF: src/main/java/com/school/exam/controller/ExamController.java
+
+BOF: src/main/java/com/school/exam/model/Exam.java
+package com.school.exam.model;
+
+import com.school.lesson.model.Lesson;
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.time.LocalDate;
+
+@Entity
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class Exam {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private String title;            // e.g. "Mid-term Algebra"
+
+    private LocalDate examDate;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    private Lesson lesson;
+}
+EOF: src/main/java/com/school/exam/model/Exam.java
+
+BOF: src/main/java/com/school/exam/service/ExamService.java
+package com.school.exam.service;
+
+import com.school.common.exception.NotFoundException;
+import com.school.exam.dto.ExamDTO;
+import com.school.exam.model.Exam;
+import com.school.exam.repository.ExamRepository;
+import com.school.lesson.repository.LessonRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+import org.springframework.transaction.annotation.Transactional;
+
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class ExamService {
+
+    private final ExamRepository repo;
+    private final LessonRepository lessonRepo;
+    @Transactional(readOnly = true)
+    public List<ExamDTO> findAll() {
+        return repo.findAll().stream().map(this::toDto).toList();
+    }
+
+    public ExamDTO findById(Long id) {
+        return toDto(repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Exam " + id + " not found")));
+    }
+
+    public ExamDTO create(ExamDTO dto) { return toDto(repo.save(toEntity(dto))); }
+
+    public ExamDTO update(Long id, ExamDTO dto) {
+        Exam e = repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Exam " + id + " not found"));
+        e.setTitle(dto.getTitle());
+        e.setExamDate(dto.getExamDate());
+        e.setLesson(lessonRepo.findById(dto.getLessonId())
+                .orElseThrow(() -> new NotFoundException("Lesson " + dto.getLessonId() + " not found")));
+        return toDto(repo.save(e));
+    }
+
+    public void delete(Long id) {
+        if (!repo.existsById(id)) throw new NotFoundException("Exam " + id + " not found");
+        repo.deleteById(id);
+    }
+
+    /* ---------- mapping helpers ---------- */
+    private ExamDTO toDto(Exam e) {
+        return ExamDTO.builder()
+                .id(e.getId())
+                .title(e.getTitle())
+                .examDate(e.getExamDate())
+                .lessonId(e.getLesson().getId())
+                .build();
+    }
+
+    private Exam toEntity(ExamDTO d) {
+        return Exam.builder()
+                .title(d.getTitle())
+                .examDate(d.getExamDate())
+                .lesson(lessonRepo.findById(d.getLessonId())
+                        .orElseThrow(() -> new NotFoundException("Lesson " + d.getLessonId() + " not found")))
+                .build();
+    }
+}
+EOF: src/main/java/com/school/exam/service/ExamService.java
+
+BOF: src/main/java/com/school/parent/dto/ParentDTO.java
+package com.school.parent.dto;
+
+import java.util.Set;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class ParentDTO {
+    private Long id;
+    private String fullName;
+    private String email;
+    private Set<Long> childIds;
+    private String password;
+}
+EOF: src/main/java/com/school/parent/dto/ParentDTO.java
+
+BOF: src/main/java/com/school/parent/repository/ParentRepository.java
+package com.school.parent.repository;
+
+import com.school.parent.model.Parent;
+
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ParentRepository extends JpaRepository<Parent, Long> { 
+    Optional<Parent> findByEmail(String email); 
+}
+EOF: src/main/java/com/school/parent/repository/ParentRepository.java
+
+BOF: src/main/java/com/school/parent/controller/ParentController.java
+package com.school.parent.controller;
+
+import com.school.parent.dto.ParentDTO;
+import com.school.parent.service.ParentService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/parents")
+@RequiredArgsConstructor
+public class ParentController {
+
+    private final ParentService svc;
+
+    @GetMapping
+    public List<ParentDTO> getAll() { return svc.findAll(); }
+
+    @GetMapping("/{id}")
+    public ParentDTO getOne(@PathVariable Long id) { return svc.findById(id); }
+
+    @PostMapping
+    public ResponseEntity<ParentDTO> create(@RequestBody ParentDTO dto) {
+        ParentDTO saved = svc.create(dto);
+        return ResponseEntity.created(URI.create("/api/parents/" + saved.getId())).body(saved);
+    }
+
+    @PutMapping("/{id}")
+    public ParentDTO update(@PathVariable Long id, @RequestBody ParentDTO dto) {
+        return svc.update(id, dto);
+    }
+
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) { svc.delete(id); }
+}
+EOF: src/main/java/com/school/parent/controller/ParentController.java
+
+BOF: src/main/java/com/school/parent/model/Parent.java
+package com.school.parent.model;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.util.HashSet;
+import java.util.Set;
+
+import com.school.common.audit.Auditable;
+import com.school.common.enums.Role;
+import com.school.student.model.Student;
+@Entity
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class Parent extends Auditable {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private String fullName;
+// Parent.java
+        @Column(nullable = false)
+        private String password;
+        @Enumerated(EnumType.STRING)
+        @Column(nullable = false, length = 20)
+        private Role role = Role.PARENT;
+
+    @Column(nullable = false, unique = true)
+    private String email;
+    @Builder.Default
+    @ManyToMany
+    @JoinTable(name = "parent_student",
+            joinColumns = @JoinColumn(name = "parent_id"),
+            inverseJoinColumns = @JoinColumn(name = "student_id"))
+    private Set<Student> children = new HashSet<>();
+}
+
+EOF: src/main/java/com/school/parent/model/Parent.java
+
+BOF: src/main/java/com/school/parent/service/ParentService.java
+package com.school.parent.service;
+import java.util.Set;
+import java.util.stream.Collectors;
+import com.school.student.model.Student;
+
+import com.school.parent.dto.ParentDTO;
+import com.school.parent.model.Parent;
+import com.school.parent.repository.ParentRepository;
+import com.school.student.repository.StudentRepository;
+// import com.school.teacher.model.Teacher;
+import com.school.common.enums.Role;
+import com.school.common.exception.NotFoundException;
+
+import lombok.RequiredArgsConstructor;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashSet;
+import java.util.List;
+
+
+
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class ParentService {
+
+    private final ParentRepository repo;
+    private final StudentRepository studentRepo;
+    private final PasswordEncoder encoder;
+    @Transactional(readOnly = true)
+    public List<ParentDTO> findAll() {
+        return repo.findAll().stream().map(this::toDto).toList();
+    }
+
+    public ParentDTO findById(Long id) {
+        return toDto(repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Parent " + id + " not found")));
+    }
+
+    public ParentDTO create(ParentDTO dto) {
+    if (dto.getPassword() == null || dto.getPassword().isBlank())
+        throw new IllegalArgumentException("password is required");
+    Parent t = toEntity(dto);
+    t.setPassword(encoder.encode(dto.getPassword()));
+    t.setRole(Role.PARENT);
+    return toDto(repo.save(t));
+    }
+
+    public ParentDTO update(Long id, ParentDTO dto) {
+        Parent p = repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Parent " + id + " not found"));
+        p.setFullName(dto.getFullName());
+        p.setEmail(dto.getEmail());
+        return toDto(repo.save(p));
+    }
+
+    public void delete(Long id) {
+        if (!repo.existsById(id)) throw new NotFoundException("Parent " + id + " not found");
+        repo.deleteById(id);
+    }
+
+    private ParentDTO toDto(Parent p) {
+        return ParentDTO.builder()
+                .id(p.getId())
+                .fullName(p.getFullName())
+                .email(p.getEmail())
+                .childIds(
+                    p.getChildren().stream()
+                        .map(Student::getId)
+                        .collect(Collectors.toSet())
+                )
+                .build();
+    }
+
+    private Parent toEntity(ParentDTO d) {
+        return Parent.builder()
+                .fullName(d.getFullName())
+                .email(d.getEmail())
+                .role(Role.PARENT)
+                .children(resolveStudents(d.getChildIds()))
+                .build();
+    }
+
+
+/* ---------- helpers ---------- */
+private Set<Student> resolveStudents(Set<Long> ids) {
+   if (ids == null || ids.isEmpty()) return new HashSet<>();
+   return ids.stream()
+             .map(id -> studentRepo.findById(id)
+                     .orElseThrow(() -> new NotFoundException("Student "+id+" not found")))
+             .collect(Collectors.toSet());
+}
+}
+EOF: src/main/java/com/school/parent/service/ParentService.java
+
+BOF: src/main/java/com/school/schoolclass/dto/SchoolClassDTO.java
+package com.school.schoolclass.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class SchoolClassDTO {
+    private Long id;
+    private String name;
+    private Long gradeId;
+    private Integer capacity;
+    private Long supervisorId;
+}
+EOF: src/main/java/com/school/schoolclass/dto/SchoolClassDTO.java
+
+BOF: src/main/java/com/school/schoolclass/repository/SchoolClassRepository.java
+package com.school.schoolclass.repository;
+
+import com.school.schoolclass.model.SchoolClass;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface SchoolClassRepository extends JpaRepository<SchoolClass, Long> {
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<SchoolClass> findById(Long id);
+    List<SchoolClass> findByGradeId(Long gradeId);
+}
+
+EOF: src/main/java/com/school/schoolclass/repository/SchoolClassRepository.java
+
+BOF: src/main/java/com/school/schoolclass/controller/SchoolClassController.java
+package com.school.schoolclass.controller;
+import com.school.common.exception.NotFoundException;
+import com.school.schoolclass.dto.SchoolClassDTO;
+import com.school.schoolclass.service.SchoolClassService;
+import com.school.schoolclass.model.SchoolClass;
+import com.school.schoolclass.repository.SchoolClassRepository;
+import com.school.student.dto.StudentDTO;
+import com.school.student.service.StudentService;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/classes")
+@RequiredArgsConstructor
+public class SchoolClassController {
+
+    private final SchoolClassService svc;
+    private final SchoolClassRepository classRepo;   // NEW
+    private final StudentService studentService;     // NEW
+
+    @GetMapping
+    public List<SchoolClassDTO> getAll() { return svc.findAll(); }
+
+    @GetMapping("/{id}")
+    public SchoolClassDTO getOne(@PathVariable Long id) { return svc.findById(id); }
+
+    @PostMapping
+    public ResponseEntity<SchoolClassDTO> create(@RequestBody SchoolClassDTO dto) {
+        SchoolClassDTO saved = svc.create(dto);
+        return ResponseEntity.created(URI.create("/api/classes/" + saved.getId())).body(saved);
+    }
+
+    @PutMapping("/{id}")
+    public SchoolClassDTO update(@PathVariable Long id, @RequestBody SchoolClassDTO dto) {
+        return svc.update(id, dto);
+    }
+
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) { svc.delete(id); }
+
+    /* ── placeholder sub-routes ───────────── */
+    @GetMapping("/{id}/students")
+    public List<StudentDTO> students(@PathVariable Long id) {
+        SchoolClass sc = classRepo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Class " + id + " not found"));
+        return sc.getStudents()
+                 .stream()
+                 .map(studentService::toDto)
+                 .toList();
+    }
+
+    @GetMapping("/{id}/lessons")
+    public List<?> lessons(@PathVariable Long id) { return List.of(); }
+
+    @GetMapping("/{id}/events")
+    public List<?> events(@PathVariable Long id) { return List.of(); }
+
+    @GetMapping("/{id}/announcements")
+    public List<?> ann(@PathVariable Long id) { return List.of(); }
+}
+EOF: src/main/java/com/school/schoolclass/controller/SchoolClassController.java
+
+BOF: src/main/java/com/school/schoolclass/model/SchoolClass.java
+package com.school.schoolclass.model;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import com.school.grade.model.Grade;
+import com.school.student.model.Student;
+import com.school.teacher.model.Teacher;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class SchoolClass {
+
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name;
+
+
+    @Column(nullable = false)
+    private Integer capacity = 30;
+
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Teacher supervisor;
+
+    
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    private Grade grade;
+
+
+    @Builder.Default        
+    @OneToMany(mappedBy = "schoolClass",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true)
+    private List<Student> students = new ArrayList<>();
+}
+
+EOF: src/main/java/com/school/schoolclass/model/SchoolClass.java
+
+BOF: src/main/java/com/school/schoolclass/service/SchoolClassService.java
+package com.school.schoolclass.service;
+
+import com.school.common.exception.NotFoundException;
+import com.school.grade.repository.GradeRepository;
+import com.school.schoolclass.dto.SchoolClassDTO;
+import com.school.schoolclass.model.SchoolClass;
+import com.school.schoolclass.repository.SchoolClassRepository;
+import com.school.teacher.repository.TeacherRepository;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+import org.springframework.transaction.annotation.Transactional;
+
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class SchoolClassService {
+
+    private final SchoolClassRepository repo;
+    private final GradeRepository gradeRepo;
+    private final TeacherRepository teacherRepo;
+
+    @Transactional(readOnly = true)
+    public List<SchoolClassDTO> findAll() {
+        return repo.findAll().stream().map(this::toDto).toList();
+    }
+
+    public SchoolClassDTO findById(Long id) {
+        return toDto(repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Class " + id + " not found")));
+    }
+
+    public SchoolClassDTO create(SchoolClassDTO dto) {
+        return toDto(repo.save(toEntity(dto)));
+    }
+
+    public SchoolClassDTO update(Long id, SchoolClassDTO dto) {
+        SchoolClass c = repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Class " + id + " not found"));
+        c.setName(dto.getName());
+        c.setGrade(gradeRepo.findById(dto.getGradeId())
+                .orElseThrow(() -> new NotFoundException("Grade " + dto.getGradeId() + " not found")));
+                c.setCapacity(dto.getCapacity());
+                c.setSupervisor(dto.getSupervisorId() == null ? null :
+                        teacherRepo.findById(dto.getSupervisorId())
+                                   .orElseThrow(() -> new NotFoundException("Teacher "+dto.getSupervisorId()+" not found")));
+        return toDto(repo.save(c));
+    }
+
+    public void delete(Long id) {
+        if (!repo.existsById(id)) throw new NotFoundException("Class " + id + " not found");
+        repo.deleteById(id);
+    }
+
+    /* ---------- helpers ---------- */
+    public  SchoolClassDTO toDto(SchoolClass c) {
+        return SchoolClassDTO.builder()
+                .id(c.getId())
+                .name(c.getName())
+                .gradeId(c.getGrade().getId())
+                .capacity(c.getCapacity())
+                .supervisorId(c.getSupervisor() == null ? null : c.getSupervisor().getId())                
+                .build();
+    }
+
+    public SchoolClass toEntity(SchoolClassDTO d) {
+        return SchoolClass.builder()
+                .name(d.getName())
+                .grade(gradeRepo.findById(d.getGradeId())
+                        .orElseThrow(() -> new NotFoundException("Grade " + d.getGradeId() + " not found")))
+                .capacity(
+                        d.getCapacity() != null ? d.getCapacity() : 30
+                    )
+                    .supervisor(
+                        d.getSupervisorId() == null ? null
+                                                    : teacherRepo.findById(d.getSupervisorId())
+                                                                .orElseThrow(() -> new NotFoundException("Teacher "+d.getSupervisorId()+" not found"))
+                    )
+                .build();
+    }
+}
+EOF: src/main/java/com/school/schoolclass/service/SchoolClassService.java
+
+BOF: src/main/java/com/school/common/enums/StudentStatus.java
+package com.school.common.enums;
+
+public enum StudentStatus {
+    ACTIVE,
+    GRADUATED,
+    INACTIVE
+}
+EOF: src/main/java/com/school/common/enums/StudentStatus.java
+
+BOF: src/main/java/com/school/common/enums/Gender.java
+package com.school.common.enums;
+
+public enum Gender {
+    MALE,
+    FEMALE
+}
+EOF: src/main/java/com/school/common/enums/Gender.java
+
+BOF: src/main/java/com/school/common/enums/Role.java
+package com.school.common.enums;
+public enum Role {
+    ADMIN, TEACHER, STUDENT, PARENT;
+
+    /** Spring Security requires the “ROLE_” prefix for `hasRole()` checks. */
+    public String asAuthority() {           // e.g. ROLE_ADMIN
+        return "ROLE_" + name();
+    }
+}
+EOF: src/main/java/com/school/common/enums/Role.java
+
+BOF: src/main/java/com/school/common/audit/Auditable.java
+package com.school.common.audit;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.MappedSuperclass;
+import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+/** Re-usable base that auto-fills createdAt / updatedAt. */
+@Getter @Setter
+@MappedSuperclass
+@EntityListeners(AuditingEntityListener.class)
+public abstract class Auditable {
+
+    @CreatedDate
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
+}
+EOF: src/main/java/com/school/common/audit/Auditable.java
+
+BOF: src/main/java/com/school/common/exception/RestExceptionHandler.java
+package com.school.common.exception;
+
+import org.springframework.http.*;
+import org.springframework.web.bind.annotation.*;
+
+@ControllerAdvice
+public class RestExceptionHandler {
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<String> handleNotFound(NotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+    
+    @ExceptionHandler(CapacityExceededException.class)
+    public ResponseEntity<String> handleCapacity(CapacityExceededException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)   // 409
+                             .body(ex.getMessage());
+    }
+    
+}
+EOF: src/main/java/com/school/common/exception/RestExceptionHandler.java
+
+BOF: src/main/java/com/school/common/exception/CapacityExceededException.java
+package com.school.common.exception;
+
+public class CapacityExceededException extends RuntimeException {
+    public CapacityExceededException(long classId, int capacity) {
+        super("Class " + classId + " is already full (capacity=" + capacity + ")");
+    }
+}
+EOF: src/main/java/com/school/common/exception/CapacityExceededException.java
+
+BOF: src/main/java/com/school/common/exception/NotFoundException.java
+package com.school.common.exception;
+
+public class NotFoundException extends RuntimeException {
+    public NotFoundException(String msg) { super(msg); }
+}
+EOF: src/main/java/com/school/common/exception/NotFoundException.java
+
+BOF: src/main/java/com/school/grade/dto/GradeDTO.java
+package com.school.grade.dto;
+
+import lombok.*;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class GradeDTO {
+    private Long id;
+    // private String name;
+    private Integer level;
+}
+EOF: src/main/java/com/school/grade/dto/GradeDTO.java
+
+BOF: src/main/java/com/school/grade/repository/GradeRepository.java
+package com.school.grade.repository;
+
+import com.school.grade.model.Grade;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface GradeRepository extends JpaRepository<Grade, Long> {   boolean existsByLevel(Integer level); }
+EOF: src/main/java/com/school/grade/repository/GradeRepository.java
+
+BOF: src/main/java/com/school/grade/controller/GradeController.java
+package com.school.grade.controller;
+
+import com.school.grade.dto.GradeDTO;
+import com.school.grade.service.GradeService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/grades")
+@RequiredArgsConstructor
+public class GradeController {
+
+    private final GradeService svc;
+
+    @GetMapping
+    public List<GradeDTO> getAll() { return svc.findAll(); }
+
+    @GetMapping("/{id}")
+    public GradeDTO getOne(@PathVariable Long id) { return svc.findById(id); }
+
+    @PostMapping
+    public ResponseEntity<GradeDTO> create(@RequestBody GradeDTO dto) {
+        GradeDTO saved = svc.create(dto);
+        return ResponseEntity.created(URI.create("/api/grades/" + saved.getId())).body(saved);
+    }
+
+    @PutMapping("/{id}")
+    public GradeDTO update(@PathVariable Long id, @RequestBody GradeDTO dto) {
+        return svc.update(id, dto);
+    }
+
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) { svc.delete(id); }
+
+    /* ── placeholder routes required by spec ───────── */
+    @GetMapping("/{id}/students")
+    public List<?> studentsInGrade(@PathVariable Long id) { return List.of(); }
+
+    @GetMapping("/{id}/classes")
+    public List<?> classesInGrade(@PathVariable Long id) { return List.of(); }
+}
+EOF: src/main/java/com/school/grade/controller/GradeController.java
+
+BOF: src/main/java/com/school/grade/model/Grade.java
+package com.school.grade.model;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class Grade {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    /** e.g. "Grade 1", "Year 7", "Terminale" … */
+    @Column(nullable = false, unique = true)
+    // private String name;
+    private Integer level;
+}
+EOF: src/main/java/com/school/grade/model/Grade.java
+
+BOF: src/main/java/com/school/grade/service/GradeService.java
+package com.school.grade.service;
+
+import com.school.grade.dto.GradeDTO;
+import com.school.grade.model.Grade;
+import com.school.grade.repository.GradeRepository;
+import com.school.common.exception.NotFoundException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+import org.springframework.transaction.annotation.Transactional;
+
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class GradeService {
+
+    private final GradeRepository repo;
+    @Transactional(readOnly = true)
+    public List<GradeDTO> findAll() {
+        return repo.findAll().stream().map(this::toDto).toList();
+    }
+
+    public GradeDTO findById(Long id) {
+        return toDto(repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Grade " + id + " not found")));
+    }
+
+    public GradeDTO create(GradeDTO dto) {
+        return toDto(repo.save(toEntity(dto)));
+    }
+
+    public GradeDTO update(Long id, GradeDTO dto) {
+        Grade g = repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Grade " + id + " not found"));
+        g.setLevel(dto.getLevel());
+        return toDto(repo.save(g));
+    }
+
+    public void delete(Long id) {
+        if (!repo.existsById(id)) throw new NotFoundException("Grade " + id + " not found");
+        repo.deleteById(id);
+    }
+
+    /* ---------- mapping helpers ---------- */
+    private GradeDTO toDto(Grade g) {
+        return GradeDTO.builder()
+                .id(g.getId())
+                // .name(g.getName())
+                .level(g.getLevel())
+                .build();
+    }
+
+    private Grade toEntity(GradeDTO d) {
+        return Grade.builder()
+                // .name(d.getName())
+                .level(d.getLevel())
+                .build();
+    }
+}
+EOF: src/main/java/com/school/grade/service/GradeService.java
+
+BOF: src/main/java/com/school/assignment/dto/AssignmentDTO.java
+package com.school.assignment.dto;
+
+import lombok.*;
+
+import java.time.LocalDate;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class AssignmentDTO {
+    private Long id;
+    private String title;
+    private LocalDate dueDate;
+    private Long lessonId;
+}
+EOF: src/main/java/com/school/assignment/dto/AssignmentDTO.java
+
+BOF: src/main/java/com/school/assignment/repository/AssignmentRepository.java
+package com.school.assignment.repository;
+
+import com.school.assignment.model.Assignment;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface AssignmentRepository extends JpaRepository<Assignment, Long> { }
+EOF: src/main/java/com/school/assignment/repository/AssignmentRepository.java
+
+BOF: src/main/java/com/school/assignment/controller/AssignmentController.java
+package com.school.assignment.controller;
+
+import com.school.assignment.dto.AssignmentDTO;
+import com.school.assignment.service.AssignmentService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/assignments")
+@RequiredArgsConstructor
+public class AssignmentController {
+
+    private final AssignmentService svc;
+
+    @GetMapping
+    public List<AssignmentDTO> getAll() { return svc.findAll(); }
+
+    @GetMapping("/{id}")
+    public AssignmentDTO getOne(@PathVariable Long id) { return svc.findById(id); }
+
+    @PostMapping
+    public ResponseEntity<AssignmentDTO> create(@RequestBody AssignmentDTO dto) {
+        AssignmentDTO saved = svc.create(dto);
+        return ResponseEntity.created(URI.create("/api/assignments/" + saved.getId())).body(saved);
+    }
+
+    @PutMapping("/{id}")
+    public AssignmentDTO update(@PathVariable Long id, @RequestBody AssignmentDTO dto) {
+        return svc.update(id, dto);
+    }
+
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) { svc.delete(id); }
+
+    /* ── placeholder sub-route ───────────── */
+    @GetMapping("/{id}/results")
+    public List<?> results(@PathVariable Long id) { return List.of(); }
+}
+EOF: src/main/java/com/school/assignment/controller/AssignmentController.java
+
+BOF: src/main/java/com/school/assignment/model/Assignment.java
+package com.school.assignment.model;
+
+import com.school.lesson.model.Lesson;
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.time.LocalDate;
+
+@Entity
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class Assignment {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private String title;          // e.g. "Homework #4"
+
+    private LocalDate dueDate;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    private Lesson lesson;
+}
+EOF: src/main/java/com/school/assignment/model/Assignment.java
+
+BOF: src/main/java/com/school/assignment/service/AssignmentService.java
+package com.school.assignment.service;
+
+import com.school.common.exception.NotFoundException;
+import com.school.assignment.dto.AssignmentDTO;
+import com.school.assignment.model.Assignment;
+import com.school.assignment.repository.AssignmentRepository;
+import com.school.lesson.repository.LessonRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+
+
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class AssignmentService {
+
+    private final AssignmentRepository repo;
+    private final LessonRepository lessonRepo;
+    @Transactional(readOnly = true)
+    public List<AssignmentDTO> findAll() {
+        return repo.findAll().stream().map(this::toDto).toList();
+    }
+
+    public AssignmentDTO findById(Long id) {
+        return toDto(repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Assignment " + id + " not found")));
+    }
+
+    public AssignmentDTO create(AssignmentDTO dto) { return toDto(repo.save(toEntity(dto))); }
+
+    public AssignmentDTO update(Long id, AssignmentDTO dto) {
+        Assignment a = repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Assignment " + id + " not found"));
+        a.setTitle(dto.getTitle());
+        a.setDueDate(dto.getDueDate());
+        a.setLesson(lessonRepo.findById(dto.getLessonId())
+                .orElseThrow(() -> new NotFoundException("Lesson " + dto.getLessonId() + " not found")));
+        return toDto(repo.save(a));
+    }
+
+    public void delete(Long id) {
+        if (!repo.existsById(id)) throw new NotFoundException("Assignment " + id + " not found");
+        repo.deleteById(id);
+    }
+
+    /* ---------- mapping helpers ---------- */
+    private AssignmentDTO toDto(Assignment a) {
+        return AssignmentDTO.builder()
+                .id(a.getId())
+                .title(a.getTitle())
+                .dueDate(a.getDueDate())
+                .lessonId(a.getLesson().getId())
+                .build();
+    }
+
+    private Assignment toEntity(AssignmentDTO d) {
+        return Assignment.builder()
+                .title(d.getTitle())
+                .dueDate(d.getDueDate())
+                .lesson(lessonRepo.findById(d.getLessonId())
+                        .orElseThrow(() -> new NotFoundException("Lesson " + d.getLessonId() + " not found")))
+                .build();
+    }
+}
+EOF: src/main/java/com/school/assignment/service/AssignmentService.java
+
+BOF: src/main/java/com/school/admin/dto/AdminDTO.java
+package com.school.admin.dto;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class AdminDTO {
+
+    @Schema(description = "Auto-generated unique ID", example = "1", accessMode = Schema.AccessMode.READ_ONLY)
+    private Long id;
+
+    @Schema(description = "Full name of the admin", example = "Jane Doe", required = true)
+    private String fullName;
+
+    @Schema(description = "Email address (must be unique)", example = "jane@school.com", required = true)
+    private String email;
+
+    @Schema(description = "Password (min 8 characters)", example = "securePassword123", required = true)
+    private String password;
+}
+EOF: src/main/java/com/school/admin/dto/AdminDTO.java
+
+BOF: src/main/java/com/school/admin/repository/AdminRepository.java
+package com.school.admin.repository;
+
+import com.school.admin.model.Admin;
+
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface AdminRepository extends JpaRepository<Admin, Long> {
+    Optional<Admin> findByEmail(String email);
+ }
+EOF: src/main/java/com/school/admin/repository/AdminRepository.java
+
+BOF: src/main/java/com/school/admin/controller/AdminController.java
+package com.school.admin.controller;
+
+import java.net.URI;
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.school.admin.dto.AdminDTO;
+import com.school.admin.service.AdminService;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+
+@RestController
+@RequestMapping("/api/admins")
+@RequiredArgsConstructor
+@Tag(name = "Administration", description = "APIs for managing administrators")
+public class AdminController {
+
+    private final AdminService svc;
+
+    @Operation(summary = "Get all administrators", description = "Retrieves a list of all administrators")
+    @ApiResponse(responseCode = "200", description = "List of administrators retrieved successfully")
+    @GetMapping
+    public List<AdminDTO> getAll() { 
+        return svc.findAll(); 
+    }
+
+    @Operation(summary = "Get administrator by ID", description = "Retrieves an administrator by their ID")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Administrator found",
+                content = @Content(schema = @Schema(implementation = AdminDTO.class))),
+        @ApiResponse(responseCode = "404", description = "Administrator not found")
+    })
+    @GetMapping("/{id}")
+    public AdminDTO getOne(
+            @Parameter(description = "ID of the administrator to retrieve") 
+            @PathVariable Long id) { 
+        return svc.findById(id); 
+    }
+
+    @Operation(summary = "Create a new administrator", description = "Creates a new administrator record")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Administrator created successfully")
+    })
+    @PostMapping
+    public ResponseEntity<AdminDTO> create(
+            @Parameter(description = "Administrator data to create", 
+                      required = true, 
+                      schema = @Schema(implementation = AdminDTO.class))
+            @RequestBody AdminDTO dto) {
+        AdminDTO saved = svc.create(dto);
+        return ResponseEntity.created(URI.create("/api/admins/" + saved.getId())).body(saved);
+    }
+
+    @Operation(summary = "Update an administrator", description = "Updates an existing administrator record")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Administrator updated successfully"),
+        @ApiResponse(responseCode = "404", description = "Administrator not found")
+    })
+    @PutMapping("/{id}")
+    public AdminDTO update(
+            @Parameter(description = "ID of the administrator to update") 
+            @PathVariable Long id, 
+            @Parameter(description = "Updated administrator data", required = true) 
+            @RequestBody AdminDTO dto) {
+        return svc.update(id, dto);
+    }
+
+    @Operation(summary = "Delete an administrator", description = "Deletes an administrator record")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "204", description = "Administrator deleted successfully"),
+        @ApiResponse(responseCode = "404", description = "Administrator not found")
+    })
+    @DeleteMapping("/{id}")
+    public void delete(
+            @Parameter(description = "ID of the administrator to delete") 
+            @PathVariable Long id) { 
+        svc.delete(id); 
+    }
+}
+EOF: src/main/java/com/school/admin/controller/AdminController.java
+
+BOF: src/main/java/com/school/admin/model/Admin.java
+package com.school.admin.model;
+
+import com.school.common.audit.Auditable;
+import com.school.common.enums.Role;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Entity
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class Admin extends Auditable {
+
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Schema(description = "Auto-generated unique ID", example = "1")
+    private Long id;
+
+    @Column(nullable = false)
+    @Schema(description = "Full name of the admin", example = "Jane Doe")
+    private String fullName;
+
+    @Column(nullable = false, unique = true)
+    @Schema(description = "Email address (unique)", example = "jane@school.com")
+    private String email;
+
+    @Column(nullable = false)
+    @Schema(description = "Hashed password (never exposed in responses)")
+    private String password;
+
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Schema(description = "Role of the user (default: ADMIN)", example = "ADMIN")
+    private Role role = Role.ADMIN;
+}
+EOF: src/main/java/com/school/admin/model/Admin.java
+
+BOF: src/main/java/com/school/admin/service/AdminService.java
+package com.school.admin.service;
+
+import com.school.admin.dto.AdminDTO;
+import com.school.admin.model.Admin;
+import com.school.admin.repository.AdminRepository;
+import com.school.common.enums.Role;
+import com.school.common.exception.NotFoundException;
+import lombok.RequiredArgsConstructor;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+
+
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class AdminService {
+
+    private final AdminRepository repo;
+    private final PasswordEncoder encoder;
+
+    @Transactional(readOnly = true)
+    public List<AdminDTO> findAll() {
+        return repo.findAll().stream().map(this::toDto).toList();
+    }
+
+    public AdminDTO findById(Long id) {
+        return toDto(repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Admin " + id + " not found")));
+    }
+
+    public AdminDTO create(AdminDTO dto) {
+        Admin saved = repo.save(
+            Admin.builder()
+                .fullName(dto.getFullName())
+                .email(dto.getEmail())
+                .password(encoder.encode(requirePwd(dto.getPassword()))) // encoder @RequiredArgsConstructor
+                .role(Role.ADMIN)
+                .build());
+        return toDto(saved);
+    }
+
+
+    public AdminDTO update(Long id, AdminDTO dto) {
+        Admin admin = repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Admin " + id + " not found"));
+
+        admin.setFullName(dto.getFullName());
+        admin.setEmail(dto.getEmail());
+        return toDto(repo.save(admin));
+    }
+
+    public void delete(Long id) {
+        if (!repo.existsById(id)) throw new NotFoundException("Admin " + id + " not found");
+        repo.deleteById(id);
+    }
+
+    /* ---------- mapping helpers ---------- */
+    private AdminDTO toDto(Admin a) {
+        return AdminDTO.builder()
+                .id(a.getId())
+                .fullName(a.getFullName())
+                .email(a.getEmail())
+                .build();
+    }
+
+    private Admin toEntity(AdminDTO d) {
+        return Admin.builder()
+                .fullName(d.getFullName())
+                .email(d.getEmail())
+                .password("changeme") // placeholder until security hashed
+                .build();
+    }
+    private String requirePwd(String raw) {
+        if (raw == null || raw.isBlank())
+            throw new IllegalArgumentException("password is required");
+        return raw;
+    }
+}
+EOF: src/main/java/com/school/admin/service/AdminService.java
+
+BOF: src/main/java/com/school/student/dto/StudentDTO.java
+package com.school.student.dto;
+
+import java.time.LocalDate;
+import java.util.Set;
+
+import com.school.common.enums.Gender;
+import com.school.common.enums.Role;
+import com.school.common.enums.StudentStatus;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+    public class StudentDTO {
+        private Long id;
+        private String fullName;
+        private String email;
+        private LocalDate dateOfBirth;
+        private Gender gender;
+        private String phone;
+        private String address;
+        private LocalDate enrollmentDate;
+        private StudentStatus status;
+        private Long classId;
+        private Long gradeId;
+        private Set<Long> parentIds;
+        private String img;
+        private String bloodType;
+        private String password;
+        private String username;
+        private String surname;
+        private Role   role;
+}
+EOF: src/main/java/com/school/student/dto/StudentDTO.java
+
+BOF: src/main/java/com/school/student/repository/StudentRepository.java
+package com.school.student.repository;
+
+import com.school.student.model.Student;
+
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface StudentRepository extends JpaRepository<Student, Long> { 
+
+    Optional<Student> findByEmail(String email);
+    long countBySchoolClass_Id(Long classId);
+
+}
+
+EOF: src/main/java/com/school/student/repository/StudentRepository.java
+
+BOF: src/main/java/com/school/student/controller/StudentController.java
+package com.school.student.controller;
+
+import java.net.URI;
+import java.util.List;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.school.student.dto.StudentDTO;
+import com.school.student.service.StudentService;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+
+@RestController
+@RequestMapping("/api/students")
+@RequiredArgsConstructor
+@Tag(name = "Student Management", description = "APIs for managing students")
+public class StudentController {
+
+    private final StudentService svc;
+
+    @Operation(summary = "Get all students", description = "Retrieves a list of all students")
+    @ApiResponse(responseCode = "200", description = "List of students retrieved successfully")
+    @GetMapping
+    public List<StudentDTO> getAll() { 
+        return svc.findAll(); 
+    }
+
+    @Operation(summary = "Get student by ID", description = "Retrieves a student by their ID")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Student found",
+                content = @Content(schema = @Schema(implementation = StudentDTO.class))),
+        @ApiResponse(responseCode = "404", description = "Student not found")
+    })
+    @GetMapping("/{id}")
+    public StudentDTO getOne(
+            @Parameter(description = "ID of the student to retrieve") 
+            @PathVariable Long id) { 
+        return svc.findById(id); 
+    }
+
+    @Operation(summary = "Create a new student", description = "Creates a new student record")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Student created successfully"),
+        @ApiResponse(responseCode = "409", description = "Class capacity exceeded"),
+        @ApiResponse(responseCode = "404", description = "Related entity not found")
+    })
+    @PostMapping
+    public ResponseEntity<StudentDTO> create(
+            @Parameter(description = "Student data to create", 
+                      required = true, 
+                      schema = @Schema(implementation = StudentDTO.class))
+            @RequestBody StudentDTO dto) {
+        StudentDTO saved = svc.create(dto);
+        return ResponseEntity.created(URI.create("/api/students/" + saved.getId())).body(saved);
+    }
+
+    @Operation(summary = "Update a student", description = "Updates an existing student record")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Student updated successfully"),
+        @ApiResponse(responseCode = "404", description = "Student not found")
+    })
+    @PutMapping("/{id}")
+    public StudentDTO update(
+            @Parameter(description = "ID of the student to update") 
+            @PathVariable Long id, 
+            @Parameter(description = "Updated student data", required = true) 
+            @RequestBody StudentDTO dto) {
+        return svc.update(id, dto);
+    }
+
+    @Operation(summary = "Delete a student", description = "Deletes a student record")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "204", description = "Student deleted successfully"),
+        @ApiResponse(responseCode = "404", description = "Student not found")
+    })
+    @DeleteMapping("/{id}")
+    public void delete(
+            @Parameter(description = "ID of the student to delete") 
+            @PathVariable Long id) { 
+        svc.delete(id); 
+    }
+}
+EOF: src/main/java/com/school/student/controller/StudentController.java
+
+BOF: src/main/java/com/school/student/model/Student.java
+package com.school.student.model;
+import com.school.common.audit.Auditable;
+import com.school.common.enums.Gender;
+import com.school.common.enums.Role;
+import com.school.common.enums.StudentStatus;
+import com.school.grade.model.Grade;
+
+import java.time.LocalDate;
+import com.school.schoolclass.model.SchoolClass;
+import jakarta.persistence.*;
+import lombok.*;
+import com.school.parent.model.Parent;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+@Entity
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class Student extends Auditable {
+
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String fullName;      // “name” in Prisma
+    private String surname;       // NEW
+    
+    @Column(unique = true)
+    private String username;    
+    private String email;
+// Student.java
+    @Column(nullable = false)
+    private String password;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Role role;
+    /* convenience helper when creating with builder */
+    public static Student withRawPassword(Student s, String rawPw, PasswordEncoder enc){
+        s.setPassword(enc.encode(rawPw));
+        s.setRole(Role.STUDENT);
+        return s;
+    }
+     
+         /* ─────────── NEW FIELDS ─────────── */
+     
+         /** Date of birth (required for age checks) */
+         @Column(nullable = false)
+         private LocalDate dateOfBirth;
+     
+         /** MALE / FEMALE / OTHER */
+         @Enumerated(EnumType.STRING)
+         @Column(nullable = false, length = 10)
+         private Gender gender;
+     
+         /** Contact phone in E.164 format – optional */
+         private String phone;
+     
+         /** Full postal address – optional, 255 chars max */
+         @Column(length = 255)
+         private String address;
+     
+         /** When the student first enrolled */
+         private LocalDate enrollmentDate;
+     
+         /** ACTIVE / GRADUATED / INACTIVE */
+         @Enumerated(EnumType.STRING)
+         @Column(nullable = false, length = 15)
+         private StudentStatus status;
+     
+         /** Soft-delete flag */
+         @Builder.Default
+         @Column(nullable = false)
+         private boolean deleted = false;    
+
+        @Column(length = 255)
+        private String img;  
+
+        @Column(length = 5)
+        private String bloodType; 
+
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "class_id") 
+    private SchoolClass schoolClass;
+
+    @Builder.Default
+    @ManyToMany(mappedBy = "children")
+    private Set<Parent> parents = new HashSet<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Grade grade;
+}
+
+EOF: src/main/java/com/school/student/model/Student.java
+
+BOF: src/main/java/com/school/student/service/StudentService.java
+package com.school.student.service;
+import com.school.common.enums.Role;
+import com.school.common.enums.StudentStatus;
+import com.school.student.dto.StudentDTO;
+import com.school.student.model.Student;
+import com.school.student.repository.StudentRepository;
+import com.school.common.exception.NotFoundException;
+import com.school.parent.repository.ParentRepository;
+import com.school.schoolclass.model.SchoolClass;
+import com.school.schoolclass.repository.SchoolClassRepository;
+import com.school.grade.repository.GradeRepository;
+import org.springframework.transaction.annotation.Transactional;
+import lombok.RequiredArgsConstructor;
+
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.Set;
+
+import com.school.common.exception.CapacityExceededException;
+import com.school.parent.model.Parent;
+
+
+
+
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class StudentService {
+
+    private final StudentRepository repo;
+     private final SchoolClassRepository classRepo; 
+     private final ParentRepository parentRepo;
+    private final GradeRepository      gradeRepo;
+    private final PasswordEncoder encoder;
+
+    @Transactional(readOnly = true)
+    public List<StudentDTO> findAll() {
+        return repo.findAll().stream().map(this::toDto).toList();
+    }
+
+    public StudentDTO findById(Long id) {
+        return toDto(repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Student " + id + " not found")));
+    }
+
+    public StudentDTO create(StudentDTO dto) {
+        SchoolClass sc = classRepo.findById(dto.getClassId())
+                              .orElseThrow(() -> new NotFoundException("Class "+dto.getClassId()+" not found"));
+        if (sc.getStudents().size() >= sc.getCapacity()) {
+            throw new CapacityExceededException(sc.getId(), sc.getCapacity());
+        }
+
+
+        long headCount = repo.countBySchoolClass_Id(sc.getId());
+        if (headCount >= sc.getCapacity()) {
+            throw new CapacityExceededException(sc.getId(), sc.getCapacity());
+        }
+        if (dto.getPassword() == null || dto.getPassword().isBlank())
+            throw new IllegalArgumentException("password is required");    
+        dto.setRole(Role.STUDENT);
+
+        if (dto.getDateOfBirth() == null)
+            throw new IllegalArgumentException("dateOfBirth is required");
+        if (dto.getGender() == null)
+            throw new IllegalArgumentException("gender is required");
+
+        Student entity = toEntity(dto);
+        Student secured = Student.withRawPassword(entity, dto.getPassword(), encoder);
+        return toDto(repo.save(secured));
+    }
+
+    public StudentDTO update(Long id, StudentDTO dto) {
+        Student st = repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Student " + id + " not found"));
+        st.setFullName(dto.getFullName());
+        st.setSurname(dto.getSurname());
+        st.setUsername(dto.getUsername());
+        st.setEmail(dto.getEmail());
+        st.setDateOfBirth(dto.getDateOfBirth());
+        st.setGender(dto.getGender());
+        st.setPhone(dto.getPhone());
+        st.setAddress(dto.getAddress());
+        st.setEnrollmentDate(dto.getEnrollmentDate());
+        st.setStatus(dto.getStatus());
+        st.setStatus(dto.getStatus());
+        st.setImg(dto.getImg());
+        st.setBloodType(dto.getBloodType());
+        return toDto(repo.save(st));
+    }
+
+    public void delete(Long id) {
+        if (!repo.existsById(id)) throw new NotFoundException("Student " + id + " not found");
+        repo.deleteById(id);
+    }
+
+    /* ---------- mapping helpers ---------- */
+    public StudentDTO toDto(Student s) {
+        return StudentDTO.builder()
+                .id(s.getId())
+                .fullName(s.getFullName())
+                .surname(s.getSurname())
+                .username(s.getUsername())
+                .email(s.getEmail())
+                .classId(s.getSchoolClass().getId())        // NEW
+                .dateOfBirth(s.getDateOfBirth())
+                .gender(s.getGender())
+                .phone(s.getPhone())
+                .address(s.getAddress())
+                .enrollmentDate(s.getEnrollmentDate())
+                .gradeId(s.getGrade() == null ? null : s.getGrade().getId())
+                .status(s.getStatus())
+                .img(s.getImg())
+                .bloodType(s.getBloodType())
+                .parentIds(
+                    s.getParents().stream()
+                    .map(Parent::getId)
+                    .collect(Collectors.toSet())
+                )
+
+                .build();
+    }
+
+    private Student toEntity(StudentDTO d) {
+        return Student.builder()
+                .fullName(d.getFullName())
+                .surname(d.getSurname())
+                .username(d.getUsername())
+                .email(d.getEmail())
+                .dateOfBirth(d.getDateOfBirth())
+                .gender(d.getGender())
+                .phone(d.getPhone())
+                .address(d.getAddress())
+                .enrollmentDate(d.getEnrollmentDate())
+                .grade(
+                    d.getGradeId() == null ? null
+                                        : gradeRepo.findById(d.getGradeId())
+                                                .orElseThrow(() ->
+                                                    new NotFoundException("Grade "+d.getGradeId()+" not found"))
+                )
+                .status(
+                    d.getStatus() != null ? d.getStatus()
+                                        : StudentStatus.ACTIVE)
+                .parents(resolveParents(d.getParentIds()))
+                .schoolClass(
+                        classRepo.findById(d.getClassId())
+                          .orElseThrow(() -> new NotFoundException("Class "+d.getClassId()+" not found"))
+                )
+                .img(d.getImg())
+                .bloodType(d.getBloodType())
+                .build();
+
+    }
+//Helpers 
+
+private Set<Parent> resolveParents(Set<Long> ids) {
+    if (ids == null || ids.isEmpty()) return new HashSet<>();
+    return ids.stream()
+              .map(id -> parentRepo.findById(id)
+                     .orElseThrow(() -> new NotFoundException("Parent "+id+" not found")))
+              .collect(Collectors.toSet());
+}
+}
+EOF: src/main/java/com/school/student/service/StudentService.java
+
+BOF: src/main/java/com/school/subject/dto/SubjectDTO.java
+package com.school.subject.dto;
+
+import lombok.*;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class SubjectDTO {
+    private Long id;
+    private String name;
+}
+EOF: src/main/java/com/school/subject/dto/SubjectDTO.java
+
+BOF: src/main/java/com/school/subject/repository/SubjectRepository.java
+package com.school.subject.repository;
+
+import com.school.subject.model.Subject;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface SubjectRepository extends JpaRepository<Subject, Long> {
+    boolean existsByNameIgnoreCase(String name);
+}
+
+EOF: src/main/java/com/school/subject/repository/SubjectRepository.java
+
+BOF: src/main/java/com/school/subject/controller/SubjectController.java
+package com.school.subject.controller;
+
+import com.school.subject.dto.SubjectDTO;
+import com.school.subject.service.SubjectService;
+import com.school.teacher.dto.TeacherDTO;
+import com.school.teacher.service.TeacherService;
+import com.school.lesson.dto.LessonDTO;
+import com.school.lesson.service.LessonService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/subjects")
+@RequiredArgsConstructor
+public class SubjectController {
+
+    private final SubjectService svc;
+    private final TeacherService teacherSvc;   // ← ADD
+    private final LessonService  lessonSvc;    // ← ADD
+
+    /* ---------- CRUD ---------- */
+
+    @GetMapping
+    public List<SubjectDTO> getAll() {
+        return svc.findAll();
+    }
+
+    @GetMapping("/{id}")
+    public SubjectDTO getOne(@PathVariable Long id) {
+        return svc.findById(id);
+    }
+
+    @PostMapping
+    public ResponseEntity<SubjectDTO> create(@RequestBody SubjectDTO dto) {
+        SubjectDTO saved = svc.create(dto);
+        return ResponseEntity
+                .created(URI.create("/api/subjects/" + saved.getId()))
+                .body(saved);
+    }
+
+    @PutMapping("/{id}")
+    public SubjectDTO update(@PathVariable Long id,
+                             @RequestBody SubjectDTO dto) {
+        return svc.update(id, dto);
+    }
+
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) {
+        svc.delete(id);
+    }
+
+    /* ---------- sub-routes ---------- */
+
+    /**
+     * GET /api/subjects/{id}/teachers  
+     * returns all teachers who teach the subject
+     */
+    @GetMapping("/{id}/teachers")
+    public List<TeacherDTO> teachers(@PathVariable Long id) {
+        return teacherSvc.findBySubject(id);       // implemented in TeacherService
+    }
+
+    /**
+     * GET /api/subjects/{id}/lessons  
+     * returns all lessons mapped to the subject
+     */
+    @GetMapping("/{id}/lessons")
+    public List<LessonDTO> lessons(@PathVariable Long id) {
+        return lessonSvc.findBySubject(id);        // implemented in LessonService
+    }
+}
+EOF: src/main/java/com/school/subject/controller/SubjectController.java
+
+BOF: src/main/java/com/school/subject/model/Subject.java
+package com.school.subject.model;
+
+import com.school.teacher.model.Teacher;
+import jakarta.persistence.*;
+import lombok.*;
+
+import java.util.HashSet;
+import java.util.Set;
+
+@Entity
+@Table(name = "subject")
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class Subject {
+
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, unique = true, length = 100)
+    private String name;
+
+    @Builder.Default                       // prevent NPEs when using builders
+    @ManyToMany(mappedBy = "subjects")
+    private Set<Teacher> teachers = new HashSet<>();
+}
+EOF: src/main/java/com/school/subject/model/Subject.java
+
+BOF: src/main/java/com/school/subject/service/SubjectService.java
+package com.school.subject.service;
+
+import com.school.common.exception.NotFoundException;
+import com.school.subject.dto.SubjectDTO;
+import com.school.subject.model.Subject;
+import com.school.subject.repository.SubjectRepository;
+import com.school.teacher.model.Teacher;
+import com.school.teacher.repository.TeacherRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+
+
+
+@Service
+@RequiredArgsConstructor
+@Transactional          // ← every public method is now wrapped in a tx
+public class SubjectService {
+
+    private final SubjectRepository repo;
+    private final TeacherRepository teacherRepo;        // ← ADD THIS
+
+    /* ---------- CRUD ---------- */
+
+    @Transactional(readOnly = true)
+    public List<SubjectDTO> findAll() {
+        return repo.findAll().stream().map(this::toDto).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public SubjectDTO findById(Long id) {
+        return toDto(repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Subject " + id + " not found")));
+    }
+
+    public SubjectDTO create(SubjectDTO dto) {
+        // optional uniqueness guard
+        if (repo.existsByNameIgnoreCase(dto.getName())) {
+            throw new IllegalArgumentException("Subject name already exists");
+        }
+        return toDto(repo.save(toEntity(dto)));
+    }
+
+    public SubjectDTO update(Long id, SubjectDTO dto) {
+        Subject s = repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Subject " + id + " not found"));
+        s.setName(dto.getName());
+        return toDto(s);          // s is managed, save() not required
+    }
+
+    public void delete(Long id) {
+        if (!repo.existsById(id)) throw new NotFoundException("Subject " + id + " not found");
+        repo.deleteById(id);
+    }
+
+    /* ---------- RELATION HELPERS ---------- */
+
+    /** Attach an existing subject to an existing teacher */
+    public void assignToTeacher(Long subjectId, Long teacherId) {
+        Subject  subject  = repo.findById(subjectId)
+                                 .orElseThrow(() -> new NotFoundException("Subject " + subjectId));
+        Teacher  teacher  = teacherRepo.findById(teacherId)
+                                 .orElseThrow(() -> new NotFoundException("Teacher " + teacherId));
+
+        subject.getTeachers().add(teacher);   // keep both sides in sync
+        teacher.getSubjects().add(subject);
+        // thanks to @Transactional the change flushes automatically
+    }
+
+    /** Remove the link between a subject and a teacher */
+    public void unassignFromTeacher(Long subjectId, Long teacherId) {
+        Subject subject = repo.findById(subjectId)
+                              .orElseThrow(() -> new NotFoundException("Subject " + subjectId));
+        Teacher teacher = teacherRepo.findById(teacherId)
+                              .orElseThrow(() -> new NotFoundException("Teacher " + teacherId));
+
+        subject.getTeachers().remove(teacher);
+        teacher.getSubjects().remove(subject);
+    }
+
+    /* ---------- mapping helpers ---------- */
+
+    private SubjectDTO toDto(Subject s) {
+        return SubjectDTO.builder()
+                .id(s.getId())
+                .name(s.getName())
+                .build();
+    }
+
+    private Subject toEntity(SubjectDTO d) {
+        return Subject.builder()
+                .name(d.getName())
+                .build();
+    }
+}
+EOF: src/main/java/com/school/subject/service/SubjectService.java
+
+BOF: src/main/java/com/school/security/roles/IsAdminOrTeacher.java
+package com.school.security.roles;
+
+import org.springframework.security.access.prepost.PreAuthorize;
+import java.lang.annotation.*;
+
+@Target({ElementType.METHOD})
+@Retention(RetentionPolicy.RUNTIME)
+@PreAuthorize("hasAnyRole('ADMIN','TEACHER')")
+public @interface IsAdminOrTeacher {}
+EOF: src/main/java/com/school/security/roles/IsAdminOrTeacher.java
+
+BOF: src/main/java/com/school/security/roles/IsTeacher.java
+package com.school.security.roles;
+
+import org.springframework.security.access.prepost.PreAuthorize;
+import java.lang.annotation.*;
+
+@Target({ElementType.METHOD, ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+@PreAuthorize("hasRole('TEACHER')")
+public @interface IsTeacher {}
+EOF: src/main/java/com/school/security/roles/IsTeacher.java
+
+BOF: src/main/java/com/school/security/roles/IsAdmin.java
+package com.school.security.roles;
+
+import org.springframework.security.access.prepost.PreAuthorize;
+import java.lang.annotation.*;
+
+@Target({ElementType.METHOD, ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+@PreAuthorize("hasRole('ADMIN')")
+public @interface IsAdmin {}
+EOF: src/main/java/com/school/security/roles/IsAdmin.java
+
+BOF: src/main/java/com/school/security/roles/IsParent.java
+package com.school.security.roles;
+
+import org.springframework.security.access.prepost.PreAuthorize;
+import java.lang.annotation.*;
+
+@Target({ElementType.METHOD, ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+@PreAuthorize("hasRole('PARENT')")
+public @interface IsParent {}
+EOF: src/main/java/com/school/security/roles/IsParent.java
+
+BOF: src/main/java/com/school/result/dto/ResultDTO.java
+package com.school.result.dto;
+
+import lombok.*;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class ResultDTO {
+    private Long id;
+    private Double score;
+    private Long studentId;
+    private Long examId;
+}
+EOF: src/main/java/com/school/result/dto/ResultDTO.java
+
+BOF: src/main/java/com/school/result/repository/ResultRepository.java
+package com.school.result.repository;
+
+import com.school.result.model.Result;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ResultRepository extends JpaRepository<Result, Long> { }
+EOF: src/main/java/com/school/result/repository/ResultRepository.java
+
+BOF: src/main/java/com/school/result/controller/ResultController.java
+package com.school.result.controller;
+
+import com.school.result.dto.ResultDTO;
+import com.school.result.service.ResultService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/results")
+@RequiredArgsConstructor
+public class ResultController {
+
+    private final ResultService svc;
+
+    @GetMapping
+    public List<ResultDTO> getAll() { return svc.findAll(); }
+
+    @GetMapping("/{id}")
+    public ResultDTO getOne(@PathVariable Long id) { return svc.findById(id); }
+
+    @PostMapping
+    public ResponseEntity<ResultDTO> create(@RequestBody ResultDTO dto) {
+        ResultDTO saved = svc.create(dto);
+        return ResponseEntity.created(URI.create("/api/results/" + saved.getId())).body(saved);
+    }
+
+    @PutMapping("/{id}")
+    public ResultDTO update(@PathVariable Long id, @RequestBody ResultDTO dto) {
+        return svc.update(id, dto);
+    }
+
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) { svc.delete(id); }
+}
+EOF: src/main/java/com/school/result/controller/ResultController.java
+
+BOF: src/main/java/com/school/result/model/Result.java
+package com.school.result.model;
+
+import com.school.student.model.Student;
+import com.school.exam.model.Exam;
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class Result {
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private Double score;                // e.g. 15.5
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    private Student student;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    private Exam exam;
+}
+EOF: src/main/java/com/school/result/model/Result.java
+
+BOF: src/main/java/com/school/result/service/ResultService.java
+package com.school.result.service;
+
+import com.school.common.exception.NotFoundException;
+import com.school.result.dto.ResultDTO;
+import com.school.result.model.Result;
+import com.school.result.repository.ResultRepository;
+import com.school.student.repository.StudentRepository;
+import com.school.exam.repository.ExamRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+import org.springframework.transaction.annotation.Transactional;
+
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class ResultService {
+
+    private final ResultRepository repo;
+    private final StudentRepository studentRepo;
+    private final ExamRepository examRepo;
+        @Transactional(readOnly = true)
+    public List<ResultDTO> findAll() {
+        return repo.findAll().stream().map(this::toDto).toList();
+    }
+
+    public ResultDTO findById(Long id) {
+        return toDto(repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Result " + id + " not found")));
+    }
+
+    public ResultDTO create(ResultDTO dto) { return toDto(repo.save(toEntity(dto))); }
+
+    public ResultDTO update(Long id, ResultDTO dto) {
+        Result r = repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Result " + id + " not found"));
+        r.setScore(dto.getScore());
+        r.setStudent(studentRepo.findById(dto.getStudentId())
+                .orElseThrow(() -> new NotFoundException("Student " + dto.getStudentId() + " not found")));
+        r.setExam(examRepo.findById(dto.getExamId())
+                .orElseThrow(() -> new NotFoundException("Exam " + dto.getExamId() + " not found")));
+        return toDto(repo.save(r));
+    }
+
+    public void delete(Long id) {
+        if (!repo.existsById(id)) throw new NotFoundException("Result " + id + " not found");
+        repo.deleteById(id);
+    }
+
+    /* ---------- helpers ---------- */
+    private ResultDTO toDto(Result r) {
+        return ResultDTO.builder()
+                .id(r.getId())
+                .score(r.getScore())
+                .studentId(r.getStudent().getId())
+                .examId(r.getExam().getId())
+                .build();
+    }
+
+    private Result toEntity(ResultDTO d) {
+        return Result.builder()
+                .score(d.getScore())
+                .student(studentRepo.findById(d.getStudentId())
+                        .orElseThrow(() -> new NotFoundException("Student " + d.getStudentId() + " not found")))
+                .exam(examRepo.findById(d.getExamId())
+                        .orElseThrow(() -> new NotFoundException("Exam " + d.getExamId() + " not found")))
+                .build();
+    }
+}
+EOF: src/main/java/com/school/result/service/ResultService.java
+
+BOF: src/main/java/com/school/attendance/dto/AttendanceDTO.java
+package com.school.attendance.dto;
+
+import com.school.attendance.model.Attendance.Status;
+import lombok.*;
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class AttendanceDTO {
+    private Long id;
+    private Status status;
+    private Long studentId;
+    private Long lessonId;
+}
+EOF: src/main/java/com/school/attendance/dto/AttendanceDTO.java
+
+BOF: src/main/java/com/school/attendance/repository/AttendanceRepository.java
+package com.school.attendance.repository;
+
+import com.school.attendance.model.Attendance;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface AttendanceRepository extends JpaRepository<Attendance, Long> { }
+EOF: src/main/java/com/school/attendance/repository/AttendanceRepository.java
+
+BOF: src/main/java/com/school/attendance/controller/AttendanceController.java
+package com.school.attendance.controller;
+
+import com.school.attendance.dto.AttendanceDTO;
+import com.school.attendance.service.AttendanceService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/attendances")
+@RequiredArgsConstructor
+public class AttendanceController {
+
+    private final AttendanceService svc;
+
+    @GetMapping
+    public List<AttendanceDTO> getAll() { return svc.findAll(); }
+
+    @GetMapping("/{id}")
+    public AttendanceDTO getOne(@PathVariable Long id) { return svc.findById(id); }
+
+    @PostMapping
+    public ResponseEntity<AttendanceDTO> create(@RequestBody AttendanceDTO dto) {
+        AttendanceDTO saved = svc.create(dto);
+        return ResponseEntity.created(URI.create("/api/attendances/" + saved.getId())).body(saved);
+    }
+
+    @PutMapping("/{id}")
+    public AttendanceDTO update(@PathVariable Long id, @RequestBody AttendanceDTO dto) {
+        return svc.update(id, dto);
+    }
+
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) { svc.delete(id); }
+}
+EOF: src/main/java/com/school/attendance/controller/AttendanceController.java
+
+BOF: src/main/java/com/school/attendance/model/Attendance.java
+package com.school.attendance.model;
+
+import com.school.student.model.Student;
+import com.school.lesson.model.Lesson;
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+public class Attendance {
+
+    public enum Status { PRESENT, ABSENT, LATE }
+
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Status status;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    private Student student;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    private Lesson lesson;
+}
+EOF: src/main/java/com/school/attendance/model/Attendance.java
+
+BOF: src/main/java/com/school/attendance/service/AttendanceService.java
+package com.school.attendance.service;
+
+import com.school.common.exception.NotFoundException;
+import com.school.attendance.dto.AttendanceDTO;
+import com.school.attendance.model.Attendance;
+import com.school.attendance.repository.AttendanceRepository;
+import com.school.student.repository.StudentRepository;
+import com.school.lesson.repository.LessonRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+
+
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class AttendanceService {
+
+    private final AttendanceRepository repo;
+    private final StudentRepository studentRepo;
+    private final LessonRepository lessonRepo;
+        @Transactional(readOnly = true)
+    public List<AttendanceDTO> findAll() {
+        return repo.findAll().stream().map(this::toDto).toList();
+    }
+
+    public AttendanceDTO findById(Long id) {
+        return toDto(repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Attendance " + id + " not found")));
+    }
+
+    public AttendanceDTO create(AttendanceDTO dto) { return toDto(repo.save(toEntity(dto))); }
+
+    public AttendanceDTO update(Long id, AttendanceDTO dto) {
+        Attendance a = repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Attendance " + id + " not found"));
+        a.setStatus(dto.getStatus());
+        a.setStudent(studentRepo.findById(dto.getStudentId())
+                .orElseThrow(() -> new NotFoundException("Student " + dto.getStudentId() + " not found")));
+        a.setLesson(lessonRepo.findById(dto.getLessonId())
+                .orElseThrow(() -> new NotFoundException("Lesson " + dto.getLessonId() + " not found")));
+        return toDto(repo.save(a));
+    }
+
+    public void delete(Long id) {
+        if (!repo.existsById(id)) throw new NotFoundException("Attendance " + id + " not found");
+        repo.deleteById(id);
+    }
+
+    /* ---------- helpers ---------- */
+    private AttendanceDTO toDto(Attendance a) {
+        return AttendanceDTO.builder()
+                .id(a.getId())
+                .status(a.getStatus())
+                .studentId(a.getStudent().getId())
+                .lessonId(a.getLesson().getId())
+                .build();
+    }
+
+    private Attendance toEntity(AttendanceDTO d) {
+        return Attendance.builder()
+                .status(d.getStatus())
+                .student(studentRepo.findById(d.getStudentId())
+                        .orElseThrow(() -> new NotFoundException("Student " + d.getStudentId() + " not found")))
+                .lesson(lessonRepo.findById(d.getLessonId())
+                        .orElseThrow(() -> new NotFoundException("Lesson " + d.getLessonId() + " not found")))
+                .build();
+    }
+}
+EOF: src/main/java/com/school/attendance/service/AttendanceService.java
+
+BOF: src/main/resources/db/migration/V19__create_parent_student_table.sql
+-- Parent–Student link
+CREATE TABLE parent_student (
+    parent_id  BIGINT NOT NULL,
+    student_id BIGINT NOT NULL,
+    PRIMARY KEY (parent_id, student_id),
+
+    CONSTRAINT fk_ps_parent
+        FOREIGN KEY (parent_id)
+        REFERENCES parent(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_ps_student
+        FOREIGN KEY (student_id)
+        REFERENCES student(id)
+        ON DELETE CASCADE
+);
+
+CREATE INDEX idx_ps_student ON parent_student (student_id);
+EOF: src/main/resources/db/migration/V19__create_parent_student_table.sql
+
+BOF: src/main/resources/db/migration/V11__create_assignment_table.sql
+CREATE TABLE assignment (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(150) NOT NULL,
+    due_date DATE,
+    lesson_id BIGINT NOT NULL,
+    CONSTRAINT fk_assignment_lesson FOREIGN KEY (lesson_id) REFERENCES lesson(id)
+);
+EOF: src/main/resources/db/migration/V11__create_assignment_table.sql
+
+BOF: src/main/resources/db/migration/V6__create_class_table.sql
+CREATE TABLE class (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    grade_id BIGINT NOT NULL,
+    CONSTRAINT fk_class_grade FOREIGN KEY (grade_id) REFERENCES grade(id),
+    UNIQUE KEY uk_class_name_grade (name, grade_id)
+);
+EOF: src/main/resources/db/migration/V6__create_class_table.sql
+
+BOF: src/main/resources/db/migration/V5__create_grade_table.sql
+CREATE TABLE grade (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE
+);
+EOF: src/main/resources/db/migration/V5__create_grade_table.sql
+
+BOF: src/main/resources/db/migration/V27__password_not_null.sql
+/* 1-a) give every NULL row a placeholder hash
+   (hash of the literal string “changeme” generated with PasswordHash util) */
+UPDATE teacher SET password =
+  '$2a$10$MtDv8oylmbWc9LzB/k3jYuz1kAkdNhkw1h1lOsuF9GIBKMsOF1iSm'
+WHERE password IS NULL;
+
+UPDATE parent  SET password =
+  '$2a$10$MtDv8oylmbWc9LzB/k3jYuz1kAkdNhkw1h1lOsuF9GIBKMsOF1iSm'
+WHERE password IS NULL;
+
+/* 1-b) tighten the columns */
+ALTER TABLE teacher
+  MODIFY COLUMN password VARCHAR(255) NOT NULL;
+
+ALTER TABLE parent
+  MODIFY COLUMN password VARCHAR(255) NOT NULL;
+EOF: src/main/resources/db/migration/V27__password_not_null.sql
+
+BOF: src/main/resources/db/migration/V25__extend_student_profile.sql
+ALTER TABLE student
+  ADD COLUMN surname      VARCHAR(120) AFTER full_name,
+  ADD COLUMN username     VARCHAR(120) UNIQUE,
+  ADD COLUMN img          VARCHAR(255),
+  ADD COLUMN blood_type   VARCHAR(3);     -- “O+”, “A-”, …
+
+-- Optional convenience index if you’ll search on username
+CREATE INDEX idx_student_username ON student (username);
+EOF: src/main/resources/db/migration/V25__extend_student_profile.sql
+
+BOF: src/main/resources/db/migration/V2__create_student_table.sql
+CREATE TABLE student (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    full_name VARCHAR(120) NOT NULL,
+    email VARCHAR(120) NOT NULL UNIQUE
+);
+EOF: src/main/resources/db/migration/V2__create_student_table.sql
+
+BOF: src/main/resources/db/migration/V15__create_announcement_table.sql
+CREATE TABLE announcement (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(150) NOT NULL,
+    content TEXT NOT NULL,
+    published_at DATETIME NOT NULL,
+    class_id BIGINT,
+    CONSTRAINT fk_announcement_class FOREIGN KEY (class_id) REFERENCES school_class(id)
+);
+EOF: src/main/resources/db/migration/V15__create_announcement_table.sql
+
+BOF: src/main/resources/db/migration/V8__create_subject_table.sql
+CREATE TABLE subject (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(80) NOT NULL UNIQUE
+);
+EOF: src/main/resources/db/migration/V8__create_subject_table.sql
+
+BOF: src/main/resources/db/migration/V10__create_exam_table.sql
+CREATE TABLE exam (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(150) NOT NULL,
+    exam_date DATE,
+    lesson_id BIGINT NOT NULL,
+    CONSTRAINT fk_exam_lesson FOREIGN KEY (lesson_id) REFERENCES lesson(id)
+);
+EOF: src/main/resources/db/migration/V10__create_exam_table.sql
+
+BOF: src/main/resources/db/migration/V1__create_admin_table.sql
+CREATE TABLE admin (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    full_name VARCHAR(120) NOT NULL,
+    email VARCHAR(120) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL
+);
+EOF: src/main/resources/db/migration/V1__create_admin_table.sql
+
+BOF: src/main/resources/db/migration/V26__auth_columns.sql
+/* V26 – auth columns (password already existed on admin) */
+
+-- ADMIN  ───────────────
+ALTER TABLE admin
+    ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'ADMIN';
+
+-- TEACHER ──────────────
+ALTER TABLE teacher
+    ADD COLUMN password VARCHAR(255),
+    ADD COLUMN role     VARCHAR(20) NOT NULL DEFAULT 'TEACHER';
+
+-- STUDENT ──────────────
+ALTER TABLE student
+    ADD COLUMN password VARCHAR(255) NOT NULL DEFAULT '$2a$10$MtDv8oylmbWc9LzB/k3jYuz1kAkdNhkw1h1lOsuF9GIBKMsOF1iSm',
+    ADD COLUMN role     VARCHAR(20)  NOT NULL DEFAULT 'STUDENT';
+
+
+-- PARENT  ──────────────
+ALTER TABLE parent
+    ADD COLUMN password VARCHAR(255),
+    ADD COLUMN role     VARCHAR(20) NOT NULL DEFAULT 'PARENT';
+EOF: src/main/resources/db/migration/V26__auth_columns.sql
+
+BOF: src/main/resources/db/migration/V17__create_teacher_subject_table.sql
+CREATE TABLE teacher_subject (
+    teacher_id  BIGINT NOT NULL,
+    subject_id  BIGINT NOT NULL,
+    PRIMARY KEY (teacher_id, subject_id),
+
+    CONSTRAINT fk_ts_teacher
+        FOREIGN KEY (teacher_id)
+        REFERENCES teacher(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_ts_subject
+        FOREIGN KEY (subject_id)
+        REFERENCES subject(id)
+        ON DELETE CASCADE
+);
+EOF: src/main/resources/db/migration/V17__create_teacher_subject_table.sql
+
+BOF: src/main/resources/db/migration/V23__create_teacher_class_table.sql
+/* teacher ⇄ class join */
+CREATE TABLE teacher_class (
+    teacher_id BIGINT NOT NULL,
+    class_id   BIGINT NOT NULL,
+    PRIMARY KEY (teacher_id, class_id),
+
+    CONSTRAINT fk_tc_teacher FOREIGN KEY (teacher_id)
+        REFERENCES teacher(id) ON DELETE CASCADE,
+    CONSTRAINT fk_tc_class   FOREIGN KEY (class_id)
+        REFERENCES school_class(id) ON DELETE CASCADE
+);
+
+-- keep look-ups fast
+CREATE INDEX idx_tc_class   ON teacher_class(class_id);
+CREATE INDEX idx_tc_teacher ON teacher_class(teacher_id);
+EOF: src/main/resources/db/migration/V23__create_teacher_class_table.sql
+
+BOF: src/main/resources/db/migration/V9__create_lesson_table.sql
+CREATE TABLE lesson (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    topic VARCHAR(150) NOT NULL,
+    lesson_date DATE,
+    subject_id BIGINT NOT NULL,
+    teacher_id BIGINT NOT NULL,
+    class_id  BIGINT NOT NULL,
+    CONSTRAINT fk_lesson_subject FOREIGN KEY (subject_id) REFERENCES subject(id),
+    CONSTRAINT fk_lesson_teacher FOREIGN KEY (teacher_id) REFERENCES teacher(id),
+    CONSTRAINT fk_lesson_class   FOREIGN KEY (class_id)   REFERENCES school_class(id)
+);
+EOF: src/main/resources/db/migration/V9__create_lesson_table.sql
+
+BOF: src/main/resources/db/migration/V7__rename_class_table.sql
+-- bring Flyway table name in line with Hibernate
+ALTER TABLE class RENAME TO school_class;
+EOF: src/main/resources/db/migration/V7__rename_class_table.sql
+
+BOF: src/main/resources/db/migration/V24__student_grade_and_grade_level.sql
+/* 1 ── add grade_id to student (nullable for legacy rows) */
+ALTER TABLE student ADD COLUMN grade_id BIGINT NULL;
+ALTER TABLE student
+    ADD CONSTRAINT fk_student_grade
+        FOREIGN KEY (grade_id) REFERENCES grade(id);
+
+/* 2 ── change grade.name → integer level */
+ALTER TABLE grade
+    ADD COLUMN level INT UNIQUE;
+UPDATE grade SET level = CAST(name AS UNSIGNED);   -- best-effort if you used “1”,“2”,…
+ALTER TABLE grade DROP COLUMN name;
+EOF: src/main/resources/db/migration/V24__student_grade_and_grade_level.sql
+
+BOF: src/main/resources/db/migration/V22__add_schedule_to_lesson.sql
+ALTER TABLE lesson
+    ADD COLUMN day        VARCHAR(10)  NOT NULL DEFAULT 'MONDAY',
+    ADD COLUMN start_time TIME         NOT NULL DEFAULT '08:00:00',
+    ADD COLUMN end_time   TIME         NOT NULL DEFAULT '09:00:00';
+
+-- Optional: keep queries quick
+CREATE INDEX idx_lesson_day_start ON lesson(day, start_time);
+EOF: src/main/resources/db/migration/V22__add_schedule_to_lesson.sql
+
+BOF: src/main/resources/db/migration/V16__add_class_fk_to_student.sql
+ALTER TABLE student ADD COLUMN class_id BIGINT NOT NULL;
+ALTER TABLE student
+  ADD CONSTRAINT fk_student_class FOREIGN KEY (class_id)
+  REFERENCES school_class(id);
+EOF: src/main/resources/db/migration/V16__add_class_fk_to_student.sql
+
+BOF: src/main/resources/db/migration/V13__create_attendance_table.sql
+CREATE TABLE attendance (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    status VARCHAR(10) NOT NULL,
+    student_id BIGINT NOT NULL,
+    lesson_id  BIGINT NOT NULL,
+    CONSTRAINT fk_attendance_student FOREIGN KEY (student_id) REFERENCES student(id),
+    CONSTRAINT fk_attendance_lesson  FOREIGN KEY (lesson_id)  REFERENCES lesson(id)
+);
+EOF: src/main/resources/db/migration/V13__create_attendance_table.sql
+
+BOF: src/main/resources/db/migration/V18__alter_student_add_profile_fields.sql
+-- Extra columns for student profile
+ALTER TABLE student
+  ADD COLUMN date_of_birth DATE         NOT NULL DEFAULT '2000-01-01' AFTER email,
+  ADD COLUMN gender        VARCHAR(10)  NOT NULL DEFAULT 'MALE'      AFTER date_of_birth,
+  ADD COLUMN phone VARCHAR(25) NULL,
+  ADD COLUMN address VARCHAR(255) NULL,
+  ADD COLUMN enrollment_date DATE NULL,
+  ADD COLUMN status VARCHAR(15) NOT NULL DEFAULT 'ACTIVE',
+  ADD COLUMN deleted BOOLEAN NOT NULL DEFAULT FALSE;
+  
+-- Index often-queried fields
+CREATE INDEX idx_student_class ON student (class_id);
+CREATE INDEX idx_student_status ON student (status);
+EOF: src/main/resources/db/migration/V18__alter_student_add_profile_fields.sql
+
+BOF: src/main/resources/db/migration/V14__create_event_table.sql
+CREATE TABLE event (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(150) NOT NULL,
+    description TEXT,
+    starts_at DATETIME,
+    ends_at   DATETIME,
+    class_id BIGINT,
+    CONSTRAINT fk_event_class FOREIGN KEY (class_id) REFERENCES school_class(id)
+);
+EOF: src/main/resources/db/migration/V14__create_event_table.sql
+
+BOF: src/main/resources/db/migration/V20__add_audit_columns.sql
+/* MySQL 8 syntax */
+
+-- Admin
+ALTER TABLE admin
+  ADD COLUMN created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  ADD COLUMN updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6);
+
+-- Student
+ALTER TABLE student
+  ADD COLUMN created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  ADD COLUMN updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6);
+
+-- Teacher
+ALTER TABLE teacher
+  ADD COLUMN created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  ADD COLUMN updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6);
+
+-- Parent
+ALTER TABLE parent
+  ADD COLUMN created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  ADD COLUMN updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6);
+EOF: src/main/resources/db/migration/V20__add_audit_columns.sql
+
+BOF: src/main/resources/db/migration/V4__create_parent_table.sql
+CREATE TABLE parent (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    full_name VARCHAR(120) NOT NULL,
+    email VARCHAR(120) NOT NULL UNIQUE
+);
+EOF: src/main/resources/db/migration/V4__create_parent_table.sql
+
+BOF: src/main/resources/db/migration/V21__add_capacity_and_supervisor_to_class.sql
+/* MySQL 8 syntax — adjust types only if you are on Postgres */
+
+ALTER TABLE school_class
+    ADD COLUMN capacity INT NOT NULL DEFAULT 30,
+    ADD COLUMN supervisor_id BIGINT NULL,
+    ADD CONSTRAINT fk_class_supervisor
+        FOREIGN KEY (supervisor_id) REFERENCES teacher(id);
+
+CREATE INDEX idx_class_supervisor ON school_class(supervisor_id);
+EOF: src/main/resources/db/migration/V21__add_capacity_and_supervisor_to_class.sql
+
+BOF: src/main/resources/db/migration/V3__create_teacher_table.sql
+CREATE TABLE teacher (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    full_name VARCHAR(120) NOT NULL,
+    email VARCHAR(120) NOT NULL UNIQUE
+);
+EOF: src/main/resources/db/migration/V3__create_teacher_table.sql
+
+BOF: src/main/resources/db/migration/V12__create_result_table.sql
+CREATE TABLE result (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    score DOUBLE NOT NULL,
+    student_id BIGINT NOT NULL,
+    exam_id BIGINT NOT NULL,
+    CONSTRAINT fk_result_student FOREIGN KEY (student_id) REFERENCES student(id),
+    CONSTRAINT fk_result_exam    FOREIGN KEY (exam_id)    REFERENCES exam(id)
+);
+EOF: src/main/resources/db/migration/V12__create_result_table.sql
+
+BOF: target/classes/db/migration/V19__create_parent_student_table.sql
+-- Parent–Student link
+CREATE TABLE parent_student (
+    parent_id  BIGINT NOT NULL,
+    student_id BIGINT NOT NULL,
+    PRIMARY KEY (parent_id, student_id),
+
+    CONSTRAINT fk_ps_parent
+        FOREIGN KEY (parent_id)
+        REFERENCES parent(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_ps_student
+        FOREIGN KEY (student_id)
+        REFERENCES student(id)
+        ON DELETE CASCADE
+);
+
+CREATE INDEX idx_ps_student ON parent_student (student_id);
+EOF: target/classes/db/migration/V19__create_parent_student_table.sql
+
+BOF: target/classes/db/migration/V11__create_assignment_table.sql
+CREATE TABLE assignment (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(150) NOT NULL,
+    due_date DATE,
+    lesson_id BIGINT NOT NULL,
+    CONSTRAINT fk_assignment_lesson FOREIGN KEY (lesson_id) REFERENCES lesson(id)
+);
+EOF: target/classes/db/migration/V11__create_assignment_table.sql
+
+BOF: target/classes/db/migration/V6__create_class_table.sql
+CREATE TABLE class (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    grade_id BIGINT NOT NULL,
+    CONSTRAINT fk_class_grade FOREIGN KEY (grade_id) REFERENCES grade(id),
+    UNIQUE KEY uk_class_name_grade (name, grade_id)
+);
+EOF: target/classes/db/migration/V6__create_class_table.sql
+
+BOF: target/classes/db/migration/V5__create_grade_table.sql
+CREATE TABLE grade (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE
+);
+EOF: target/classes/db/migration/V5__create_grade_table.sql
+
+BOF: target/classes/db/migration/V27__password_not_null.sql
+/* 1-a) give every NULL row a placeholder hash
+   (hash of the literal string “changeme” generated with PasswordHash util) */
+UPDATE teacher SET password =
+  '$2a$10$MtDv8oylmbWc9LzB/k3jYuz1kAkdNhkw1h1lOsuF9GIBKMsOF1iSm'
+WHERE password IS NULL;
+
+UPDATE parent  SET password =
+  '$2a$10$MtDv8oylmbWc9LzB/k3jYuz1kAkdNhkw1h1lOsuF9GIBKMsOF1iSm'
+WHERE password IS NULL;
+
+/* 1-b) tighten the columns */
+ALTER TABLE teacher
+  MODIFY COLUMN password VARCHAR(255) NOT NULL;
+
+ALTER TABLE parent
+  MODIFY COLUMN password VARCHAR(255) NOT NULL;
+EOF: target/classes/db/migration/V27__password_not_null.sql
+
+BOF: target/classes/db/migration/V25__extend_student_profile.sql
+ALTER TABLE student
+  ADD COLUMN surname      VARCHAR(120) AFTER full_name,
+  ADD COLUMN username     VARCHAR(120) UNIQUE,
+  ADD COLUMN img          VARCHAR(255),
+  ADD COLUMN blood_type   VARCHAR(3);     -- “O+”, “A-”, …
+
+-- Optional convenience index if you’ll search on username
+CREATE INDEX idx_student_username ON student (username);
+EOF: target/classes/db/migration/V25__extend_student_profile.sql
+
+BOF: target/classes/db/migration/V2__create_student_table.sql
+CREATE TABLE student (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    full_name VARCHAR(120) NOT NULL,
+    email VARCHAR(120) NOT NULL UNIQUE
+);
+EOF: target/classes/db/migration/V2__create_student_table.sql
+
+BOF: target/classes/db/migration/V15__create_announcement_table.sql
+CREATE TABLE announcement (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(150) NOT NULL,
+    content TEXT NOT NULL,
+    published_at DATETIME NOT NULL,
+    class_id BIGINT,
+    CONSTRAINT fk_announcement_class FOREIGN KEY (class_id) REFERENCES school_class(id)
+);
+EOF: target/classes/db/migration/V15__create_announcement_table.sql
+
+BOF: target/classes/db/migration/V8__create_subject_table.sql
+CREATE TABLE subject (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(80) NOT NULL UNIQUE
+);
+EOF: target/classes/db/migration/V8__create_subject_table.sql
+
+BOF: target/classes/db/migration/V10__create_exam_table.sql
+CREATE TABLE exam (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(150) NOT NULL,
+    exam_date DATE,
+    lesson_id BIGINT NOT NULL,
+    CONSTRAINT fk_exam_lesson FOREIGN KEY (lesson_id) REFERENCES lesson(id)
+);
+EOF: target/classes/db/migration/V10__create_exam_table.sql
+
+BOF: target/classes/db/migration/V1__create_admin_table.sql
+CREATE TABLE admin (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    full_name VARCHAR(120) NOT NULL,
+    email VARCHAR(120) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL
+);
+EOF: target/classes/db/migration/V1__create_admin_table.sql
+
+BOF: target/classes/db/migration/V26__auth_columns.sql
+/* V26 – auth columns (password already existed on admin) */
+
+-- ADMIN  ───────────────
+ALTER TABLE admin
+    ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'ADMIN';
+
+-- TEACHER ──────────────
+ALTER TABLE teacher
+    ADD COLUMN password VARCHAR(255),
+    ADD COLUMN role     VARCHAR(20) NOT NULL DEFAULT 'TEACHER';
+
+-- STUDENT ──────────────
+ALTER TABLE student
+    ADD COLUMN password VARCHAR(255) NOT NULL DEFAULT '$2a$10$MtDv8oylmbWc9LzB/k3jYuz1kAkdNhkw1h1lOsuF9GIBKMsOF1iSm',
+    ADD COLUMN role     VARCHAR(20)  NOT NULL DEFAULT 'STUDENT';
+
+
+-- PARENT  ──────────────
+ALTER TABLE parent
+    ADD COLUMN password VARCHAR(255),
+    ADD COLUMN role     VARCHAR(20) NOT NULL DEFAULT 'PARENT';
+EOF: target/classes/db/migration/V26__auth_columns.sql
+
+BOF: target/classes/db/migration/V17__create_teacher_subject_table.sql
+CREATE TABLE teacher_subject (
+    teacher_id  BIGINT NOT NULL,
+    subject_id  BIGINT NOT NULL,
+    PRIMARY KEY (teacher_id, subject_id),
+
+    CONSTRAINT fk_ts_teacher
+        FOREIGN KEY (teacher_id)
+        REFERENCES teacher(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_ts_subject
+        FOREIGN KEY (subject_id)
+        REFERENCES subject(id)
+        ON DELETE CASCADE
+);
+EOF: target/classes/db/migration/V17__create_teacher_subject_table.sql
+
+BOF: target/classes/db/migration/V23__create_teacher_class_table.sql
+/* teacher ⇄ class join */
+CREATE TABLE teacher_class (
+    teacher_id BIGINT NOT NULL,
+    class_id   BIGINT NOT NULL,
+    PRIMARY KEY (teacher_id, class_id),
+
+    CONSTRAINT fk_tc_teacher FOREIGN KEY (teacher_id)
+        REFERENCES teacher(id) ON DELETE CASCADE,
+    CONSTRAINT fk_tc_class   FOREIGN KEY (class_id)
+        REFERENCES school_class(id) ON DELETE CASCADE
+);
+
+-- keep look-ups fast
+CREATE INDEX idx_tc_class   ON teacher_class(class_id);
+CREATE INDEX idx_tc_teacher ON teacher_class(teacher_id);
+EOF: target/classes/db/migration/V23__create_teacher_class_table.sql
+
+BOF: target/classes/db/migration/V9__create_lesson_table.sql
+CREATE TABLE lesson (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    topic VARCHAR(150) NOT NULL,
+    lesson_date DATE,
+    subject_id BIGINT NOT NULL,
+    teacher_id BIGINT NOT NULL,
+    class_id  BIGINT NOT NULL,
+    CONSTRAINT fk_lesson_subject FOREIGN KEY (subject_id) REFERENCES subject(id),
+    CONSTRAINT fk_lesson_teacher FOREIGN KEY (teacher_id) REFERENCES teacher(id),
+    CONSTRAINT fk_lesson_class   FOREIGN KEY (class_id)   REFERENCES school_class(id)
+);
+EOF: target/classes/db/migration/V9__create_lesson_table.sql
+
+BOF: target/classes/db/migration/V7__rename_class_table.sql
+-- bring Flyway table name in line with Hibernate
+ALTER TABLE class RENAME TO school_class;
+EOF: target/classes/db/migration/V7__rename_class_table.sql
+
+BOF: target/classes/db/migration/V24__student_grade_and_grade_level.sql
+/* 1 ── add grade_id to student (nullable for legacy rows) */
+ALTER TABLE student ADD COLUMN grade_id BIGINT NULL;
+ALTER TABLE student
+    ADD CONSTRAINT fk_student_grade
+        FOREIGN KEY (grade_id) REFERENCES grade(id);
+
+/* 2 ── change grade.name → integer level */
+ALTER TABLE grade
+    ADD COLUMN level INT UNIQUE;
+UPDATE grade SET level = CAST(name AS UNSIGNED);   -- best-effort if you used “1”,“2”,…
+ALTER TABLE grade DROP COLUMN name;
+EOF: target/classes/db/migration/V24__student_grade_and_grade_level.sql
+
+BOF: target/classes/db/migration/V22__add_schedule_to_lesson.sql
+ALTER TABLE lesson
+    ADD COLUMN day        VARCHAR(10)  NOT NULL DEFAULT 'MONDAY',
+    ADD COLUMN start_time TIME         NOT NULL DEFAULT '08:00:00',
+    ADD COLUMN end_time   TIME         NOT NULL DEFAULT '09:00:00';
+
+-- Optional: keep queries quick
+CREATE INDEX idx_lesson_day_start ON lesson(day, start_time);
+EOF: target/classes/db/migration/V22__add_schedule_to_lesson.sql
+
+BOF: target/classes/db/migration/V16__add_class_fk_to_student.sql
+ALTER TABLE student ADD COLUMN class_id BIGINT NOT NULL;
+ALTER TABLE student
+  ADD CONSTRAINT fk_student_class FOREIGN KEY (class_id)
+  REFERENCES school_class(id);
+EOF: target/classes/db/migration/V16__add_class_fk_to_student.sql
+
+BOF: target/classes/db/migration/V13__create_attendance_table.sql
+CREATE TABLE attendance (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    status VARCHAR(10) NOT NULL,
+    student_id BIGINT NOT NULL,
+    lesson_id  BIGINT NOT NULL,
+    CONSTRAINT fk_attendance_student FOREIGN KEY (student_id) REFERENCES student(id),
+    CONSTRAINT fk_attendance_lesson  FOREIGN KEY (lesson_id)  REFERENCES lesson(id)
+);
+EOF: target/classes/db/migration/V13__create_attendance_table.sql
+
+BOF: target/classes/db/migration/V18__alter_student_add_profile_fields.sql
+-- Extra columns for student profile
+ALTER TABLE student
+  ADD COLUMN date_of_birth DATE         NOT NULL DEFAULT '2000-01-01' AFTER email,
+  ADD COLUMN gender        VARCHAR(10)  NOT NULL DEFAULT 'MALE'      AFTER date_of_birth,
+  ADD COLUMN phone VARCHAR(25) NULL,
+  ADD COLUMN address VARCHAR(255) NULL,
+  ADD COLUMN enrollment_date DATE NULL,
+  ADD COLUMN status VARCHAR(15) NOT NULL DEFAULT 'ACTIVE',
+  ADD COLUMN deleted BOOLEAN NOT NULL DEFAULT FALSE;
+  
+-- Index often-queried fields
+CREATE INDEX idx_student_class ON student (class_id);
+CREATE INDEX idx_student_status ON student (status);
+EOF: target/classes/db/migration/V18__alter_student_add_profile_fields.sql
+
+BOF: target/classes/db/migration/V14__create_event_table.sql
+CREATE TABLE event (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(150) NOT NULL,
+    description TEXT,
+    starts_at DATETIME,
+    ends_at   DATETIME,
+    class_id BIGINT,
+    CONSTRAINT fk_event_class FOREIGN KEY (class_id) REFERENCES school_class(id)
+);
+EOF: target/classes/db/migration/V14__create_event_table.sql
+
+BOF: target/classes/db/migration/V20__add_audit_columns.sql
+/* MySQL 8 syntax */
+
+-- Admin
+ALTER TABLE admin
+  ADD COLUMN created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  ADD COLUMN updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6);
+
+-- Student
+ALTER TABLE student
+  ADD COLUMN created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  ADD COLUMN updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6);
+
+-- Teacher
+ALTER TABLE teacher
+  ADD COLUMN created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  ADD COLUMN updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6);
+
+-- Parent
+ALTER TABLE parent
+  ADD COLUMN created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  ADD COLUMN updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6);
+EOF: target/classes/db/migration/V20__add_audit_columns.sql
+
+BOF: target/classes/db/migration/V4__create_parent_table.sql
+CREATE TABLE parent (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    full_name VARCHAR(120) NOT NULL,
+    email VARCHAR(120) NOT NULL UNIQUE
+);
+EOF: target/classes/db/migration/V4__create_parent_table.sql
+
+BOF: target/classes/db/migration/V21__add_capacity_and_supervisor_to_class.sql
+/* MySQL 8 syntax — adjust types only if you are on Postgres */
+
+ALTER TABLE school_class
+    ADD COLUMN capacity INT NOT NULL DEFAULT 30,
+    ADD COLUMN supervisor_id BIGINT NULL,
+    ADD CONSTRAINT fk_class_supervisor
+        FOREIGN KEY (supervisor_id) REFERENCES teacher(id);
+
+CREATE INDEX idx_class_supervisor ON school_class(supervisor_id);
+EOF: target/classes/db/migration/V21__add_capacity_and_supervisor_to_class.sql
+
+BOF: target/classes/db/migration/V3__create_teacher_table.sql
+CREATE TABLE teacher (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    full_name VARCHAR(120) NOT NULL,
+    email VARCHAR(120) NOT NULL UNIQUE
+);
+EOF: target/classes/db/migration/V3__create_teacher_table.sql
+
+BOF: target/classes/db/migration/V12__create_result_table.sql
+CREATE TABLE result (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    score DOUBLE NOT NULL,
+    student_id BIGINT NOT NULL,
+    exam_id BIGINT NOT NULL,
+    CONSTRAINT fk_result_student FOREIGN KEY (student_id) REFERENCES student(id),
+    CONSTRAINT fk_result_exam    FOREIGN KEY (exam_id)    REFERENCES exam(id)
+);
+EOF: target/classes/db/migration/V12__create_result_table.sql
+
