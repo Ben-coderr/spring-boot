@@ -1,11 +1,9 @@
 package com.school.controller;
 
-import com.school.model.Role;
-import com.school.model.Teacher;
-import com.school.model.User;
-import com.school.repository.TeacherRepository;
-import com.school.repository.UserRepository;
+import com.school.model.*;
+import com.school.repository.*;
 import com.school.dto.TeacherDto;
+import com.school.dto.TeacherReq;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -19,15 +17,18 @@ import java.util.ArrayList;
 public class TeacherController { // teacher endpoints
 
     private final TeacherRepository teacherRepo;
-    private final PasswordEncoder  passwordEncoder;
-    private final UserRepository   userRepo;
+    private final PasswordEncoder   passwordEncoder;
+    private final UserRepository    userRepo;
+    private final SubjectRepository subjectRepo;
 
     public TeacherController(TeacherRepository repo,
-                             PasswordEncoder   passwordEncoder,
-                             UserRepository    userRepo) {
+                             PasswordEncoder    passwordEncoder,
+                             UserRepository     userRepo,
+                             SubjectRepository  subjectRepo) {
         this.teacherRepo = repo;
         this.passwordEncoder  = passwordEncoder;
         this.userRepo    = userRepo;
+        this.subjectRepo = subjectRepo;
     }
 
     //helper to validate needed fields
@@ -56,28 +57,43 @@ public class TeacherController { // teacher endpoints
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public TeacherDto registerTeacher(@RequestBody Teacher body){
+    public TeacherDto registerTeacher(@RequestBody TeacherReq body){
 
-        need(body.getFullName(),"name");
-        need(body.getUser() != null ? body.getUser().getPassword() : null,
-            "password");
+        need(body.fullName(),"name");
+        need(body.password(),"password");
 
-        // build the user (username = email if present, else phone)
         User user = new User();
-        String uname = (body.getEmail() != null && !body.getEmail().isBlank())
-                    ? body.getEmail()
-                    : body.getPhone();
+        String uname = (body.email() != null && !body.email().isBlank())
+                    ? body.email()
+                    : body.phone();
 
         if (userRepo.findByUsername(uname).isPresent())
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST, "username already exists");
 
         user.setUsername(uname);
-        user.setPassword(passwordEncoder.encode(body.getUser().getPassword()));
+        user.setPassword(passwordEncoder.encode(body.password()));
         user.setRole(Role.TEACHER);
-        body.setUser(user);
 
-        return TeacherDto.from(teacherRepo.save(body));
+        Teacher entity = new Teacher();
+        entity.setFullName(body.fullName());
+        entity.setEmail(body.email());
+        entity.setPhone(body.phone());
+        entity.setPlaceOfBirth(body.placeOfBirth());
+        entity.setUser(user);
+        entity.setImg(body.img());
+        entity.setBloodType(body.bloodType());
+        entity.setSex(body.sex());
+        entity.setBirthday(body.birthday());
+
+        if (body.subjectId() != null) {
+            Subject subject = subjectRepo.findById(body.subjectId())
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND, "subject not found"));
+            entity.setSubject(subject);
+        }
+
+        return TeacherDto.from(teacherRepo.save(entity));
     }
 
     @PutMapping("{id}")

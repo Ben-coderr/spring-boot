@@ -26,6 +26,7 @@ public class StudentController {
     private final AttendanceService     attendanceService;
     private final PasswordEncoder       passwordEncoder;
     private final UserRepository        userRepo;
+    private final ParentRepository      parentRepo;
 
     public StudentController(
         StudentRepository     studentRepo,
@@ -33,7 +34,8 @@ public class StudentController {
         StudentService        service,
         AttendanceService     attendance,
         PasswordEncoder       passwordEncoder,
-        UserRepository        userRepo
+        UserRepository        userRepo,
+        ParentRepository      parentRepo
     ) {
         this.studentRepo        = studentRepo;
         this.classRepo          = classRepo;
@@ -41,6 +43,7 @@ public class StudentController {
         this.attendanceService  = attendance;
         this.passwordEncoder    = passwordEncoder;
         this.userRepo           = userRepo;
+        this.parentRepo         = parentRepo;
     }
 
     
@@ -73,30 +76,54 @@ public class StudentController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public StudentDto registerStudent(@RequestBody Student body) {
+    public StudentDto registerStudent(@RequestBody StudentReq body) {
 
-       
-        if (body.getUser() == null || body.getUser().getPassword() == null)
+        if (body.password() == null || body.password().isBlank())
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST, "password required inside user{}");
+                    HttpStatus.BAD_REQUEST, "password required");
 
         User user = new User();
-        String uname = (body.getEmail() != null && !body.getEmail().isBlank())
-                     ? body.getEmail()
-                     : body.getPhone();
+        String uname = (body.email() != null && !body.email().isBlank())
+                     ? body.email()
+                     : body.phone();
 
         if (userRepo.findByUsername(uname).isPresent())
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST, "username already exists");
 
         user.setUsername(uname);
-        user.setPassword(passwordEncoder.encode(body.getUser().getPassword()));
+        user.setPassword(passwordEncoder.encode(body.password()));
         user.setRole(Role.STUDENT);
 
-        body.setUser(user);
+        Student entity = new Student();
+        entity.setFullName(body.fullName());
+        entity.setSurname(body.surname());
+        entity.setEmail(body.email());
+        entity.setPhone(body.phone());
+        entity.setUser(user);
+        entity.setMatricule(body.matricule());
+        entity.setPlaceOfBirth(body.placeOfBirth());
+        entity.setAddress(body.address());
+        entity.setImg(body.img());
+        entity.setBloodType(body.bloodType());
+        entity.setSex(body.sex());
+        entity.setBirthday(body.birthday());
 
+        if (body.parentId() != null) {
+            Parent parent = parentRepo.findById(body.parentId())
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND, "parent not found"));
+            entity.setParent(parent);
+        }
 
-        return StudentMapper.toDto(studentRepo.save(body));  
+        if (body.classId() != null) {
+            SchoolClass sc = classRepo.findById(body.classId())
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.NOT_FOUND, "class not found"));
+            entity.setSchoolClass(sc);
+        }
+
+        return StudentMapper.toDto(studentRepo.save(entity));
     }
 
 

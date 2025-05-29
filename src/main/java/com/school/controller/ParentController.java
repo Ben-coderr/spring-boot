@@ -1,10 +1,9 @@
 package com.school.controller;
 
-import com.school.model.Parent;
-import com.school.model.Role;
-import com.school.model.User;
-import com.school.repository.ParentRepository;
+import com.school.model.*;
+import com.school.repository.*;
 import com.school.dto.ParentDto;
+import com.school.dto.ParentReq;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -18,11 +17,14 @@ import java.util.ArrayList;
 public class ParentController { // manage parents
     private final ParentRepository parentRepo;
     private final PasswordEncoder  passwordEncoder;
+    private final UserRepository   userRepo;
 
     public ParentController(ParentRepository repo,
-                            PasswordEncoder   passwordEncoder) {
+                            PasswordEncoder   passwordEncoder,
+                            UserRepository    userRepo) {
         this.parentRepo = repo;
         this.passwordEncoder = passwordEncoder;
+        this.userRepo   = userRepo;
     }
 
     private static void must(String value,String field){
@@ -49,23 +51,32 @@ public class ParentController { // manage parents
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ParentDto registerParent(@RequestBody Parent body){
+    public ParentDto registerParent(@RequestBody ParentReq body){
 
-        must(body.getFullName(),"name");
-        must(body.getUser() != null ? body.getUser().getPassword() : null,
-            "password");
+        must(body.fullName(),"name");
+        must(body.password(),"password");
 
-        // build the user (username = email if present, else phone)
         User user = new User();
-        String uname = (body.getEmail() != null && !body.getEmail().isBlank())
-                    ? body.getEmail()
-                    : body.getPhone();
-        user.setUsername(uname);
-        user.setPassword(passwordEncoder.encode(body.getUser().getPassword()));
-        user.setRole(Role.PARENT);
-        body.setUser(user);
+        String uname = (body.email() != null && !body.email().isBlank())
+                    ? body.email()
+                    : body.phone();
 
-        return ParentDto.from(parentRepo.save(body));
+        if (userRepo.findByUsername(uname).isPresent())
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "username already exists");
+
+        user.setUsername(uname);
+        user.setPassword(passwordEncoder.encode(body.password()));
+        user.setRole(Role.PARENT);
+
+        Parent entity = new Parent();
+        entity.setFullName(body.fullName());
+        entity.setPhone(body.phone());
+        entity.setEmail(body.email());
+        entity.setAddress(body.address());
+        entity.setUser(user);
+
+        return ParentDto.from(parentRepo.save(entity));
     }
 
     @PutMapping("{id}")
