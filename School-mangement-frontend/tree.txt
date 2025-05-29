@@ -1,0 +1,141 @@
+next-dashboard-ui-completed/
+├── public/
+│   ├── .DS_Store
+│   ├── announcement.png
+│   ├── assignment.png
+│   ├── attendance.png
+│   ├── avatar.png
+│   ├── blood.png
+│   ├── calendar.png
+│   ├── class.png
+│   ├── close.png
+│   ├── create.png
+│   ├── date.png
+│   ├── delete.png
+│   ├── exam.png
+│   ├── Eye Icon.png
+│   ├── filter.png
+│   ├── finance.png
+│   ├── home.png
+│   ├── lesson.png
+│   ├── logo.png
+│   ├── logout.png
+│   ├── mail.png
+│   ├── maleFemale.png
+│   ├── message.png
+│   ├── more.png
+│   ├── moreDark.png
+│   ├── parent.png
+│   ├── phone.png
+│   ├── profile.png
+│   ├── result.png
+│   ├── search.png
+│   ├── setting.png
+│   ├── singleAttendance.png
+│   ├── singleBranch.png
+│   ├── singleClass.png
+│   ├── singleLesson.png
+│   ├── sort.png
+│   ├── student.png
+│   ├── subject.png
+│   ├── teacher.png
+│   ├── Trash Icon.png
+│   ├── update.png
+│   ├── upload.png
+│   └── view.png
+├── src/
+│   ├── app/
+│   │   ├── (dashboard)/
+│   │   │   ├── admin/
+│   │   │   │   └── page.tsx
+│   │   │   ├── list/
+│   │   │   │   ├── announcements/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── assignments/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── classes/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── events/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── exams/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── lessons/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── parents/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── results/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── students/
+│   │   │   │   │   ├── [id]/
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── subjects/
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── teachers/
+│   │   │   │       ├── [id]/
+│   │   │   │       │   └── page.tsx
+│   │   │   │       └── page.tsx
+│   │   │   ├── parent/
+│   │   │   │   └── page.tsx
+│   │   │   ├── student/
+│   │   │   │   └── page.tsx
+│   │   │   ├── teacher/
+│   │   │   │   └── page.tsx
+│   │   │   └── layout.tsx
+│   │   ├── sign-in/
+│   │   │   └── page.tsx
+│   │   ├── favicon.ico
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components/
+│   │   ├── auth/
+│   │   │   ├── AuthFooter.tsx
+│   │   │   ├── AuthHeader.tsx
+│   │   │   ├── AuthToggle.tsx
+│   │   │   ├── InputField.tsx
+│   │   │   ├── LoginForm.tsx
+│   │   │   ├── RegisterForm.tsx
+│   │   │   └── SocialLogin.tsx
+│   │   ├── forms/
+│   │   │   ├── StudentForm.tsx
+│   │   │   └── TeacherForm.tsx
+│   │   ├── ui/
+│   │   │   └── Button.tsx
+│   │   ├── .DS_Store
+│   │   ├── Announcements.tsx
+│   │   ├── AttendanceChart.tsx
+│   │   ├── BigCalender.tsx
+│   │   ├── CountChart.tsx
+│   │   ├── EventCalendar.tsx
+│   │   ├── FinanceChart.tsx
+│   │   ├── FormModal.tsx
+│   │   ├── InputField.tsx
+│   │   ├── Menu.tsx
+│   │   ├── Navbar.tsx
+│   │   ├── Pagination.tsx
+│   │   ├── Performance.tsx
+│   │   ├── ProtectedRoute.tsx
+│   │   ├── Table.tsx
+│   │   ├── TableSearch.tsx
+│   │   └── UserCard.tsx
+│   ├── context/
+│   │   └── authContext.tsx
+│   ├── lib/
+│   │   ├── axios.ts
+│   │   └── data.ts
+│   └── .DS_Store
+├── .DS_Store
+├── .env
+├── .eslintrc.json
+├── .gitignore
+├── code_dump.txt
+├── dir.py
+├── next-env.d.ts
+├── next.config.mjs
+├── package-lock.json
+├── package.json
+├── postcss.config.mjs
+├── README.md
+├── tailwind.config.ts
+└── tsconfig.json

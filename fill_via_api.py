@@ -8,14 +8,14 @@ Usage:
 Populates (in order):
   • grades
   • subjects
-  • mark schemes  (+ mark-components ‘CC’ 40 % and ‘EXAM’ 60 %)
+  • mark schemes  (+ mark‑components ‘CC’ 40 % and ‘EXAM’ 60 %)
   • parents   (+ user records)
   • teachers  (+ user records)
   • classes
   • students  (+ user records)
   • lessons
   • exams  + assignments
-  • results  (random scores, tagged to exams)
+  • results  (random scores, tagged to exams, kind = CC | EXAM)
   • attendance rows
   • announcements
 
@@ -25,6 +25,7 @@ Dependencies:
 
 from __future__ import annotations
 
+# Comment: standard libs
 import argparse
 import itertools
 import random
@@ -33,6 +34,7 @@ import sys
 from collections import defaultdict
 from typing import Dict, List
 
+# Comment: 3rd‑party libs
 import requests
 from faker import Faker
 from tqdm import tqdm
@@ -42,51 +44,47 @@ from tqdm import tqdm
 fake = Faker()
 rand = random.Random()
 
+# Comment: keep track of already used usernames so we never repeat them
+authored_usernames: set[str] = set()
+
 
 def _rand_phone() -> str:
-    """12-digit fake phone number."""
+    """Return a 12‑digit fake phone number."""
     return fake.msisdn()[:12]
 
 
 def _rand_blood() -> str:
-    return rand.choice(["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"])
+    """Return a random blood type."""
+    return rand.choice(["A+", "A‑", "B+", "B‑", "AB+", "AB‑", "O+", "O‑"])
 
 
-def _unique(username: str, seen: set[str]) -> str:
-    """
-    Ensure username is unique for this run (duplicates → add "-xxxxxx" suffix).
-    """
-    if username not in seen:
-        seen.add(username)
+def _unique(username: str) -> str:
+    """Ensure username is unique for *this* run (duplicates → add suffix)."""
+    if username not in authored_usernames:
+        authored_usernames.add(username)
         return username
 
     base = username.split("@")[0]
     while True:
         candidate = f"{base}-{''.join(rand.choices(string.ascii_lowercase + string.digits, k=6))}"
-        if candidate not in seen:
-            seen.add(candidate)
+        if candidate not in authored_usernames:
+            authored_usernames.add(candidate)
             return candidate
 
 
+# Comment: simple POST wrapper that retries once on duplicate‑username errors
 def _post(session: requests.Session, url: str, payload: dict, retries: int = 1):
-    """
-    Thin wrapper around POST that raises on failure.
-    If we hit a duplicate-username error we retry once with a new suffix.
-    """
     while True:
         r = session.post(url, json=payload)
         if r.status_code in (200, 201):
             return r.json()
 
-        if (
-            retries
-            and r.status_code in (400, 409, 500)
-            and "Duplicate" in r.text
-        ):
+        # Comment: try once more if duplicate username detected
+        if retries and r.status_code in (400, 409, 500) and "Duplicate" in r.text:
             retries -= 1
             payload = payload.copy()
-            usr = payload.get("user") or payload          # teachers/parents etc. wrap user
-            usr["username"] = _unique(usr["username"], set())
+            usr = payload.get("user") or payload  # teachers/parents/students wrap user
+            usr["username"] = _unique(usr["username"])
             continue
 
         raise RuntimeError(f"POST {url} → {r.status_code} : {r.text}")
@@ -106,14 +104,9 @@ def create_subjects(s: requests.Session, host: str) -> Dict[str, int]:
     return {n: _post(s, f"{host}/subjects", {"name": n})["id"] for n in names}
 
 
-def create_mark_schemes(s, host: str,
+def create_mark_schemes(s: requests.Session, host: str,
                         grades: Dict[int, int],
                         subjects: Dict[str, int]) -> None:
-    """
-    For every (grade, subject) pair create:
-        • a SubjectGradeScheme (coefficient = 1)
-        • two MarkComponents →  'CC' 40 %  and  'EXAM' 60 %
-    """
     kinds = [("CC", 40), ("EXAM", 60)]
 
     for gid in tqdm(grades.values(), desc="schemes", leave=False):
@@ -132,8 +125,8 @@ def create_mark_schemes(s, host: str,
                 })
 
 
-def create_parents(s, host, n: int, seen: set[str]) -> List[int]:
-    ids = []
+def create_parents(s: requests.Session, host: str, n: int) -> List[int]:
+    ids: List[int] = []
     for _ in tqdm(range(n), desc="parents"):
         email = fake.email()
         payload = {
@@ -142,7 +135,7 @@ def create_parents(s, host, n: int, seen: set[str]) -> List[int]:
             "email": email,
             "address": fake.address(),
             "user": {
-                "username": _unique(email, seen),
+                "username": _unique(email),
                 "password": "pwd"
             }
         }
@@ -150,7 +143,7 @@ def create_parents(s, host, n: int, seen: set[str]) -> List[int]:
     return ids
 
 
-def create_teachers(s, host, subjects, n: int, seen: set[str]) -> List[int]:
+def create_teachers(s: requests.Session, host: str, subjects, n: int) -> List[int]:
     ids, subs = [], list(subjects.values())
     for _ in tqdm(range(n), desc="teachers"):
         email = fake.email()
@@ -164,7 +157,7 @@ def create_teachers(s, host, subjects, n: int, seen: set[str]) -> List[int]:
             "sex": rand.choice(["MALE", "FEMALE"]),
             "birthday": str(fake.date_of_birth(minimum_age=25, maximum_age=55)),
             "user": {
-                "username": _unique(email, seen),
+                "username": _unique(email),
                 "password": "pwd"
             }
         }
@@ -172,11 +165,11 @@ def create_teachers(s, host, subjects, n: int, seen: set[str]) -> List[int]:
     return ids
 
 
-def create_classes(s, host, grades: Dict[int, int], teachers: List[int], per_grade: int) -> List[int]:
-    ids = []
+def create_classes(s: requests.Session, host: str, grades: Dict[int, int], teachers: List[int], per_grade: int) -> List[int]:
+    ids: List[int] = []
     for level, gid in grades.items():
         for idx in range(per_grade):
-            name = f"{level}{chr(65 + idx)}"
+            name = f"{level}{chr(65 + idx)}"  # Comment: 1A, 1B …
             payload = {
                 "name": f"Class {name}",
                 "capacity": 30,
@@ -187,8 +180,8 @@ def create_classes(s, host, grades: Dict[int, int], teachers: List[int], per_gra
     return ids
 
 
-def create_students(s, host, parents, classes, n: int, seen: set[str]) -> List[int]:
-    ids = []
+def create_students(s: requests.Session, host: str, parents, classes, n: int) -> List[int]:
+    ids: List[int] = []
     for _ in tqdm(range(n), desc="students"):
         cid = rand.choice(classes)
         email = fake.email()
@@ -204,7 +197,7 @@ def create_students(s, host, parents, classes, n: int, seen: set[str]) -> List[i
             "parent": {"id": rand.choice(parents)},
             "schoolClass": {"id": cid},
             "user": {
-                "username": _unique(email, seen),
+                "username": _unique(email),
                 "password": "pwd"
             }
         }
@@ -212,8 +205,8 @@ def create_students(s, host, parents, classes, n: int, seen: set[str]) -> List[i
     return ids
 
 
-def create_lessons(s, host, subjects, teachers, classes, days) -> List[int]:
-    ids = []
+def create_lessons(s: requests.Session, host: str, subjects, teachers, classes, days) -> List[int]:
+    ids: List[int] = []
     for cls, day in tqdm(itertools.product(classes, days), desc="lessons", total=len(classes)*len(days)):
         payload = {
             "topic": f"{fake.word().title()} - {day}",
@@ -229,7 +222,7 @@ def create_lessons(s, host, subjects, teachers, classes, days) -> List[int]:
     return ids
 
 
-def create_exams_and_assignments(s, host, lessons):
+def create_exams_and_assignments(s: requests.Session, host: str, lessons):
     exam_ids, ass_ids = [], []
     for lid in tqdm(lessons, desc="exams+ass"):
         exam_ids.append(_post(s, f"{host}/exams", {
@@ -245,18 +238,20 @@ def create_exams_and_assignments(s, host, lessons):
     return exam_ids, ass_ids
 
 
-def create_results(s, host, students, exams):
+def create_results(s: requests.Session, host: str, students, exams):
+    kinds = ["CC", "EXAM"]  # Comment: must match MarkComponent kinds
     for sid in tqdm(students, desc="results"):
         for eid in rand.sample(exams, min(5, len(exams))):
             _post(s, f"{host}/results", {
                 "score": round(rand.uniform(30, 100), 1),
                 "student": {"id": sid},
                 "exam": {"id": eid},
+                "kind": rand.choice(kinds),
                 "isFinal": rand.choice([True, False])
             })
 
 
-def create_attendance(s, host, students, lessons):
+def create_attendance(s: requests.Session, host: str, students, lessons):
     statuses = ["PRESENT", "ABSENT", "LATE"]
     for sid in tqdm(students, desc="attendance"):
         for lid in rand.sample(lessons, min(15, len(lessons))):
@@ -268,7 +263,7 @@ def create_attendance(s, host, students, lessons):
             })
 
 
-def create_announcements(s, host, classes, n: int):
+def create_announcements(s: requests.Session, host: str, classes, n: int):
     for _ in tqdm(range(n), desc="announcements"):
         _post(s, f"{host}/announcements", {
             "title": fake.sentence(nb_words=6),
@@ -305,17 +300,15 @@ def main() -> None:
 
     # ----------------------------------------------------------- seed
     print('Seeding reference data…')
-    used_usernames: set[str] = set()
 
     grades   = create_grades(sess, args.host)
     subjects = create_subjects(sess, args.host)
-
     create_mark_schemes(sess, args.host, grades, subjects)
 
-    parents  = create_parents(sess, args.host, args.parents,  used_usernames)
-    teachers = create_teachers(sess, args.host, subjects, args.teachers, used_usernames)
+    parents  = create_parents(sess, args.host, args.parents)
+    teachers = create_teachers(sess, args.host, subjects, args.teachers)
     classes  = create_classes(sess, args.host, grades, teachers, per_grade=2)
-    students = create_students(sess, args.host, parents, classes, args.students, used_usernames)
+    students = create_students(sess, args.host, parents, classes, args.students)
 
     days     = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
     lessons  = create_lessons(sess, args.host, subjects, teachers, classes, days)

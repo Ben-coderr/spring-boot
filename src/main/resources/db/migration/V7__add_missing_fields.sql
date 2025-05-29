@@ -4,3 +4,5 @@ ALTER TABLE student
 
 ALTER TABLE teacher
     ADD COLUMN place_of_birth VARCHAR(255);
+
+ALTER TABLE result ADD COLUMN kind VARCHAR(30);
