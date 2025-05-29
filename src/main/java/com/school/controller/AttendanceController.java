@@ -2,7 +2,10 @@ package com.school.controller;
 
 import com.school.model.Attendance;
 import com.school.repository.AttendanceRepository;
+import com.school.repository.StudentRepository;
+import com.school.repository.LessonRepository;
 import com.school.dto.AttendanceDto;
+import com.school.dto.AttendanceMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -19,14 +22,20 @@ public class AttendanceController {
 
     private final AttendanceRepository attendanceRepo;
     private final AttendanceService    attendanceService;
+    private final StudentRepository    studentRepo;
+    private final LessonRepository     lessonRepo;
 
     //only possible statuses are here
     private final Set<String> allowed = Set.of("PRESENT", "ABSENT", "LATE");
 
     public AttendanceController(AttendanceRepository repo,
-                                AttendanceService    service) {
+                                AttendanceService    service,
+                                StudentRepository    students,
+                                LessonRepository     lessons) {
         this.attendanceRepo  = repo;
         this.attendanceService = service;
+        this.studentRepo      = students;
+        this.lessonRepo       = lessons;
    }
 
     @GetMapping
@@ -54,21 +63,19 @@ public class AttendanceController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public AttendanceDto createAttendance(@RequestBody Attendance body) {
+    public AttendanceDto createAttendance(@RequestBody AttendanceDto body) {
 
-        if (body.getDate() == null)
+        if (body.date() == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "date required");
-        //Validation of status
-        if (!allowed.contains(body.getStatus()))
+        if (body.status() == null || !allowed.contains(body.status()))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "status must be PRESENT / ABSENT / LATE");
-
-        if (body.getStudent() == null)
+        if (body.studentId() == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "student required");
-
-        if (body.getLesson() == null)
+        if (body.lessonId() == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "lesson required");
 
-        return AttendanceDto.from(attendanceRepo.save(body));
+        Attendance entity = AttendanceMapper.toEntity(body, studentRepo, lessonRepo);
+        return AttendanceMapper.toDto(attendanceRepo.save(entity));
     }
 
     @PostMapping("/bulk")
@@ -86,22 +93,12 @@ public class AttendanceController {
 
 
     @PutMapping("{id}")
-    public AttendanceDto updateAttendance(@PathVariable Long id, @RequestBody Attendance in) {
+    public AttendanceDto updateAttendance(@PathVariable Long id, @RequestBody AttendanceDto in) {
 
         Attendance attendance = attendanceRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "attendance " + id + " not found"));
-
-        if (in.getStatus() != null) {
-            if (!allowed.contains(in.getStatus()))
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid status");
-            attendance.setStatus(in.getStatus());
-        }
-
-        if (in.getDate() != null) attendance.setDate(in.getDate());
-        if (in.getStudent() != null) attendance.setStudent(in.getStudent());
-        if (in.getLesson()  != null) attendance.setLesson(in.getLesson());
-
-        return AttendanceDto.from(attendanceRepo.save(attendance));
+        AttendanceMapper.copyOnWrite(in, attendance, studentRepo, lessonRepo);
+        return AttendanceMapper.toDto(attendanceRepo.save(attendance));
     }
 
     @DeleteMapping("{id}")

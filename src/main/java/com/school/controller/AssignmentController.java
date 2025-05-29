@@ -2,7 +2,9 @@ package com.school.controller;
 
 import com.school.model.Assignment;
 import com.school.repository.AssignmentRepository;
+import com.school.repository.LessonRepository;
 import com.school.dto.AssignmentDto;
+import com.school.dto.AssignmentMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -15,14 +17,19 @@ import java.util.ArrayList;
 public class AssignmentController {
 
     private final AssignmentRepository assignmentRepo;
-    public AssignmentController(AssignmentRepository repo){ this.assignmentRepo = repo; }
+    private final LessonRepository     lessonRepo;
+    public AssignmentController(AssignmentRepository repo,
+                                LessonRepository lessons){
+        this.assignmentRepo = repo;
+        this.lessonRepo     = lessons;
+    }
 
     @GetMapping
     public List<AssignmentDto> allAssignments(){
         List<Assignment> all = assignmentRepo.findAll();
         List<AssignmentDto> out = new ArrayList<>();
         for (Assignment assignment : all) {
-            out.add(AssignmentDto.from(assignment));
+            out.add(AssignmentMapper.toDto(assignment));
         }
         return out;
     }
@@ -31,26 +38,28 @@ public class AssignmentController {
     public AssignmentDto findAssignment(@PathVariable Long id){
         Assignment assignment = assignmentRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"assignment "+id+" not found"));
-        return AssignmentDto.from(assignment);
+        return AssignmentMapper.toDto(assignment);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public AssignmentDto createAssignment(@RequestBody Assignment body){
-        if(body.getTitle()==null || body.getTitle().isBlank())
+    public AssignmentDto createAssignment(@RequestBody AssignmentDto body){
+        if(body.title()==null || body.title().isBlank())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"title required");
-        if(body.getLesson()==null)
+        if(body.lessonId()==null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"lesson required");
-        return AssignmentDto.from(assignmentRepo.save(body));
+
+        Assignment entity = AssignmentMapper.toEntity(body, lessonRepo);
+        return AssignmentMapper.toDto(assignmentRepo.save(entity));
     }
 
     @PutMapping("{id}")
-    public AssignmentDto updateAssignment(@PathVariable Long id,@RequestBody Assignment in){
+    public AssignmentDto updateAssignment(@PathVariable Long id,@RequestBody AssignmentDto in){
         Assignment assignment = assignmentRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"assignment "+id+" not found"));
-        if(in.getTitle()!=null)   assignment.setTitle(in.getTitle());
-        if(in.getDueDate()!=null) assignment.setDueDate(in.getDueDate());
-        return AssignmentDto.from(assignmentRepo.save(assignment));
+
+        AssignmentMapper.copyOnWrite(in, assignment, lessonRepo);
+        return AssignmentMapper.toDto(assignmentRepo.save(assignment));
     }
 
     @DeleteMapping("{id}")

@@ -4,6 +4,7 @@ import com.school.model.*;
 import com.school.repository.*;
 import com.school.dto.TeacherDto;
 import com.school.dto.TeacherReq;
+import com.school.dto.TeacherMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -97,23 +98,13 @@ public class TeacherController { // teacher endpoints
     }
 
     @PutMapping("{id}")
-    public TeacherDto updateTeacher(@PathVariable Long id, @RequestBody Teacher in) {
+    public TeacherDto updateTeacher(@PathVariable Long id, @RequestBody TeacherDto in) {
 
         Teacher teacher = teacherRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "teacher " + id + " not found"));
 
-        if (in.getFullName() != null) teacher.setFullName(in.getFullName());
-
-        if (in.getEmail() != null) {
-            if (!in.getEmail().contains("@"))
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid email");
-            teacher.setEmail(in.getEmail());
-        }
-
-        // if (in.getPassword() != null) teacher.setPassword(in.getPassword());
-        if (in.getSubject()  != null) teacher.setSubject(in.getSubject());
-
-        return TeacherDto.from(teacherRepo.save(teacher));
+        TeacherMapper.copyOnWrite(in, teacher, subjectRepo);
+        return TeacherMapper.toDto(teacherRepo.save(teacher));
     }
 
     @DeleteMapping("{id}")

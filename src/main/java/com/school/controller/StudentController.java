@@ -137,7 +137,7 @@ public class StudentController {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "student not found"));
 
-        StudentMapper.copyOnWrite(in, entity, classRepo);
+        StudentMapper.copyOnWrite(in, entity, classRepo, parentRepo);
         return StudentMapper.toDto(studentRepo.save(entity));
     }
 
