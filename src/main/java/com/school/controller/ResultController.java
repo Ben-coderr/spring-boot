@@ -42,19 +42,15 @@ public class ResultController {
     }
 
     @GetMapping("/student/{id}/average")
-    public double meanForStudent(@PathVariable Long id,
-                                 @RequestParam(value = "scheme", required = false)
-                                 Long schemeId) {
-        return stats.avgForStudent(id, schemeId);
+    public double meanForStudent(@PathVariable Long id) {
+        return stats.avgForStudent(id);
     }
 
     // GET /results/student/{id}/subject/{sub}/average
     @GetMapping("/student/{id}/subject/{sub}/average")
     public double meanForStudentInSubject(@PathVariable Long id,
-                                         @PathVariable("sub") Long subjectId,
-                                          @RequestParam(value = "scheme", required = false)
-                                          Long schemeId) {
-        return stats.avgForStudentSubject(id, subjectId, schemeId);
+                                         @PathVariable("sub") Long subjectId) {
+        return stats.avgForStudentSubject(id, subjectId);
     }
 
     @PostMapping
@@ -64,6 +60,8 @@ public class ResultController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"score required");
         if(body.getStudent() == null || body.getExam() == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"student and exam required");
+        if(body.getKind() == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"kind required");
 
         // If not passed in request, default isFinal to false
         if(body.getIsFinal() == null) body.setIsFinal(false);
@@ -76,9 +74,11 @@ public class ResultController {
         Result result = results.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"result "+id+" not found"));
         if(in.getScore()!=null) result.setScore(in.getScore());
+        if(in.getKind()!=null)  result.setKind(in.getKind());
         return ResultDto.from(results.save(result));
     }
 
     @DeleteMapping("{id}")
     public void delete(@PathVariable Long id){ results.deleteById(id); }
 }
+

@@ -11,8 +11,9 @@ public class Result {
     @ManyToOne(fetch = FetchType.LAZY)
     private Exam exam;
     private Boolean isFinal;
-    @ManyToOne(fetch = FetchType.LAZY)
-    private MarkComponent component;
+
+    // 'CC', 'EXAM' or 'ATTENDANCE'
+    private String kind;
 
 
     public Long getId() { return id; }
@@ -25,4 +26,8 @@ public class Result {
     public void setExam(Exam exam) { this.exam = exam; }
     public Boolean getIsFinal() { return isFinal; }
     public void setIsFinal(Boolean isFinal) { this.isFinal = isFinal; }
+
+    public String getKind() { return kind; }
+    public void setKind(String kind) { this.kind = kind; }
 }
+

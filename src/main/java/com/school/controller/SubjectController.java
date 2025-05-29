@@ -48,9 +48,13 @@ public class SubjectController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"subject "+id+" not found"));
         if(in.getName()!=null) subject.setName(in.getName());
         if(in.getCoefficient()!=null) subject.setCoefficient(in.getCoefficient());
+        if(in.getCcWeight()!=null) subject.setCcWeight(in.getCcWeight());
+        if(in.getExamWeight()!=null) subject.setExamWeight(in.getExamWeight());
+        if(in.getAttendanceWeight()!=null) subject.setAttendanceWeight(in.getAttendanceWeight());
         return SubjectDto.from(subjects.save(subject));
     }
 
     @DeleteMapping("{id}")
     public void delete(@PathVariable Long id){ subjects.deleteById(id); }
 }
+

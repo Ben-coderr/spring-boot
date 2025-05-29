@@ -49,18 +49,16 @@ public class BulletinService {
 
         /* ---- 2. weighted finals (scheme-aware) ----------------------- */
         Map<Long,Double> finals = new HashMap<>();
-        Long gradeId = student.getSchoolClass().getGrade().getId();
-
         for (Long subjectId : raw.keySet()) {
             double fin = resultService
-                    .avgForStudentSubject(studentId, subjectId, gradeId);
+                    .avgForStudentSubject(studentId, subjectId);
             finals.put(subjectId, fin);
         }
         out.put("finals", finals);
 
         /* ---- 3. overall + attendance -------------------------------- */
         double overall = resultService
-                .avgForStudent(studentId, gradeId);
+                .avgForStudent(studentId);
         out.put("overallAverage", overall);
 
         long total   = attendanceRepo.countByStudentId(studentId);
@@ -70,3 +68,4 @@ public class BulletinService {
         return out;
     }
 }
+
