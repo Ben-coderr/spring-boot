@@ -193,7 +193,7 @@ public class TeacherController { // teacher endpoints
     @PutMapping("{tid}/exams/{eid}")
     public ExamDto updateExam(@PathVariable("tid") Long teacherId,
                               @PathVariable("eid") Long examId,
-                              @RequestBody Exam in) {
+                              @RequestBody ExamDto in) {
         Exam exam = examRepo.findById(examId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "exam " + examId + " not found"));
         if (exam.getLesson() == null)
@@ -202,8 +202,8 @@ public class TeacherController { // teacher endpoints
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "teacher not set");
         if (!exam.getLesson().getTeacher().getId().equals(teacherId))
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "exam " + examId + " not for teacher " + teacherId);
-        if (in.getTitle() != null) exam.setTitle(in.getTitle());
-        if (in.getExamDate() != null) exam.setExamDate(in.getExamDate());
+        if (in.title() != null)       exam.setTitle(in.title());
+        if (in.examDate() != null)    exam.setExamDate(in.examDate());
         return ExamDto.from(examRepo.save(exam));
     }
 

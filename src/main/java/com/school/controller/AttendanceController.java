@@ -55,10 +55,8 @@ public class AttendanceController {
         return AttendanceDto.from(attendance);
     }
 
-    @GetMapping("/student/{sid}/percent")
-    public java.util.Map<String,Object> percentageForStudent(@PathVariable("sid") Long studentId){
-        return attendanceService.percentage(studentId);
-    }
+    // (duplicate percentage endpoint removed – use
+    //  /students/{id}/attendance/percentage instead)
 
 
     @PostMapping
@@ -67,7 +65,7 @@ public class AttendanceController {
 
         if (body.getDate() == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "date required");
-        if (body.getStatus() == null || !allowed.contains(body.getStatus()))
+        if (body.getStatus() == null || !allowed.contains(body.getStatus().toUpperCase()))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "status must be PRESENT / ABSENT / LATE");
         if (body.getStudent() == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "student required");
