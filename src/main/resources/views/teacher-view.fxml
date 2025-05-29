@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.image.Image?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.example.school_managment.controllers.TeacherController"
+      spacing="10">
+
+    <HBox alignment="CENTER_LEFT" spacing="15">
+        <Label text="All Teachers" styleClass="page-title"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <HBox styleClass="search-box" alignment="CENTER">
+            <TextField fx:id="searchField" promptText="Search..." styleClass="search-field"/>
+            <Button styleClass="search-button">
+                <graphic>
+                    <ImageView fitHeight="20.0" fitWidth="20.0">
+                        <Image url="@../images/search.png"/>
+                    </ImageView>
+                </graphic>
+            </Button>
+        </HBox>
+        <Button fx:id="filterButton" styleClass="filter-button">
+            <graphic>
+                <ImageView fitHeight="20.0" fitWidth="20.0">
+                    <Image url="@../images/filter.png"/>
+                </ImageView>
+            </graphic>
+        </Button>
+        <Button fx:id="sortButton" styleClass="sort-button">
+            <graphic>
+                <ImageView fitHeight="20.0" fitWidth="20.0">
+                    <Image url="@../images/sort.png"/>
+                </ImageView>
+            </graphic>
+        </Button>
+        <Button fx:id="addButton" text="+" styleClass="add-button"/>
+    </HBox>
+
+    <VBox spacing="10">
+        <TableView fx:id="teacherTable" styleClass="teacher-table">
+            <columns>
+                <TableColumn fx:id="nameColumn" text="Info" prefWidth="200"/>
+                <TableColumn fx:id="idColumn" text="Teacher ID" prefWidth="100"/>
+                <TableColumn fx:id="emailColumn" text="Email" prefWidth="180"/>
+                <TableColumn fx:id="subjectsColumn" text="Subjects" prefWidth="150"/>
+                <TableColumn fx:id="classesColumn" text="Classes" prefWidth="120"/>
+                <TableColumn fx:id="phoneColumn" text="Phone" prefWidth="140"/>
+                <TableColumn fx:id="addressColumn" text="Address" prefWidth="250"/>
+                <TableColumn fx:id="actionsColumn" text="Actions" prefWidth="100"/>
+            </columns>
+        </TableView>
+
+        <Pagination fx:id="pagination" maxPageIndicatorCount="5" styleClass="pagination"/>
+    </VBox>
+
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+</VBox>
