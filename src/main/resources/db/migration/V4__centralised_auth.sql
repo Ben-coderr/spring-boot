@@ -16,12 +16,12 @@ ALTER TABLE student   DROP COLUMN password;
 -- 3. wire the three tables to USERS
 ALTER TABLE parent
   ADD CONSTRAINT fk_parent_user
-      FOREIGN KEY (user_id) REFERENCES users(id);
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
 
 ALTER TABLE teacher
   ADD CONSTRAINT fk_teacher_user
-      FOREIGN KEY (user_id) REFERENCES users(id);
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
 
 ALTER TABLE student
   ADD CONSTRAINT fk_student_user
-      FOREIGN KEY (user_id) REFERENCES users(id);
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;

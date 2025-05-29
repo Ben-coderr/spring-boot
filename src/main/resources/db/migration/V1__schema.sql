@@ -31,7 +31,7 @@ CREATE TABLE teacher (
   sex         ENUM('MALE','FEMALE'),
   birthday    DATE,
   created_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (subject_id) REFERENCES subject(id)
+  FOREIGN KEY (subject_id) REFERENCES subject(id) ON DELETE CASCADE
 );
 
 CREATE TABLE admin (
@@ -48,8 +48,8 @@ CREATE TABLE school_class (
   capacity       INT DEFAULT 30,
   grade_id       BIGINT NOT NULL,
   supervisor_id  BIGINT,                         -- teacher who oversees the class
-  FOREIGN KEY (grade_id)      REFERENCES grade(id),
-  FOREIGN KEY (supervisor_id) REFERENCES teacher(id)
+  FOREIGN KEY (grade_id)      REFERENCES grade(id) ON DELETE CASCADE,
+  FOREIGN KEY (supervisor_id) REFERENCES teacher(id) ON DELETE CASCADE
 );
 
 CREATE TABLE student (
@@ -69,8 +69,8 @@ CREATE TABLE student (
   parent_id       BIGINT,
   school_class_id BIGINT NOT NULL,
 
-  FOREIGN KEY (parent_id)       REFERENCES parent(id),
-  FOREIGN KEY (school_class_id) REFERENCES school_class(id)
+  FOREIGN KEY (parent_id)       REFERENCES parent(id) ON DELETE CASCADE,
+  FOREIGN KEY (school_class_id) REFERENCES school_class(id) ON DELETE CASCADE
 );
 
 CREATE TABLE lesson (
@@ -85,9 +85,9 @@ CREATE TABLE lesson (
   teacher_id      BIGINT,
   school_class_id BIGINT,
 
-  FOREIGN KEY (subject_id)      REFERENCES subject(id),
-  FOREIGN KEY (teacher_id)      REFERENCES teacher(id),
-  FOREIGN KEY (school_class_id) REFERENCES school_class(id)
+  FOREIGN KEY (subject_id)      REFERENCES subject(id) ON DELETE CASCADE,
+  FOREIGN KEY (teacher_id)      REFERENCES teacher(id) ON DELETE CASCADE,
+  FOREIGN KEY (school_class_id) REFERENCES school_class(id) ON DELETE CASCADE
 );
 
 CREATE TABLE exam (
@@ -95,7 +95,7 @@ CREATE TABLE exam (
   title      VARCHAR(150),
   exam_date  DATE,
   lesson_id  BIGINT,
-  FOREIGN KEY (lesson_id) REFERENCES lesson(id)
+  FOREIGN KEY (lesson_id) REFERENCES lesson(id) ON DELETE CASCADE
 );
 
 CREATE TABLE assignment (
@@ -103,7 +103,7 @@ CREATE TABLE assignment (
   title      VARCHAR(150),
   due_date   DATE,
   lesson_id  BIGINT,
-  FOREIGN KEY (lesson_id) REFERENCES lesson(id)
+  FOREIGN KEY (lesson_id) REFERENCES lesson(id) ON DELETE CASCADE
 );
 
 CREATE TABLE result (
@@ -111,8 +111,8 @@ CREATE TABLE result (
   score      DOUBLE,
   student_id BIGINT,
   exam_id    BIGINT,
-  FOREIGN KEY (student_id) REFERENCES student(id),
-  FOREIGN KEY (exam_id)    REFERENCES exam(id)
+  FOREIGN KEY (student_id) REFERENCES student(id) ON DELETE CASCADE,
+  FOREIGN KEY (exam_id)    REFERENCES exam(id) ON DELETE CASCADE
 );
 
 CREATE TABLE attendance (
@@ -121,8 +121,8 @@ CREATE TABLE attendance (
   date       DATE,
   student_id BIGINT,
   lesson_id  BIGINT,
-  FOREIGN KEY (student_id) REFERENCES student(id),
-  FOREIGN KEY (lesson_id)  REFERENCES lesson(id)
+  FOREIGN KEY (student_id) REFERENCES student(id) ON DELETE CASCADE,
+  FOREIGN KEY (lesson_id)  REFERENCES lesson(id) ON DELETE CASCADE
 );
 
 CREATE TABLE announcement (
@@ -131,5 +131,5 @@ CREATE TABLE announcement (
   content         TEXT,
   published_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
   school_class_id BIGINT,
-  FOREIGN KEY (school_class_id) REFERENCES school_class(id)
+  FOREIGN KEY (school_class_id) REFERENCES school_class(id) ON DELETE CASCADE
 );
