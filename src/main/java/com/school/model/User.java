@@ -23,12 +23,6 @@ public class User implements UserDetails {
 
     @Enumerated(EnumType.STRING)
     private Role role;
-    @Column(nullable = false, columnDefinition = "TINYINT(1) DEFAULT 0")
-    private boolean approved = false; // is account approved
-
-    public boolean isApproved()           { return approved; }
-    // set approval flag
-    public void    setApproved(boolean approved) { this.approved = approved; }
 
     @Override public Collection<? extends GrantedAuthority> getAuthorities() { // roles as auth
         return List.of(new SimpleGrantedAuthority("ROLE_" + role));

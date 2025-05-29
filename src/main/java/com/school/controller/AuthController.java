@@ -56,7 +56,6 @@ public class AuthController { // endpoints for auth
         user.setUsername(req.username());
         user.setPassword(encoder.encode(req.password()));
         user.setRole(Role.STUDENT);
-        user.setApproved(false);
         Student student = new Student();
         student.setFullName(req.fullName());
         student.setEmail(req.email());
@@ -74,7 +73,6 @@ public class AuthController { // endpoints for auth
         user.setUsername(req.username());
         user.setPassword(encoder.encode(req.password()));
         user.setRole(Role.TEACHER);
-        user.setApproved(false);
         Teacher teacher = new Teacher();
         teacher.setFullName(req.fullName());
         teacher.setEmail(req.email());
@@ -92,7 +90,6 @@ public class AuthController { // endpoints for auth
         user.setUsername(req.username());
         user.setPassword(encoder.encode(req.password()));
         user.setRole(Role.PARENT);
-        user.setApproved(false);
         Parent parent = new Parent();
         parent.setFullName(req.fullName());
         parent.setEmail(req.email());
@@ -110,11 +107,6 @@ public class AuthController { // endpoints for auth
 
         User user = (User) auth.getPrincipal();
 
-        //refuse unapproved accounts
-        if (!user.isApproved()) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,"Account not approved");
-        }
-        
 
         String fullName = resolveFullName(user);
         String token = jwt.generateToken(user, fullName);
