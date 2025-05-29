@@ -28,6 +28,9 @@ public class StudentController {
     private final PasswordEncoder       passwordEncoder;
     private final UserRepository        userRepo;
     private final ParentRepository      parentRepo;
+    private final ResultRepository      resultRepo;
+    private final AttendanceRepository  attendanceRepo;
+    private final LessonRepository      lessonRepo;
 
     public StudentController(
         StudentRepository     studentRepo,
@@ -36,7 +39,10 @@ public class StudentController {
         AttendanceService     attendance,
         PasswordEncoder       passwordEncoder,
         UserRepository        userRepo,
-        ParentRepository      parentRepo
+        ParentRepository      parentRepo,
+        ResultRepository      resultRepo,
+        AttendanceRepository  attendanceRepo,
+        LessonRepository      lessonRepo
     ) {
         this.studentRepo        = studentRepo;
         this.classRepo          = classRepo;
@@ -45,6 +51,9 @@ public class StudentController {
         this.passwordEncoder    = passwordEncoder;
         this.userRepo           = userRepo;
         this.parentRepo         = parentRepo;
+        this.resultRepo         = resultRepo;
+        this.attendanceRepo     = attendanceRepo;
+        this.lessonRepo         = lessonRepo;
     }
 
     
@@ -147,6 +156,71 @@ public class StudentController {
     public StudentDto changeClass(@PathVariable Long id,
                                   @PathVariable("targetId") Long newClass) {
         return StudentMapper.toDto(studentService.move(id, newClass));
+    }
+
+    @GetMapping("{id}/results")
+    public List<ResultDto> resultsForStudent(@PathVariable Long id) {
+        findStudent(id);
+        List<Result> all = resultRepo.findByStudent_Id(id);
+        List<ResultDto> out = new ArrayList<>();
+        for (Result r : all) out.add(ResultDto.from(r));
+        return out;
+    }
+
+    @PostMapping("{id}/results")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Result createResult(@PathVariable Long id, @RequestBody Result body) {
+        Student student = studentRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "student not found"));
+        if (body.getExam() == null || body.getScore() == null || body.getKind() == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "exam, score and kind required");
+        body.setStudent(student);
+        if (body.getIsFinal() == null) body.setIsFinal(false);
+        return resultRepo.save(body);
+    }
+
+    @PutMapping("{sid}/results/{rid}")
+    public ResultDto updateResult(@PathVariable("sid") Long studentId,
+                                  @PathVariable("rid") Long resultId,
+                                  @RequestBody Result in) {
+        Result result = resultRepo.findById(resultId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "result not found"));
+        if (!result.getStudent().getId().equals(studentId))
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "result " + resultId + " not for student " + studentId);
+        if (in.getScore() != null) result.setScore(in.getScore());
+        if (in.getKind() != null) result.setKind(in.getKind());
+        return ResultDto.from(resultRepo.save(result));
+    }
+
+    @GetMapping("{id}/attendance")
+    public List<AttendanceDto> attendanceForStudent(@PathVariable Long id) {
+        findStudent(id);
+        List<Attendance> all = attendanceRepo.findByStudentId(id);
+        List<AttendanceDto> out = new ArrayList<>();
+        for (Attendance a : all) out.add(AttendanceDto.from(a));
+        return out;
+    }
+
+    @PostMapping("{id}/attendance")
+    @ResponseStatus(HttpStatus.CREATED)
+    public AttendanceDto createAttendanceForStudent(@PathVariable Long id, @RequestBody AttendanceDto body) {
+        Attendance entity = AttendanceMapper.toEntity(body, studentRepo, lessonRepo);
+        // enforce student id from path
+        entity.setStudent(studentRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "student not found")));
+        return AttendanceMapper.toDto(attendanceRepo.save(entity));
+    }
+
+    @PutMapping("{sid}/attendance/{aid}")
+    public AttendanceDto updateAttendanceForStudent(@PathVariable("sid") Long studentId,
+                                                    @PathVariable("aid") Long attendanceId,
+                                                    @RequestBody AttendanceDto in) {
+        Attendance att = attendanceRepo.findById(attendanceId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "attendance not found"));
+        if (!att.getStudent().getId().equals(studentId))
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "attendance " + attendanceId + " not for student " + studentId);
+        AttendanceMapper.copyOnWrite(in, att, studentRepo, lessonRepo);
+        return AttendanceMapper.toDto(attendanceRepo.save(att));
     }
 
 

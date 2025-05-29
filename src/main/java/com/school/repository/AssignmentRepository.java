@@ -2,4 +2,10 @@ package com.school.repository;
 import com.school.model.Assignment;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface AssignmentRepository extends JpaRepository<Assignment, Long> {} // tasks
+public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
+    // find all assignments for a given lesson
+    java.util.List<Assignment> findByLesson_Id(Long lessonId);
+
+    // assignments given by a teacher (via lesson)
+    java.util.List<Assignment> findByLesson_Teacher_Id(Long teacherId);
+}

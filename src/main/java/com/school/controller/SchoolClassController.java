@@ -1,8 +1,8 @@
 package com.school.controller;
 
-import com.school.model.SchoolClass;
-import com.school.repository.SchoolClassRepository;
-import com.school.dto.SchoolClassDto;
+import com.school.model.*;
+import com.school.repository.*;
+import com.school.dto.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -18,11 +18,14 @@ public class SchoolClassController {
 
     private final SchoolClassRepository classRepo;
     private final ClassRankingService   rankingService;
+    private final StudentRepository     studentRepo;
 
     public SchoolClassController(SchoolClassRepository repo,
-                                 ClassRankingService   rnk) {
+                                 ClassRankingService   rnk,
+                                 StudentRepository     studentRepo) {
         this.classRepo = repo;
         this.rankingService = rnk;
+        this.studentRepo = studentRepo;
     }
 
 
@@ -49,6 +52,15 @@ public class SchoolClassController {
     public java.util.List<Map<String,Object>> rankingForClass(@PathVariable Long id) {
         findClass(id);
         return rankingService.ranking(id);
+    }
+
+    @GetMapping("{id}/students")
+    public List<StudentDto> studentsInClass(@PathVariable Long id) {
+        findClass(id);
+        List<Student> all = studentRepo.findBySchoolClass_Id(id);
+        List<StudentDto> out = new ArrayList<>();
+        for (Student s : all) out.add(StudentMapper.toDto(s));
+        return out;
     }
 
     @PostMapping

@@ -1,8 +1,8 @@
 package com.school.controller;
 
-import com.school.model.Subject;
-import com.school.repository.SubjectRepository;
-import com.school.dto.SubjectDto;
+import com.school.model.*;
+import com.school.repository.*;
+import com.school.dto.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -15,7 +15,15 @@ import java.util.ArrayList;
 public class SubjectController { // handle subjects
 
     private final SubjectRepository subjectRepo;
-    public SubjectController(SubjectRepository repo){ this.subjectRepo = repo; }
+    private final TeacherRepository teacherRepo;
+    private final LessonRepository lessonRepo;
+    public SubjectController(SubjectRepository repo,
+                            TeacherRepository teacherRepo,
+                            LessonRepository lessonRepo){
+        this.subjectRepo = repo;
+        this.teacherRepo = teacherRepo;
+        this.lessonRepo  = lessonRepo;
+    }
 
     @GetMapping
     public List<SubjectDto> allSubjects(){
@@ -56,5 +64,25 @@ public class SubjectController { // handle subjects
 
     @DeleteMapping("{id}")
     public void removeSubject(@PathVariable Long id){ subjectRepo.deleteById(id); }
+
+    @GetMapping("{id}/teachers")
+    public List<TeacherDto> teachersForSubject(@PathVariable Long id) {
+        subjectRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "subject " + id + " not found"));
+        List<Teacher> all = teacherRepo.findBySubject_Id(id);
+        List<TeacherDto> out = new ArrayList<>();
+        for (Teacher t : all) out.add(TeacherDto.from(t));
+        return out;
+    }
+
+    @GetMapping("{id}/lessons")
+    public List<LessonDto> lessonsForSubject(@PathVariable Long id) {
+        subjectRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "subject " + id + " not found"));
+        List<Lesson> all = lessonRepo.findBySubject_Id(id);
+        List<LessonDto> out = new ArrayList<>();
+        for (Lesson l : all) out.add(LessonDto.from(l));
+        return out;
+    }
 }
 

@@ -1,8 +1,8 @@
 package com.school.controller;
 
-import com.school.model.Exam;
-import com.school.repository.ExamRepository;
-import com.school.dto.ExamDto;
+import com.school.model.*;
+import com.school.repository.*;
+import com.school.dto.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -15,7 +15,11 @@ import java.util.ArrayList;
 public class ExamController {
 
     private final ExamRepository examRepo;
-    public ExamController(ExamRepository repo){ this.examRepo = repo; }
+    private final ResultRepository resultRepo;
+    public ExamController(ExamRepository repo, ResultRepository resRepo){
+        this.examRepo = repo;
+        this.resultRepo = resRepo;
+    }
 
     @GetMapping
     public List<ExamDto> allExams(){
@@ -55,4 +59,39 @@ public class ExamController {
 
     @DeleteMapping("{id}")
     public void removeExam(@PathVariable Long id){ examRepo.deleteById(id); }
+
+    @GetMapping("{id}/results")
+    public List<ResultDto> resultsForExam(@PathVariable Long id) {
+        examRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "exam " + id + " not found"));
+        List<Result> all = resultRepo.findByExam_Id(id);
+        List<ResultDto> out = new ArrayList<>();
+        for (Result r : all) out.add(ResultDto.from(r));
+        return out;
+    }
+
+    @PostMapping("{id}/results")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Result createResultForExam(@PathVariable Long id, @RequestBody Result body) {
+        Exam exam = examRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "exam " + id + " not found"));
+        if (body.getStudent() == null || body.getScore() == null || body.getKind() == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "student, score and kind required");
+        body.setExam(exam);
+        if (body.getIsFinal() == null) body.setIsFinal(false);
+        return resultRepo.save(body);
+    }
+
+    @PutMapping("{eid}/results/{rid}")
+    public ResultDto updateResultForExam(@PathVariable("eid") Long examId,
+                                         @PathVariable("rid") Long resultId,
+                                         @RequestBody Result in) {
+        Result result = resultRepo.findById(resultId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "result not found"));
+        if (!result.getExam().getId().equals(examId))
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "result " + resultId + " not for exam " + examId);
+        if (in.getScore() != null) result.setScore(in.getScore());
+        if (in.getKind() != null) result.setKind(in.getKind());
+        return ResultDto.from(resultRepo.save(result));
+    }
 }

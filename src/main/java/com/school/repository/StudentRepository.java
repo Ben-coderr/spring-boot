@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 public interface StudentRepository extends JpaRepository<Student, Long> { // store students
     long countBySchoolClass_Id(Long clzId);
     List<Student> findBySchoolClass_Id(Long classId);
+    List<Student> findByParent_Id(Long parentId);
 
     @Query("""
             select coalesce(avg(r.score),0)

@@ -1,8 +1,8 @@
 package com.school.controller;
 
-import com.school.model.Lesson;
-import com.school.repository.LessonRepository;
-import com.school.dto.LessonDto;
+import com.school.model.*;
+import com.school.repository.*;
+import com.school.dto.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -16,7 +16,14 @@ public class LessonController { // lessons api
 
 
     private final LessonRepository lessons;
-    public LessonController(LessonRepository repo){ lessons = repo; }
+    private final ExamRepository   examRepo;
+    private final AssignmentRepository assignmentRepo;
+    public LessonController(LessonRepository repo, ExamRepository examRepo,
+                            AssignmentRepository assignmentRepo){
+        this.lessons = repo;
+        this.examRepo = examRepo;
+        this.assignmentRepo = assignmentRepo;
+    }
 
     @GetMapping
     public List<LessonDto> list(){
@@ -62,4 +69,72 @@ public class LessonController { // lessons api
 
     @DeleteMapping("{id}")
     public void delete(@PathVariable Long id){ lessons.deleteById(id); }
+
+    @GetMapping("{id}/exams")
+    public List<ExamDto> examsForLesson(@PathVariable Long id) {
+        Lesson lesson = lessons.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "lesson " + id + " not found"));
+        List<Exam> all = examRepo.findByLesson_Id(id);
+        List<ExamDto> out = new ArrayList<>();
+        for (Exam e : all) out.add(ExamDto.from(e));
+        return out;
+    }
+
+    @PostMapping("{id}/exams")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ExamDto createExamForLesson(@PathVariable Long id, @RequestBody Exam body) {
+        Lesson lesson = lessons.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "lesson " + id + " not found"));
+        body.setLesson(lesson);
+        if (body.getTitle() == null || body.getTitle().isBlank())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "title required");
+        return ExamDto.from(examRepo.save(body));
+    }
+
+    @PutMapping("{lid}/exams/{eid}")
+    public ExamDto updateExamForLesson(@PathVariable("lid") Long lessonId,
+                                       @PathVariable("eid") Long examId,
+                                       @RequestBody Exam in) {
+        Exam exam = examRepo.findById(examId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "exam not found"));
+        if (!exam.getLesson().getId().equals(lessonId))
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "exam " + examId + " not for lesson " + lessonId);
+        if (in.getTitle() != null) exam.setTitle(in.getTitle());
+        if (in.getExamDate() != null) exam.setExamDate(in.getExamDate());
+        return ExamDto.from(examRepo.save(exam));
+    }
+
+    @GetMapping("{id}/assignments")
+    public List<AssignmentDto> assignmentsForLesson(@PathVariable Long id) {
+        lessons.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "lesson " + id + " not found"));
+        List<Assignment> all = assignmentRepo.findByLesson_Id(id);
+        List<AssignmentDto> out = new ArrayList<>();
+        for (Assignment a : all) out.add(AssignmentMapper.toDto(a));
+        return out;
+    }
+
+    @PostMapping("{id}/assignments")
+    @ResponseStatus(HttpStatus.CREATED)
+    public AssignmentDto createAssignmentForLesson(@PathVariable Long id, @RequestBody AssignmentDto body) {
+        Lesson lesson = lessons.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "lesson " + id + " not found"));
+        Assignment entity = AssignmentMapper.toEntity(body, lessons);
+        entity.setLesson(lesson);
+        if (entity.getTitle() == null || entity.getTitle().isBlank())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "title required");
+        return AssignmentMapper.toDto(assignmentRepo.save(entity));
+    }
+
+    @PutMapping("{lid}/assignments/{aid}")
+    public AssignmentDto updateAssignmentForLesson(@PathVariable("lid") Long lessonId,
+                                                  @PathVariable("aid") Long aid,
+                                                  @RequestBody AssignmentDto in) {
+        Assignment ass = assignmentRepo.findById(aid)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "assignment not found"));
+        if (!ass.getLesson().getId().equals(lessonId))
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "assignment " + aid + " not for lesson " + lessonId);
+        AssignmentMapper.copyOnWrite(in, ass, lessons);
+        return AssignmentMapper.toDto(assignmentRepo.save(ass));
+    }
 }

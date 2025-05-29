@@ -1,8 +1,8 @@
 package com.school.controller;
 
-import com.school.model.Grade;
-import com.school.repository.GradeRepository;
-import com.school.dto.GradeDto;
+import com.school.model.*;
+import com.school.repository.*;
+import com.school.dto.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -15,7 +15,11 @@ import java.util.ArrayList;
 public class GradeController {
 
     private final GradeRepository gradeRepo;
-    public GradeController(GradeRepository repo){ this.gradeRepo = repo; }
+    private final SchoolClassRepository classRepo;
+    public GradeController(GradeRepository repo, SchoolClassRepository classRepo){
+        this.gradeRepo = repo;
+        this.classRepo = classRepo;
+    }
 
 
     @GetMapping
@@ -50,6 +54,19 @@ public class GradeController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"grade "+id+" not found"));
         if(in.getLevel()!=null) grade.setLevel(in.getLevel());
         return new GradeDto(gradeRepo.save(grade).getId(), grade.getLevel());
+    }
+
+    @GetMapping("{id}/classes")
+    public List<SchoolClassDto> classesForGrade(@PathVariable Long id) {
+        gradeRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "grade " + id + " not found"));
+        List<SchoolClass> all = classRepo.findByGrade_Id(id);
+        List<SchoolClassDto> out = new ArrayList<>();
+        for (SchoolClass c : all) {
+            Long gid = (c.getGrade() != null) ? c.getGrade().getId() : null;
+            out.add(new SchoolClassDto(c.getId(), c.getName(), gid));
+        }
+        return out;
     }
 
     @DeleteMapping("{id}")

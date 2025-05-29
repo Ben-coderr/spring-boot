@@ -2,8 +2,7 @@ package com.school.controller;
 
 import com.school.model.*;
 import com.school.repository.*;
-import com.school.dto.ParentDto;
-import com.school.dto.ParentReq;
+import com.school.dto.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -18,13 +17,16 @@ public class ParentController { // manage parents
     private final ParentRepository parentRepo;
     private final PasswordEncoder  passwordEncoder;
     private final UserRepository   userRepo;
+    private final StudentRepository studentRepo;
 
     public ParentController(ParentRepository repo,
                             PasswordEncoder   passwordEncoder,
-                            UserRepository    userRepo) {
+                            UserRepository    userRepo,
+                            StudentRepository studentRepo) {
         this.parentRepo = repo;
         this.passwordEncoder = passwordEncoder;
         this.userRepo   = userRepo;
+        this.studentRepo = studentRepo;
     }
 
     private static void must(String value,String field){
@@ -91,4 +93,14 @@ public class ParentController { // manage parents
 
     @DeleteMapping("{id}")
     public void removeParent(@PathVariable Long id){ parentRepo.deleteById(id); }
+
+    @GetMapping("{id}/students")
+    public List<StudentDto> children(@PathVariable Long id) {
+        parentRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "parent " + id + " not found"));
+        List<Student> kids = studentRepo.findByParent_Id(id);
+        List<StudentDto> out = new ArrayList<>();
+        for (Student s : kids) out.add(StudentMapper.toDto(s));
+        return out;
+    }
 }
