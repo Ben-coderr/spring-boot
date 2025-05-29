@@ -36,25 +36,33 @@ public class ResultController {
     }
 
     @GetMapping("/student/{id}/average")
-    public double meanForStudent(@PathVariable Long id) {
-        return stats.avgForStudent(id);
+    public double meanForStudent(@PathVariable Long id,
+                                 @RequestParam(value = "scheme", required = false)
+                                 Long schemeId) {
+        return stats.avgForStudent(id, schemeId);
     }
 
     // GET /results/student/{id}/subject/{sub}/average
     @GetMapping("/student/{id}/subject/{sub}/average")
     public double meanForStudentInSubject(@PathVariable Long id,
-                                        @PathVariable("sub") Long subjectId) {
-        return stats.avgForStudentSubject(id, subjectId);
+                                         @PathVariable("sub") Long subjectId,
+                                          @RequestParam(value = "scheme", required = false)
+                                          Long schemeId) {
+        return stats.avgForStudentSubject(id, subjectId, schemeId);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ResultDto create(@RequestBody Result body){
-        if(body.getScore()==null)
+    public Result create(@RequestBody Result body){
+        if(body.getScore() == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"score required");
-        if(body.getStudent()==null || body.getExam()==null)
+        if(body.getStudent() == null || body.getExam() == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"student and exam required");
-        return ResultDto.from(results.save(body));
+
+        // If not passed in request, default isFinal to false
+        if(body.getIsFinal() == null) body.setIsFinal(false);
+
+        return results.save(body);
     }
 
     @PutMapping("{id}")

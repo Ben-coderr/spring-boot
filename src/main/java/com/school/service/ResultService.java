@@ -1,6 +1,9 @@
 package com.school.service;
 
+import com.school.model.MarkComponent;
+import com.school.model.SubjectGradeScheme;
 import com.school.repository.ResultRepository;
+import com.school.repository.SubjectGradeSchemeRepo;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -8,27 +11,60 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class ResultService {
 
-    private final ResultRepository marks;
+    private final ResultRepository       resultRepo;
+    private final SubjectGradeSchemeRepo schemeRepo;
 
-    public ResultService(ResultRepository repo) { this.marks = repo; }
-
-    public double avgForStudent(Long sid) {
-
-        Double val = marks.averageForStudent(sid);
-
-        if (val == null)
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "no scores for student");
-
-        return val;
+    public ResultService(ResultRepository       resultRepo,
+                         SubjectGradeSchemeRepo schemeRepo) {
+        this.resultRepo = resultRepo;
+        this.schemeRepo = schemeRepo;
     }
 
-    public double avgForStudentSubject(Long sid, Long subId) {
+    /* -------------------------------------------------------------
+       1. Overall average for ONE pupil in ONE grade
+          (across *every* subject that has a scheme for that grade)
+       ------------------------------------------------------------- */
+    public double avgForStudent(Long studentId, Long gradeId) {
 
-        Double val = marks.averageForStudentAndSubject(sid, subId);
+        var schemes = schemeRepo.findByGradeId(gradeId);
+        if (schemes.isEmpty())
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "no schemes for grade "+gradeId);
 
-        if (val == null)
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "no scores for that subject");
+        double coeffSum = 0, total = 0;
 
-        return val;
+        for (SubjectGradeScheme sch : schemes) {
+            double perSubject = avgForStudentSubject(
+                                    studentId,
+                                    sch.getSubject().getId(),
+                                    gradeId);           // delegate
+
+            total     += perSubject * sch.getCoefficient();
+            coeffSum  += sch.getCoefficient();
+        }
+        return (coeffSum == 0) ? 0 : total / coeffSum;
+    }
+
+    /* -------------------------------------------------------------
+       2. Average for ONE subject of ONE pupil in ONE grade
+       ------------------------------------------------------------- */
+    public double avgForStudentSubject(Long studentId,
+                                       Long subjectId,
+                                       Long gradeId) {
+
+        SubjectGradeScheme scheme = schemeRepo
+                .findBySubjectIdAndGradeId(subjectId, gradeId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "mark scheme not defined"));
+
+        double sum = 0;
+        for (MarkComponent c : scheme.getComponents()) {
+            Double raw = resultRepo
+                    .averageForStudentComponent(studentId, c.getId());
+
+            if (raw == null) raw = 0d;
+            sum += raw * c.getWeight() / 100.0;
+        }
+        return sum;
     }
 }

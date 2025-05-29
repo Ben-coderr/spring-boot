@@ -1,5 +1,8 @@
 package com.school.model;
 
+// import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.persistence.*;
 
 @Entity
@@ -12,7 +15,14 @@ public class Parent {
     private String phone;
     private String email;
     private String address;
-    private String password;
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "user_id")
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)      
+    private User user;
+
+
+    public User getUser()          { return user; }
+    public void setUser(User u)    { this.user = u; }
 
     @Column(insertable = false, updatable = false)
     private java.time.LocalDateTime createdAt;   // for auditing and it is filled automaticlly by the db
@@ -31,8 +41,8 @@ public class Parent {
     public String getAddress()         { return address; }
     public void   setAddress(String a) { this.address = a; }
 
-    public String getPassword()         { return password; }
-    public void   setPassword(String pass) { this.password = pass; }
+    // public String getPassword()         { return password; }
+    // public void   setPassword(String pass) { this.password = pass; }
 
     public java.time.LocalDateTime getCreatedAt() { return createdAt; }
 }

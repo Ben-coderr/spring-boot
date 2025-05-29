@@ -67,23 +67,17 @@ public class AttendanceController {
 
     @PostMapping("/bulk")
     @ResponseStatus(HttpStatus.CREATED)
-    public java.util.List<AttendanceDto> bulk(@RequestBody java.util.List<Attendance> list){
-
-        if(list==null || list.isEmpty())
+    public List<Attendance> bulk(@RequestBody List<Attendance> list){
+        if(list == null || list.isEmpty())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"empty payload");
-
-        for(Attendance a: list){
-
-            if(a.getDate()==null) a.setDate(LocalDate.now());
-
-            if(!allowed.contains(a.getStatus()))
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"bad status");
-
-            if(a.getStudent()==null || a.getLesson()==null)
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"student & lesson needed");
+        for(Attendance a : list){
+            if(a.getDate() == null) a.setDate(LocalDate.now());
+            if(a.getStatus() == null || !allowed.contains(a.getStatus().toUpperCase()))
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"status must be PRESENT, ABSENT or LATE");
         }
-        return attendances.saveAll(list).stream().map(AttendanceDto::from).toList();
+        return attendances.saveAll(list);
     }
+
 
     @PutMapping("{id}")
     public AttendanceDto updateAttendance(@PathVariable Long id, @RequestBody Attendance in) {

@@ -1,9 +1,13 @@
 package com.school.controller;
 
+import com.school.model.Role;
 import com.school.model.Teacher;
+import com.school.model.User;
 import com.school.repository.TeacherRepository;
+import com.school.dto.ParentDto;
 import com.school.dto.TeacherDto;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -14,9 +18,12 @@ import java.util.List;
 public class TeacherController {
 
     private final TeacherRepository teachers;
+    private final PasswordEncoder encoder;
 
-    public TeacherController(TeacherRepository repo) {
+    public TeacherController(TeacherRepository repo,
+                             PasswordEncoder   encoder) {
         this.teachers = repo;
+        this.encoder  = encoder;
     }
 
     //helper to validate needed fields
@@ -40,16 +47,21 @@ public class TeacherController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public TeacherDto addTeacher(@RequestBody Teacher body) {
+    public TeacherDto add(@RequestBody Teacher body){
 
-        need(body.getFullName(), "name");
-        need(body.getPassword(), "password");
+        need(body.getFullName(),"name");
+        need(body.getUser() != null ? body.getUser().getPassword() : null,
+            "password");
 
-        if (body.getSubject() == null)
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "subject required");
-
-        if (body.getEmail() != null && !body.getEmail().contains("@"))
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid email");
+        // build the user (username = email if present, else phone)
+        User u = new User();
+        String uname = (body.getEmail() != null && !body.getEmail().isBlank())
+                    ? body.getEmail()
+                    : body.getPhone();
+        u.setUsername(uname);
+        u.setPassword(encoder.encode(body.getUser().getPassword()));
+        u.setRole(Role.TEACHER);
+        body.setUser(u);
 
         return TeacherDto.from(teachers.save(body));
     }
@@ -68,7 +80,7 @@ public class TeacherController {
             t.setEmail(in.getEmail());
         }
 
-        if (in.getPassword() != null) t.setPassword(in.getPassword());
+        // if (in.getPassword() != null) t.setPassword(in.getPassword());
         if (in.getSubject()  != null) t.setSubject(in.getSubject());
 
         return TeacherDto.from(teachers.save(t));

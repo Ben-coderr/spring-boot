@@ -2,6 +2,7 @@ package com.school.repository;
 import com.school.model.Student;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -17,5 +18,6 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
             where  r.student.id = :sid
            """)
     Double averageScore(@Param("sid") Long studentId);
+    Optional<Student> findByUser_Id(Long userId);
     
 }

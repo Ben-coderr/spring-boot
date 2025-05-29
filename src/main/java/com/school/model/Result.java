@@ -10,6 +10,10 @@ public class Result {
     private Student student;
     @ManyToOne(fetch = FetchType.LAZY)
     private Exam exam;
+    private Boolean isFinal;
+    @ManyToOne(fetch = FetchType.LAZY)
+    private MarkComponent component;
+
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -19,4 +23,6 @@ public class Result {
     public void setStudent(Student student) { this.student = student; }
     public Exam getExam() { return exam; }
     public void setExam(Exam exam) { this.exam = exam; }
+    public Boolean getIsFinal() { return isFinal; }
+    public void setIsFinal(Boolean isFinal) { this.isFinal = isFinal; }
 }
