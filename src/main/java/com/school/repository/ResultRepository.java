@@ -23,6 +23,19 @@ public interface ResultRepository extends JpaRepository<Result, Long> {
            """)
     Double averageForStudentAndSubject(@Param("sid") Long studentId,
                                        @Param("subId") Long subjectId);
+
+    @Query("""
+           select avg(r.score)
+           from   Result   r
+           join   r.exam   e
+           join   e.lesson l
+           where  r.student.id = :sid
+             and  l.subject.id = :subId
+             and  r.kind = :kind
+           """)
+    Double averageForStudentSubjectKind(@Param("sid") Long studentId,
+                                        @Param("subId") Long subjectId,
+                                        @Param("kind") String kind);
     @Query("""
             select r.student.id, avg(r.score)
             from Result r
