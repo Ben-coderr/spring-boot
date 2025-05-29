@@ -13,7 +13,7 @@ import java.util.ArrayList;
 @RestController
 @RequestMapping("/lessons")
 public class LessonController { // lessons api
-    //TODO:add the validation method instead of old logic
+
 
     private final LessonRepository lessons;
     public LessonController(LessonRepository repo){ lessons = repo; }
