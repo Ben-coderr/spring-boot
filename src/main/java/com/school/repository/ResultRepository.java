@@ -55,4 +55,10 @@ public interface ResultRepository extends JpaRepository<Result, Long> { // exam 
            group  by l.subject.id
            """)
     List<Object[]> avgBySubject(@Param("sid") Long studentId);
+
+    // list results for one student
+    List<Result> findByStudent_Id(Long studentId);
+
+    // list results for a specific exam
+    List<Result> findByExam_Id(Long examId);
 }

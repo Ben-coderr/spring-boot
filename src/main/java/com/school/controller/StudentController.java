@@ -4,6 +4,8 @@ import com.school.dto.*;
 import com.school.model.Role;
 import com.school.model.Student;
 import com.school.model.User;
+import com.school.model.Result;
+import com.school.model.Attendance;
 import com.school.repository.*;
 import com.school.service.AttendanceService;
 import com.school.service.StudentService;
