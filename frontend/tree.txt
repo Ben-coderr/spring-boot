@@ -1,0 +1,60 @@
+resources/
+├── css/
+│   └── style.css
+├── images/
+│   ├── announcement.png
+│   ├── assignment.png
+│   ├── attendance.png
+│   ├── avatar.png
+│   ├── blood.png
+│   ├── calendar.png
+│   ├── class.png
+│   ├── close.png
+│   ├── create.png
+│   ├── date.png
+│   ├── delete.png
+│   ├── exam.png
+│   ├── Eye Icon.png
+│   ├── filter.png
+│   ├── finance.png
+│   ├── home.png
+│   ├── lesson.png
+│   ├── logo.png
+│   ├── logout.png
+│   ├── mail.png
+│   ├── maleFemale.png
+│   ├── message.png
+│   ├── more.png
+│   ├── moreDark.png
+│   ├── parent.png
+│   ├── phone.png
+│   ├── profile.png
+│   ├── result.png
+│   ├── search.png
+│   ├── setting.png
+│   ├── singleAttendance.png
+│   ├── singleBranch.png
+│   ├── singleClass.png
+│   ├── singleLesson.png
+│   ├── sort.png
+│   ├── student.png
+│   ├── subject.png
+│   ├── teacher.png
+│   ├── Trash Icon.png
+│   ├── update.png
+│   ├── upload.png
+│   └── view.png
+└── views/
+    ├── assignment-view.fxml
+    ├── class-view.fxml
+    ├── event-view.fxml
+    ├── Exam-view.fxml
+    ├── hello-view.fxml
+    ├── lesson-view.fxml
+    ├── login-view.fxml
+    ├── main-view.fxml
+    ├── Parent-view.fxml
+    ├── Result-view.fxml
+    ├── student-view.fxml
+    ├── subject-view.fxml
+    └── teacher-view.fxml
