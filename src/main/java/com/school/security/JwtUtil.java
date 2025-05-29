@@ -6,10 +6,10 @@ import org.springframework.stereotype.Component;
 
 import com.school.model.User;
 
-import java.security.Key;
+
 import java.time.Instant;
 import java.util.Date;
-import java.util.Map;
+
 
 import javax.crypto.SecretKey;
 
