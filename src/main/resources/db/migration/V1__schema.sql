@@ -1,13 +1,4 @@
-/* ------------------------------------------------------------------
-   ENUM-like helpers (optional—can also stay VARCHAR if your MySQL
-   flavour dislikes ENUM). Comment-out if you prefer plain text.
-------------------------------------------------------------------- */
--- CREATE TYPE user_sex   AS ENUM('MALE','FEMALE');   -- PostgreSQL style
--- MySQL: simply use ENUM below.
 
-/* ------------------------------------------------------------------
-   1.  Core reference tables
-------------------------------------------------------------------- */
 CREATE TABLE grade (
   id     BIGINT AUTO_INCREMENT PRIMARY KEY,
   level  INT NOT NULL UNIQUE
@@ -19,9 +10,6 @@ CREATE TABLE subject (
   name VARCHAR(80) NOT NULL UNIQUE
 );
 
-/* ------------------------------------------------------------------
-   2.  People
-------------------------------------------------------------------- */
 CREATE TABLE parent (
   id         BIGINT AUTO_INCREMENT PRIMARY KEY,
   full_name  VARCHAR(120) NOT NULL,
@@ -54,9 +42,6 @@ CREATE TABLE admin (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
-/* ------------------------------------------------------------------
-   3.  Classes & pupils
-------------------------------------------------------------------- */
 CREATE TABLE school_class (
   id             BIGINT AUTO_INCREMENT PRIMARY KEY,
   name           VARCHAR(100) NOT NULL UNIQUE,
@@ -88,14 +73,12 @@ CREATE TABLE student (
   FOREIGN KEY (school_class_id) REFERENCES school_class(id)
 );
 
-/* ------------------------------------------------------------------
-   4.  Timetable & assessment
-------------------------------------------------------------------- */
+
 CREATE TABLE lesson (
   id              BIGINT AUTO_INCREMENT PRIMARY KEY,
   topic           VARCHAR(150) NOT NULL,
   lesson_date     DATE,
-  day             VARCHAR(10),       -- e.g. 'MONDAY'
+  day             VARCHAR(10),       --MONDAY
   start_time      TIME,
   end_time        TIME,
 
@@ -143,9 +126,6 @@ CREATE TABLE attendance (
   FOREIGN KEY (lesson_id)  REFERENCES lesson(id)
 );
 
-/* ------------------------------------------------------------------
-   5.  Misc announcements (no events table by request)
-------------------------------------------------------------------- */
 CREATE TABLE announcement (
   id              BIGINT AUTO_INCREMENT PRIMARY KEY,
   title           VARCHAR(150),

@@ -40,14 +40,14 @@ public class BulletinService {
         Map<String,Object> out = new LinkedHashMap<>();
         out.put("student", Map.of("id", student.getId(), "name", student.getFullName()));
 
-        /* ---- 1. raw per-subject averages ----------------------------- */
+        // raw per-subject averages
         Map<Long,Double> raw = new HashMap<>();
         for (Object[] row : resultRepo.avgBySubject(studentId)) {
             raw.put((Long) row[0], (Double) row[1]);
         }
         out.put("subjects", raw);
 
-        /* ---- 2. weighted finals (scheme-aware) ----------------------- */
+        // weighted finals
         Map<Long,Double> finals = new HashMap<>();
         for (Long subjectId : raw.keySet()) {
             double fin = resultService
@@ -56,7 +56,7 @@ public class BulletinService {
         }
         out.put("finals", finals);
 
-        /* ---- 3. overall + attendance -------------------------------- */
+        // overall + attendance
         double overall = resultService
                 .avgForStudent(studentId);
         out.put("overallAverage", overall);

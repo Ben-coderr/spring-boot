@@ -45,15 +45,6 @@ public interface ResultRepository extends JpaRepository<Result, Long> {
            """)
     List<Object[]> findClassRanking(@Param("cls") Long classId);
 
-       @Query("""
-              select avg(r.score)
-              from   Result r
-              where  r.student.id   = :sid
-              and  r.component.id = :cid
-              """)
-       Double averageForStudentComponent(@Param("sid") Long studentId,
-                                   @Param("cid") Long componentId);
-
 
     @Query("""
            select l.subject.id, avg(r.score)

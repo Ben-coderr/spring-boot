@@ -7,8 +7,7 @@ Usage:
 
 Populates (in order):
   • grades
-  • subjects
-  • mark schemes  (+ mark-components ‘CC’ 40 % and ‘EXAM’ 60 %)
+  • subjects (with CC/EXAM/ATTENDANCE weights)
   • parents   (+ user records)
   • teachers  (+ user records)
   • classes
@@ -103,33 +102,15 @@ def create_subjects(s: requests.Session, host: str) -> Dict[str, int]:
         "Math", "Physics", "Chemistry", "Biology", "History",
         "Geography", "English", "French", "Computer Science", "Arts"
     ]
-    return {n: _post(s, f"{host}/subjects", {"name": n})["id"] for n in names}
+    payload = lambda n: {
+        "name": n,
+        "ccWeight": 40,
+        "examWeight": 50,
+        "attendanceWeight": 10,
+    }
+    return {n: _post(s, f"{host}/subjects", payload(n))["id"] for n in names}
 
 
-def create_mark_schemes(s, host: str,
-                        grades: Dict[int, int],
-                        subjects: Dict[str, int]) -> None:
-    """
-    For every (grade, subject) pair create:
-        • a SubjectGradeScheme (coefficient = 1)
-        • two MarkComponents →  'CC' 40 %  and  'EXAM' 60 %
-    """
-    kinds = [("CC", 40), ("EXAM", 60)]
-
-    for gid in tqdm(grades.values(), desc="schemes", leave=False):
-        for sid in subjects.values():
-            scheme_id = _post(s, f"{host}/schemes", {
-                "subject": {"id": sid},
-                "grade":   {"id": gid},
-                "coefficient": 1
-            })["id"]
-
-            for kind, weight in kinds:
-                _post(s, f"{host}/components", {
-                    "scheme": {"id": scheme_id},
-                    "kind": kind,
-                    "weight": weight
-                })
 
 
 def create_parents(s, host, n: int, seen: set[str]) -> List[int]:
@@ -311,7 +292,6 @@ def main() -> None:
     grades   = create_grades(sess, args.host)
     subjects = create_subjects(sess, args.host)
 
-    create_mark_schemes(sess, args.host, grades, subjects)
 
     parents  = create_parents(sess, args.host, args.parents,  used_usernames)
     teachers = create_teachers(sess, args.host, subjects, args.teachers, used_usernames)

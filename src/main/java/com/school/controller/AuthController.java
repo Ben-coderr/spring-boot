@@ -126,7 +126,7 @@ public class AuthController {
         );
     }
 
-    /** Pick the “owning” entity and return its fullName, or fallback to username */
+    // Pick the "owning" entity and return its fullName, or fallback to username
     private String resolveFullName(User user) {
         Long uid = user.getId();
         Role role   = user.getRole();
