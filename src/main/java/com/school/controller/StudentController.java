@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import com.school.model.Parent;
 import com.school.model.SchoolClass;
+import com.school.model.Lesson;
+import com.school.model.Assignment;
 import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
