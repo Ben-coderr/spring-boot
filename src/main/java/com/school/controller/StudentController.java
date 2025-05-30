@@ -10,6 +10,7 @@ import com.school.model.Exam;
 import com.school.repository.*;
 import com.school.service.AttendanceService;
 import com.school.service.StudentService;
+import com.school.service.BulletinService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -35,6 +36,8 @@ public class StudentController {
     private final ExamRepository        examRepo;
     private final AttendanceRepository  attendanceRepo;
     private final LessonRepository      lessonRepo;
+    private final AssignmentRepository  assignmentRepo;
+    private final BulletinService       bulletinService;
 
     public StudentController(
         StudentRepository     studentRepo,
@@ -47,7 +50,9 @@ public class StudentController {
         ResultRepository      resultRepo,
         ExamRepository        examRepo,
         AttendanceRepository  attendanceRepo,
-        LessonRepository      lessonRepo
+        LessonRepository      lessonRepo,
+        AssignmentRepository  assignmentRepo,
+        BulletinService       bulletinService
     ) {
         this.studentRepo        = studentRepo;
         this.classRepo          = classRepo;
@@ -60,6 +65,8 @@ public class StudentController {
         this.examRepo          = examRepo;
         this.attendanceRepo     = attendanceRepo;
         this.lessonRepo         = lessonRepo;
+        this.assignmentRepo     = assignmentRepo;
+        this.bulletinService    = bulletinService;
     }
 
     
@@ -245,6 +252,54 @@ public class StudentController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "attendance " + attendanceId + " not for student " + studentId);
         AttendanceMapper.copyOnWrite(in, att, studentRepo, lessonRepo);
         return AttendanceMapper.toDto(attendanceRepo.save(att));
+    }
+
+    // lessons timetable for a student
+    @GetMapping("{id}/lessons")
+    public List<LessonDto> lessonsForStudent(@PathVariable Long id) {
+        Student s = studentRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "student not found"));
+        if (s.getSchoolClass() == null) return new ArrayList<>();
+        List<Lesson> all = lessonRepo.findBySchoolClass_Id(s.getSchoolClass().getId());
+        List<LessonDto> out = new ArrayList<>();
+        for (Lesson l : all) out.add(LessonDto.from(l));
+        return out;
+    }
+
+    // exams for a student
+    @GetMapping("{id}/exams")
+    public List<ExamDto> examsForStudent(@PathVariable Long id) {
+        Student s = studentRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "student not found"));
+        if (s.getSchoolClass() == null) return new ArrayList<>();
+        List<Exam> all = examRepo.findByLesson_SchoolClass_Id(s.getSchoolClass().getId());
+        List<ExamDto> out = new ArrayList<>();
+        for (Exam e : all) out.add(ExamDto.from(e));
+        return out;
+    }
+
+    // assignments for a student
+    @GetMapping("{id}/assignments")
+    public List<AssignmentDto> assignmentsForStudent(@PathVariable Long id) {
+        Student s = studentRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "student not found"));
+        if (s.getSchoolClass() == null) return new ArrayList<>();
+        List<Assignment> all = assignmentRepo.findByLesson_SchoolClass_Id(s.getSchoolClass().getId());
+        List<AssignmentDto> out = new ArrayList<>();
+        for (Assignment a : all) out.add(AssignmentMapper.toDto(a));
+        return out;
+    }
+
+    // bulletin shortcut
+    @GetMapping("{id}/bulletin")
+    public Map<String,Object> bulletin(@PathVariable Long id) {
+        return bulletinService.generate(id);
+    }
+
+    // raw attendance records
+    @GetMapping("{id}/attendance/daily")
+    public List<AttendanceDto> daily(@PathVariable Long id) {
+        return attendanceForStudent(id);
     }
 
 

@@ -6,4 +6,7 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> { // lesso
     java.util.List<Lesson> findByTeacher_Id(Long teacherId);
     java.util.List<Lesson> findBySchoolClass_Id(Long classId);
     java.util.List<Lesson> findBySubject_Id(Long subjectId);
+
+    // lessons for all classes of a grade
+    java.util.List<Lesson> findBySchoolClass_Grade_Id(Long gradeId);
 }

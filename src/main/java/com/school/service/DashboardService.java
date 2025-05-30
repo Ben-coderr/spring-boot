@@ -3,6 +3,8 @@ package com.school.service;
 import com.school.model.SchoolClass;
 import com.school.repository.SchoolClassRepository;
 import com.school.repository.StudentRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -40,5 +42,15 @@ public class DashboardService {
         }
 
         return out;
+    }
+
+    // single class occupancy
+    public Occupancy one(Long classId) {
+        SchoolClass cls = classRepo.findById(classId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "class " + classId + " not found"));
+        int cap = (cls.getCapacity() == null) ? 30 : cls.getCapacity();
+        Long enrolled = studentRepo.countBySchoolClass_Id(classId);
+        return new Occupancy(cls.getId(), cls.getName(), cap, enrolled);
     }
 }

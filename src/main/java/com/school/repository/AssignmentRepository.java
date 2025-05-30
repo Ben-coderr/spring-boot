@@ -8,4 +8,7 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
 
     // assignments given by a teacher (via lesson)
     java.util.List<Assignment> findByLesson_Teacher_Id(Long teacherId);
+
+    // assignments for a specific class
+    java.util.List<Assignment> findByLesson_SchoolClass_Id(Long classId);
 }

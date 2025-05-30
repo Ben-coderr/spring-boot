@@ -21,11 +21,17 @@ public class LessonController { // lessons api
     private final LessonRepository lessons;
     private final ExamRepository   examRepo;
     private final AssignmentRepository assignmentRepo;
+    private final StudentRepository studentRepo;
+    private final AttendanceRepository attendanceRepo;
     public LessonController(LessonRepository repo, ExamRepository examRepo,
-                            AssignmentRepository assignmentRepo){
+                            AssignmentRepository assignmentRepo,
+                            StudentRepository studentRepo,
+                            AttendanceRepository attendanceRepo){
         this.lessons = repo;
         this.examRepo = examRepo;
         this.assignmentRepo = assignmentRepo;
+        this.studentRepo = studentRepo;
+        this.attendanceRepo = attendanceRepo;
     }
 
     @GetMapping
@@ -169,5 +175,48 @@ public class LessonController { // lessons api
         } catch (Exception e) {
             throw new BadRequestException(e.getMessage(), e);
         }
+    }
+
+    // students for this lesson
+    @GetMapping("{id}/students")
+    public List<StudentDto> studentsForLesson(@PathVariable Long id) {
+        Lesson lesson = lessons.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "lesson " + id + " not found"));
+        Long classId = lesson.getSchoolClass() != null ? lesson.getSchoolClass().getId() : null;
+        List<StudentDto> out = new ArrayList<>();
+        if (classId != null) {
+            for (Student s : studentRepo.findBySchoolClass_Id(classId)) {
+                out.add(StudentMapper.toDto(s));
+            }
+        }
+        return out;
+    }
+
+    // list attendance rows for lesson
+    @GetMapping("{id}/attendance")
+    public List<AttendanceDto> attendanceForLesson(@PathVariable Long id) {
+        lessons.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "lesson " + id + " not found"));
+        List<Attendance> all = attendanceRepo.findByLesson_Id(id);
+        List<AttendanceDto> out = new ArrayList<>();
+        for (Attendance a : all) out.add(AttendanceDto.from(a));
+        return out;
+    }
+
+    // bulk add attendance for a lesson
+    @PostMapping("{id}/attendance")
+    @ResponseStatus(HttpStatus.CREATED)
+    public List<Attendance> createAttendanceBulk(@PathVariable Long id,
+                                                 @RequestBody List<Attendance> body) {
+        Lesson lesson = lessons.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "lesson " + id + " not found"));
+        for (Attendance a : body) {
+            a.setLesson(lesson);
+            if (a.getStudent() == null)
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "student required");
+            if (a.getDate() == null)
+                a.setDate(java.time.LocalDate.now());
+        }
+        return attendanceRepo.saveAll(body);
     }
 }

@@ -10,4 +10,7 @@ public interface AttendanceRepository extends JpaRepository<Attendance, Long> { 
     long countByStudentIdAndStatus(Long studentId, String s);  // filter PRESENT
     List<Attendance> findByStudentId(Long studentId);
     List<Attendance> findByLesson_Id(Long lessonId);
+
+    // all attendance rows for a class
+    List<Attendance> findByStudent_SchoolClass_Id(Long classId);
 }

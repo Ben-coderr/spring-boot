@@ -6,6 +6,8 @@ import com.school.dto.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import com.school.service.ClassManagementService;
+
 
 import java.util.List;
 import java.util.ArrayList;
@@ -16,9 +18,17 @@ public class GradeController {
 
     private final GradeRepository gradeRepo;
     private final SchoolClassRepository classRepo;
-    public GradeController(GradeRepository repo, SchoolClassRepository classRepo){
+    private final LessonRepository lessonRepo;
+    private final ClassManagementService classManager;
+
+    public GradeController(GradeRepository repo,
+                           SchoolClassRepository classRepo,
+                           LessonRepository lessonRepo,
+                           ClassManagementService mgr){
         this.gradeRepo = repo;
         this.classRepo = classRepo;
+        this.lessonRepo = lessonRepo;
+        this.classManager = mgr;
     }
 
 
@@ -67,6 +77,27 @@ public class GradeController {
             out.add(new SchoolClassDto(schoolClass.getId(), schoolClass.getName(), gid));
         }
         return out;
+    }
+
+    // subjects taught in this grade
+    @GetMapping("{id}/subjects")
+    public List<Long> gradeSubjects(@PathVariable Long id) {
+        gradeRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "grade " + id + " not found"));
+        List<Lesson> lessons = lessonRepo.findBySchoolClass_Grade_Id(id);
+        java.util.Set<Long> unique = new java.util.HashSet<>();
+        for (Lesson l : lessons) {
+            if (l.getSubject() != null) unique.add(l.getSubject().getId());
+        }
+        return new java.util.ArrayList<>(unique);
+    }
+
+    // bulk promotion for all classes in grade
+    @PostMapping("{id}/promote")
+    public void promoteGrade(@PathVariable Long id) {
+        for (SchoolClass cl : classRepo.findByGrade_Id(id)) {
+            classManager.promoteClass(cl.getId(), null);
+        }
     }
 
     @DeleteMapping("{id}")
