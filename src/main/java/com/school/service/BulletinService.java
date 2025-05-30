@@ -1,4 +1,3 @@
-// src/main/java/com/school/service/BulletinService.java
 package com.school.service;
 
 import com.school.model.Student;

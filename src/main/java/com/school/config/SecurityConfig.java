@@ -61,7 +61,7 @@ public SecurityFilterChain filter(HttpSecurity http,
         .sessionManagement().disable()
         .httpBasic().disable();
 
-    // our filter runs before Spring’s own auth filters
+    // our filter runs before Spring own auth filters
     http.addFilterBefore(jwt, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
 
     return http.build();

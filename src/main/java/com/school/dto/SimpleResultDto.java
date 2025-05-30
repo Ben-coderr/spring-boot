@@ -2,7 +2,7 @@ package com.school.dto;
 
 import com.school.model.Result;
 
-/** Simple result view */
+//Simple result view 
 public record SimpleResultDto(Long id, Double ccScore, Double examScore,
                               Long subjectId, Long studentId) {
     public static SimpleResultDto from(Result result) {

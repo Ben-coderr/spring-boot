@@ -243,7 +243,7 @@ public class TeacherController { // teacher endpoints
         return out;
     }
 
-    // raw attendance for students in teacher's lessons
+    // raw attendance for students in teacher lessons
     @GetMapping("{id}/students/attendance")
     public List<AttendanceDto> attendanceForTeacher(@PathVariable Long id) {
         teacherRepo.findById(id)

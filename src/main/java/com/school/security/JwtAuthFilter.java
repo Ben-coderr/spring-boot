@@ -41,7 +41,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     principal, null, principal.getAuthorities());
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 }
-            } catch (Exception ignored) { // invalid token → anonymous
+            } catch (Exception ignored) { // invalid token means anonymous droppout
             }
         }
         chain.doFilter(req, res); // continue filter chain

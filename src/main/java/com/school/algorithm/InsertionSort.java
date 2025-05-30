@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-// simple insertion sort, prioritising clarity over speed
+// simple insertion sort
 public class InsertionSort<T> implements SortAlgorithm<T> {
     @Override
     public List<T> sort(List<T> data, Comparator<T> comparator) {

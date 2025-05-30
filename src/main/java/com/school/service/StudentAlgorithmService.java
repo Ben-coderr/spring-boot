@@ -15,7 +15,7 @@ import java.util.Optional;
 import java.util.function.Predicate;
 
 // service using simple sort and search algorithms
-// algorithms can be swapped without changing callers
+
 @Service
 public class StudentAlgorithmService {
 

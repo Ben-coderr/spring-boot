@@ -8,13 +8,18 @@ public class Result {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private Double score;
+
     @ManyToOne(fetch = FetchType.LAZY)
     private Student student;
     @ManyToOne(fetch = FetchType.LAZY)
     private Exam exam;
-    @ManyToOne(fetch = FetchType.LAZY)
-    private Subject subject; // link subject
+
+    @ManyToOne(optional = false)          
+    @JoinColumn(name = "subject_id")      
+    private Subject subject;
+    @Column(name = "cc_score")
     private Double ccScore;   // continuous assessment
+    @Column(name = "exam_score")
     private Double examScore; // exam mark
     private Boolean isFinal;
 
@@ -42,4 +47,4 @@ public class Result {
     public String getKind() { return kind; }
     public void setKind(String kind) { this.kind = kind; }
 }
-
+

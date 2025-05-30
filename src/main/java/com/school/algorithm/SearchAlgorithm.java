@@ -4,10 +4,8 @@ import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.List;
 
-/**
- * Generic contract for search algorithms. Changing the implementation
- * does not affect the method signature used by callers.
- */
+// Generic interface for search algorithms. 
+
 public interface SearchAlgorithm<T> {
     Optional<T> search(List<T> data, Predicate<T> predicate);
 }

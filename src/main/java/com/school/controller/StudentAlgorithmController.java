@@ -10,9 +10,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-/**
- * Endpoints exposing simple sort and search functionality for students.
- */
+
+ //Endpoints that will use the search algorithms implemented.
+
 @RestController
 @RequestMapping("/students")
 public class StudentAlgorithmController {

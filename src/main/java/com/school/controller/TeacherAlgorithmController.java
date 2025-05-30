@@ -10,10 +10,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-/**
- * Simple sort and search endpoints for teachers demonstrating that the
- * algorithm logic is not limited to students.
- */
+//sort and search endpoints for the teacher
+
 @RestController
 @RequestMapping("/teachers")
 public class TeacherAlgorithmController {

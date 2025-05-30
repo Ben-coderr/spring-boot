@@ -4,7 +4,7 @@ package com.school.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.persistence.*;
-
+//we turned out to not need this as it adds more complexity, sorry abdennour hhh
 @Entity
 public class Parent {
 

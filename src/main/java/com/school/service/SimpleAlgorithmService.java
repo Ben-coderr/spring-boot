@@ -12,7 +12,7 @@ import java.util.Optional;
 import java.util.function.Predicate;
 
 // basic service for sort and search algorithms
-// algorithms can be swapped without clients knowing
+
 import org.springframework.stereotype.Service;
 
 @Service

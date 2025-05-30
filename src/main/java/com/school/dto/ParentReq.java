@@ -1,8 +1,7 @@
 package com.school.dto;
 
-/**
- * Payload for creating a new parent. Only necessary fields are exposed.
- */
+//Payload for creating a new parent. O
+
 public record ParentReq(
         String fullName,
         String phone,

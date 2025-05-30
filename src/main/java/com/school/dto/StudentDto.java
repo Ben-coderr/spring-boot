@@ -2,7 +2,7 @@ package com.school.dto;
 
 import java.time.LocalDate;
 
-// What the client gets/produces – no Hibernate, no password
+// What the client gets/produces
 public record StudentDto(
         Long id,
         String fullName,

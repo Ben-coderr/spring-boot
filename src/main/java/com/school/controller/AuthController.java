@@ -1,4 +1,3 @@
-// src/main/java/com/school/controller/AuthController.java
 package com.school.controller;
 
 import com.school.dto.LoginResponse;
@@ -124,7 +123,7 @@ public class AuthController { // endpoints for auth
         );
     }
 
-    // pick the "owning" entity name or username
+    // pick the owning entity name or username
     private String resolveFullName(User user) {
         Long uid = user.getId();
         Role role   = user.getRole();

@@ -55,8 +55,7 @@ public class AttendanceController {
         return AttendanceDto.from(attendance);
     }
 
-    // (duplicate percentage endpoint removed – use
-    //  /students/{id}/attendance/percentage instead)
+    //  /students/{id}/attendance/percentage 
 
 
     @PostMapping

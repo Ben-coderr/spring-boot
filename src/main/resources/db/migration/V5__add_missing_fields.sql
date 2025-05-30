@@ -11,5 +11,14 @@ ALTER TABLE subject
   ADD COLUMN attendance_weight INT(1);
 
 
+ALTER TABLE result ADD COLUMN kind VARCHAR(30) NOT NULL DEFAULT 'EXAM';
+ALTER TABLE result ADD COLUMN cc_score DOUBLE;
+ALTER TABLE result ADD COLUMN exam_score DOUBLE;
 ALTER TABLE result
-  ADD COLUMN kind VARCHAR(30) NOT NULL DEFAULT 'EXAM';
+  ADD COLUMN subject_id BIGINT;
+
+--  add a foreign-key constraint (optional but a good idea)
+ALTER TABLE result
+  ADD CONSTRAINT fk_result_subject
+  FOREIGN KEY (subject_id)
+  REFERENCES subject(id);

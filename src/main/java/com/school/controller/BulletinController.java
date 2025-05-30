@@ -1,4 +1,3 @@
-// src/main/java/com/school/controller/BulletinController.java
 package com.school.controller;
 
 import com.school.service.BulletinService;
@@ -15,7 +14,7 @@ public class BulletinController { // build bulletins
         this.bulletinService = service;
     }
 
-    //GET /bulletins/student/5
+    //GET /bulletins/student/id 
     @GetMapping("/student/{id}")
     public Map<String,Object> generateBulletin(@PathVariable Long id){
         return bulletinService.generate(id);

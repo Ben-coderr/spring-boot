@@ -10,14 +10,14 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 
-//simple snapshot of class occupancy using loops
+//dashboard service impementation for front end dashboard
 @Service
 public class DashboardService {
 
     public record Occupancy(Long classId,
                             String name,
                             int capacity,
-                            Long enrolled) { } // simple data
+                            Long enrolled) { } 
 
     private final SchoolClassRepository classRepo; // access classes
     private final StudentRepository     studentRepo; // access students

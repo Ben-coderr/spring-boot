@@ -7,7 +7,7 @@ public class Admin { // simple admin entity
     private Long id;
     private String fullName;
     private String email;
-    private String password; // hashed
+    private String password; //nothashed
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
