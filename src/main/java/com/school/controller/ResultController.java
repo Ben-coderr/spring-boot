@@ -8,7 +8,6 @@ import com.school.repository.StudentRepository;
 import com.school.repository.ExamRepository;
 import com.school.dto.ResultDto;
 import com.school.dto.SimpleResultDto;
-import com.school.dto.CreateResultReq;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -95,36 +94,36 @@ public class ResultController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ResultDto create(@RequestBody CreateResultReq req){
-        if (req.score() == null || req.kind() == null ||
-            req.studentId() == null || req.examId() == null)
+    public ResultDto create(@RequestBody ResultDto dto){
+        if (dto.score() == null || dto.kind() == null ||
+            dto.studentId() == null || dto.examId() == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "student, exam, score and kind required");
 
-        Student student = studentRepo.findById(req.studentId())
+        Student student = studentRepo.findById(dto.studentId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "student not found"));
-        Exam exam = examRepo.findById(req.examId())
+        Exam exam = examRepo.findById(dto.examId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "exam not found"));
 
         Result result = new Result();
         result.setStudent(student);
         result.setExam(exam);
         result.setSubject(exam.getLesson() != null ? exam.getLesson().getSubject() : null);
-        result.setKind(req.kind());
-        result.setScore(req.score());
-        if ("CC".equalsIgnoreCase(req.kind())) result.setCcScore(req.score());
-        if ("EXAM".equalsIgnoreCase(req.kind())) result.setExamScore(req.score());
-        result.setIsFinal(req.isFinal() != null ? req.isFinal() : false);
+        result.setKind(dto.kind());
+        result.setScore(dto.score());
+        if ("CC".equalsIgnoreCase(dto.kind())) result.setCcScore(dto.score());
+        if ("EXAM".equalsIgnoreCase(dto.kind())) result.setExamScore(dto.score());
+        result.setIsFinal(Boolean.FALSE);
         return ResultDto.from(resultRepo.save(result));
     }
 
     @PutMapping("{id}")
-    public ResultDto update(@PathVariable Long id,@RequestBody Result in){
+    public ResultDto update(@PathVariable Long id, @RequestBody ResultDto in){
         Result result = resultRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"result "+id+" not found"));
-        if(in.getScore()!=null) result.setScore(in.getScore());
-        if(in.getKind()!=null)  result.setKind(in.getKind());
-        if(in.getCcScore()!=null) result.setCcScore(in.getCcScore());
-        if(in.getExamScore()!=null) result.setExamScore(in.getExamScore());
+        if(in.score()!=null) result.setScore(in.score());
+        if(in.kind()!=null)  result.setKind(in.kind());
+        if("CC".equalsIgnoreCase(in.kind())) result.setCcScore(in.score());
+        if("EXAM".equalsIgnoreCase(in.kind())) result.setExamScore(in.score());
         return ResultDto.from(resultRepo.save(result));
     }
 
