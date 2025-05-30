@@ -38,13 +38,13 @@ from tqdm import tqdm
 
 # --------------------------------------------------------------------------- helpers
 
-fake = Faker()
+fake = Faker(['fr_FR']) 
 rand = random.Random()
 
 
-def _rand_phone() -> str:
-    """12-digit fake phone number."""
-    return fake.msisdn()[:12]
+def _rand_phone():
+    # Mobile prefixes 05/06/07, e.g. +213657894321
+    return "+213" + rand.choice(["5", "6", "7"]) + ''.join(rand.choices("0123456789", k=8))
 
 
 def _rand_blood() -> str:
@@ -190,15 +190,20 @@ def create_exams_and_assignments(s, host, lessons):
 
 
 def create_results(s, host, students, exams):
+
     for sid in tqdm(students, desc="results"):
         for eid in rand.sample(exams, min(5, len(exams))):
-            _post(s, f"{host}/results", {
-                "score":   round(rand.uniform(30, 100), 1),
-                "studentId": sid,
-                "examId":   eid,
-                "kind":     rand.choice(["CC", "EXAM"]),
-                "isFinal":  rand.choice([True, False])
-            })
+            kind  = rand.choice(["CC", "EXAM"])
+            score = round(rand.uniform(5, 20), 2)      # 0-20 Algerian grade
+            body  = {
+                "kind":    kind,
+                "score":   score,
+                "isFinal": rand.choice([True, False]),
+                "student": {"id": sid}                 # <-- NB: nested object
+            }
+            if kind == "CC":   body["ccScore"]   = score
+            if kind == "EXAM": body["examScore"] = score
+            _post(s, f"{host}/exams/{eid}/results", body)
 
 
 def create_attendance(s, host, students, lessons):
