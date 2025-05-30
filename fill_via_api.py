@@ -193,11 +193,11 @@ def create_results(s, host, students, exams):
     for sid in tqdm(students, desc="results"):
         for eid in rand.sample(exams, min(5, len(exams))):
             _post(s, f"{host}/results", {
-                "score": round(rand.uniform(30, 100), 1),
-                "student": {"id": sid},
-                "exam": {"id": eid},
-                "kind":    rand.choice(["CC", "EXAM"]),
-                "isFinal": rand.choice([True, False])
+                "score":   round(rand.uniform(30, 100), 1),
+                "studentId": sid,
+                "examId":   eid,
+                "kind":     rand.choice(["CC", "EXAM"]),
+                "isFinal":  rand.choice([True, False])
             })
 
 
@@ -206,10 +206,10 @@ def create_attendance(s, host, students, lessons):
     for sid in tqdm(students, desc="attendance"):
         for lid in rand.sample(lessons, min(15, len(lessons))):
             _post(s, f"{host}/attendances", {
-                "status": rand.choice(statuses),
-                "date": str(fake.date_between('-30d', 'today')),
-                "studentId": sid,
-                "lessonId": lid
+                "status":  rand.choice(statuses),
+                "date":    str(fake.date_between('-30d', 'today')),
+                "student": {"id": sid},
+                "lesson":  {"id": lid}
             })
 
 

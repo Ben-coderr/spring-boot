@@ -72,14 +72,14 @@ public class ExamController {
 
     @PostMapping("{id}/results")
     @ResponseStatus(HttpStatus.CREATED)
-    public Result createResultForExam(@PathVariable Long id, @RequestBody Result body) {
+    public ResultDto createResultForExam(@PathVariable Long id, @RequestBody Result body) {
         Exam exam = examRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "exam " + id + " not found"));
         if (body.getStudent() == null || body.getScore() == null || body.getKind() == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "student, score and kind required");
         body.setExam(exam);
         if (body.getIsFinal() == null) body.setIsFinal(false);
-        return resultRepo.save(body);
+        return ResultDto.from(resultRepo.save(body));
     }
 
     @PutMapping("{eid}/results/{rid}")

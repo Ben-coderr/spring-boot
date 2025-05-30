@@ -66,7 +66,7 @@ public class ResultController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Result create(@RequestBody CreateResultReq req){
+    public ResultDto create(@RequestBody CreateResultReq req){
         if (req.score() == null || req.kind() == null ||
             req.studentId() == null || req.examId() == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "student, exam, score and kind required");
@@ -82,7 +82,7 @@ public class ResultController {
         result.setKind(req.kind());
         result.setScore(req.score());
         result.setIsFinal(req.isFinal() != null ? req.isFinal() : false);
-        return resultRepo.save(result);
+        return ResultDto.from(resultRepo.save(result));
     }
 
     @PutMapping("{id}")

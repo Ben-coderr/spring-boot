@@ -109,12 +109,17 @@ public class AuthController { // endpoints for auth
 
 
         String fullName = resolveFullName(user);
-        String token = jwt.generateToken(user, fullName);
+        Long   roleId   = resolveRoleId(user);
+        String token    = jwt.generate(
+                user.getUsername(),
+                user.getRole().name(),
+                roleId,
+                fullName);
 
         return new LoginResponse(
                 token,
                 user.getRole().name(),
-                user.getId(),
+                roleId,
                 fullName
         );
     }
@@ -135,6 +140,25 @@ public class AuthController { // endpoints for auth
                                     .map(s -> s.getFullName())
                                     .orElse(user.getUsername());
             case ADMIN   -> user.getUsername();
+        };
+    }
+
+    // Determine the id from the role specific table (Student/Teacher/Parent).
+    private Long resolveRoleId(User user) {
+        Long uid  = user.getId();
+        Role role = user.getRole();
+
+        return switch (role) {
+            case TEACHER -> teachers.findByUser_Id(uid)
+                                   .map(Teacher::getId)
+                                   .orElse(uid);
+            case PARENT  -> parents.findByUser_Id(uid)
+                                   .map(Parent::getId)
+                                   .orElse(uid);
+            case STUDENT -> students.findByUser_Id(uid)
+                                   .map(Student::getId)
+                                   .orElse(uid);
+            case ADMIN   -> uid; // admin has no dedicated table linked to user
         };
     }
 
