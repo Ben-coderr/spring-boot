@@ -8,6 +8,9 @@ import com.school.repository.AttendanceRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import com.school.exception.ApiException;
+import com.school.exception.ResourceNotFoundException;
+import com.school.exception.BadRequestException;
 
 import java.util.*;
 
@@ -33,12 +36,12 @@ public class BulletinService {
     //generate a bulletin for a student
 
     public Map<String,Object> generate(Long studentId) {
-        Student student = studentRepo.findById(studentId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "student not found"));
+        try {
+            Student student = studentRepo.findById(studentId)
+                    .orElseThrow(() -> new ResourceNotFoundException("student not found"));
 
-        Map<String,Object> out = new LinkedHashMap<>();
-        out.put("student", Map.of("id", student.getId(), "name", student.getFullName()));
+            Map<String,Object> out = new LinkedHashMap<>();
+            out.put("student", Map.of("id", student.getId(), "name", student.getFullName()));
 
         // raw per-subject averages
         Map<Long,Double> raw = new HashMap<>();
@@ -65,7 +68,12 @@ public class BulletinService {
         long present = attendanceRepo.countByStudentIdAndStatus(studentId, "PRESENT");
         out.put("attendancePct", total == 0 ? 0d : present * 100.0 / total);
 
-        return out;
+            return out;
+        } catch (ApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BadRequestException(e.getMessage(), e);
+        }
     }
 }
 

@@ -5,6 +5,9 @@ import com.school.repository.*;
 import com.school.dto.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import com.school.exception.ResourceNotFoundException;
+import com.school.exception.BadRequestException;
+import com.school.exception.ApiException;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -37,19 +40,31 @@ public class LessonController { // lessons api
 
     @GetMapping("{id}")
     public LessonDto get(@PathVariable Long id){
-        Lesson lesson = lessons.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"lesson "+id+" not found"));
-        return LessonDto.from(lesson);
+        try {
+            Lesson lesson = lessons.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("lesson " + id + " not found"));
+            return LessonDto.from(lesson);
+        } catch (ApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BadRequestException(e.getMessage(), e);
+        }
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public LessonDto add(@RequestBody Lesson body){
-        if(body.getTopic()==null || body.getTopic().isBlank())
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"topic required");
-        if(body.getSubject()==null || body.getTeacher()==null || body.getSchoolClass()==null)
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"subject, teacher and class required");
-        return LessonDto.from(lessons.save(body));
+        try {
+            if(body.getTopic()==null || body.getTopic().isBlank())
+                throw new BadRequestException("topic required");
+            if(body.getSubject()==null || body.getTeacher()==null || body.getSchoolClass()==null)
+                throw new BadRequestException("subject, teacher and class required");
+            return LessonDto.from(lessons.save(body));
+        } catch (ApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BadRequestException(e.getMessage(), e);
+        }
     }
 
     @PutMapping("{id}")
@@ -97,15 +112,21 @@ public class LessonController { // lessons api
     public ExamDto updateExamForLesson(@PathVariable("lid") Long lessonId,
                                        @PathVariable("eid") Long examId,
                                        @RequestBody Exam in) {
-        Exam exam = examRepo.findById(examId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "exam not found"));
-        if (exam.getLesson() == null)
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "lesson not set");
-        if (!exam.getLesson().getId().equals(lessonId))
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "exam " + examId + " not for lesson " + lessonId);
-        if (in.getTitle() != null) exam.setTitle(in.getTitle());
-        if (in.getExamDate() != null) exam.setExamDate(in.getExamDate());
-        return ExamDto.from(examRepo.save(exam));
+        try {
+            Exam exam = examRepo.findById(examId)
+                    .orElseThrow(() -> new ResourceNotFoundException("exam not found"));
+            if (exam.getLesson() == null)
+                throw new BadRequestException("lesson not set");
+            if (!exam.getLesson().getId().equals(lessonId))
+                throw new ResourceNotFoundException("exam " + examId + " not for lesson " + lessonId);
+            if (in.getTitle() != null) exam.setTitle(in.getTitle());
+            if (in.getExamDate() != null) exam.setExamDate(in.getExamDate());
+            return ExamDto.from(examRepo.save(exam));
+        } catch (ApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BadRequestException(e.getMessage(), e);
+        }
     }
 
     @GetMapping("{id}/assignments")
@@ -134,13 +155,19 @@ public class LessonController { // lessons api
     public AssignmentDto updateAssignmentForLesson(@PathVariable("lid") Long lessonId,
                                                   @PathVariable("aid") Long aid,
                                                   @RequestBody AssignmentDto in) {
-        Assignment ass = assignmentRepo.findById(aid)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "assignment not found"));
-        if (ass.getLesson() == null)
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "lesson not set");
-        if (!ass.getLesson().getId().equals(lessonId))
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "assignment " + aid + " not for lesson " + lessonId);
-        AssignmentMapper.copyOnWrite(in, ass, lessons);
-        return AssignmentMapper.toDto(assignmentRepo.save(ass));
+        try {
+            Assignment ass = assignmentRepo.findById(aid)
+                    .orElseThrow(() -> new ResourceNotFoundException("assignment not found"));
+            if (ass.getLesson() == null)
+                throw new BadRequestException("lesson not set");
+            if (!ass.getLesson().getId().equals(lessonId))
+                throw new ResourceNotFoundException("assignment " + aid + " not for lesson " + lessonId);
+            AssignmentMapper.copyOnWrite(in, ass, lessons);
+            return AssignmentMapper.toDto(assignmentRepo.save(ass));
+        } catch (ApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new BadRequestException(e.getMessage(), e);
+        }
     }
 }
