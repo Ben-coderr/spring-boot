@@ -6,6 +6,9 @@ import com.school.model.Exam;
 import com.school.repository.ResultRepository;
 import com.school.repository.StudentRepository;
 import com.school.repository.ExamRepository;
+import com.school.repository.SubjectRepository;
+import com.school.model.Subject;
+import com.school.dto.SimpleResultReq;
 import com.school.dto.ResultDto;
 import com.school.dto.SimpleResultDto;
 import org.springframework.http.HttpStatus;
@@ -24,14 +27,17 @@ public class ResultController {
     private final ResultService resultService;
     private final StudentRepository studentRepo;
     private final ExamRepository examRepo;
+    private final SubjectRepository subjectRepo;
 
     public ResultController(ResultRepository repo, ResultService svc,
                             StudentRepository students,
-                            ExamRepository exams) {
+                            ExamRepository exams,
+                            SubjectRepository subjects) {
         this.resultRepo = repo;
         this.resultService   = svc;
         this.studentRepo = students;
         this.examRepo = exams;
+        this.subjectRepo = subjects;
     }
 
 
@@ -129,5 +135,46 @@ public class ResultController {
 
     @DeleteMapping("{id}")
     public void removeResult(@PathVariable Long id){ resultRepo.deleteById(id); }
+
+    // simplified endpoints using SimpleResultReq payload
+    @PostMapping("/result")
+    @ResponseStatus(HttpStatus.CREATED)
+    public SimpleResultDto createSimple(@RequestBody SimpleResultReq body) {
+        if (body.studentId() == null || body.subjectId() == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "studentId and subjectId required");
+        Student student = studentRepo.findById(body.studentId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "student not found"));
+        Subject subject = subjectRepo.findById(body.subjectId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "subject not found"));
+        Result r = new Result();
+        r.setStudent(student);
+        r.setSubject(subject);
+        r.setCcScore(body.ccScore());
+        r.setExamScore(body.examScore());
+        r.setIsFinal(Boolean.FALSE);
+        return SimpleResultDto.from(resultRepo.save(r));
+    }
+
+    @PutMapping("/result/{id}")
+    public SimpleResultDto updateSimple(@PathVariable Long id,
+                                        @RequestBody SimpleResultReq in) {
+        Result r = resultRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "result " + id + " not found"));
+        if (in.ccScore() != null) r.setCcScore(in.ccScore());
+        if (in.examScore() != null) r.setExamScore(in.examScore());
+        if (in.studentId() != null) {
+            Student student = studentRepo.findById(in.studentId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "student not found"));
+            r.setStudent(student);
+        }
+        if (in.subjectId() != null) {
+            Subject subject = subjectRepo.findById(in.subjectId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "subject not found"));
+            r.setSubject(subject);
+        }
+        return SimpleResultDto.from(resultRepo.save(r));
+    }
 }
 
