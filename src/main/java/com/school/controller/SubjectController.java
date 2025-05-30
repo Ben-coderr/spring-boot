@@ -71,7 +71,9 @@ public class SubjectController { // handle subjects
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "subject " + id + " not found"));
         List<Teacher> all = teacherRepo.findBySubject_Id(id);
         List<TeacherDto> out = new ArrayList<>();
-        for (Teacher t : all) out.add(TeacherDto.from(t));
+        for (Teacher teacher : all) {
+            out.add(TeacherDto.from(teacher));
+        }
         return out;
     }
 
@@ -81,7 +83,9 @@ public class SubjectController { // handle subjects
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "subject " + id + " not found"));
         List<Lesson> all = lessonRepo.findBySubject_Id(id);
         List<LessonDto> out = new ArrayList<>();
-        for (Lesson l : all) out.add(LessonDto.from(l));
+        for (Lesson lesson : all) {
+            out.add(LessonDto.from(lesson));
+        }
         return out;
     }
 }

@@ -14,11 +14,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-/**
- * Service that uses simple sorting and searching algorithms. The algorithms
- * can be swapped without impacting callers since only this class depends on
- * their concrete implementations.
- */
+// service using simple sort and search algorithms
+// algorithms can be swapped without changing callers
 @Service
 public class StudentAlgorithmService {
 
@@ -34,18 +31,24 @@ public class StudentAlgorithmService {
     public List<StudentDto> sort(String field, String algorithm) {
         List<Student> data = studentRepo.findAll();
         Comparator<Student> comparator;
-        switch (field.toLowerCase()) {
-            case "name" -> comparator = Comparator.comparing(Student::getFullName, String.CASE_INSENSITIVE_ORDER);
-            case "surname" -> comparator = Comparator.comparing(Student::getSurname, String.CASE_INSENSITIVE_ORDER);
-            case "birthday", "date" -> comparator = Comparator.comparing(Student::getBirthday);
-            default -> comparator = Comparator.comparing(Student::getId);
+        String fieldLower = field.toLowerCase();
+        if (fieldLower.equals("name")) {
+            comparator = Comparator.comparing(Student::getFullName, String.CASE_INSENSITIVE_ORDER);
+        } else if (fieldLower.equals("surname")) {
+            comparator = Comparator.comparing(Student::getSurname, String.CASE_INSENSITIVE_ORDER);
+        } else if (fieldLower.equals("birthday") || fieldLower.equals("date")) {
+            comparator = Comparator.comparing(Student::getBirthday);
+        } else {
+            comparator = Comparator.comparing(Student::getId);
         }
-        List<Student> sorted = "insertion".equalsIgnoreCase(algorithm)
+
+        List<Student> sorted = algorithm.equalsIgnoreCase("insertion")
                 ? algorithms.insertionSort(data, comparator)
                 : algorithms.bubbleSort(data, comparator);
+
         List<StudentDto> out = new ArrayList<>();
-        for (Student s : sorted) {
-            out.add(StudentMapper.toDto(s));
+        for (Student student : sorted) {
+            out.add(StudentMapper.toDto(student));
         }
         return out;
     }
@@ -53,19 +56,22 @@ public class StudentAlgorithmService {
     public StudentDto search(String field, String value) {
         List<Student> data = studentRepo.findAll();
         Predicate<Student> predicate;
-        switch (field.toLowerCase()) {
-            case "name" -> predicate = s -> value.equalsIgnoreCase(s.getFullName());
-            case "surname" -> predicate = s -> value.equalsIgnoreCase(s.getSurname());
-            case "id" -> {
-                try {
-                    Long id = Long.parseLong(value);
-                    predicate = s -> s.getId().equals(id);
-                } catch (NumberFormatException ex) {
-                    predicate = s -> false;
-                }
+        String fieldLower = field.toLowerCase();
+        if (fieldLower.equals("name")) {
+            predicate = student -> value.equalsIgnoreCase(student.getFullName());
+        } else if (fieldLower.equals("surname")) {
+            predicate = student -> value.equalsIgnoreCase(student.getSurname());
+        } else if (fieldLower.equals("id")) {
+            try {
+                Long parsedId = Long.parseLong(value);
+                predicate = student -> student.getId().equals(parsedId);
+            } catch (NumberFormatException ex) {
+                predicate = student -> false;
             }
-            default -> predicate = s -> false;
+        } else {
+            predicate = student -> false;
         }
+
         Optional<Student> result = algorithms.linearSearch(data, predicate);
         return result.map(StudentMapper::toDto)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "student not found"));

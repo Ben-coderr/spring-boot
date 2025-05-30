@@ -68,7 +68,9 @@ public class SchoolClassController {
         findClass(id);
         List<Student> all = studentRepo.findBySchoolClass_Id(id);
         List<StudentDto> out = new ArrayList<>();
-        for (Student s : all) out.add(StudentMapper.toDto(s));
+        for (Student student : all) {
+            out.add(StudentMapper.toDto(student));
+        }
         return out;
     }
 

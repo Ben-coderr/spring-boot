@@ -66,7 +66,9 @@ public class ExamController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "exam " + id + " not found"));
         List<Result> all = resultRepo.findByExam_Id(id);
         List<ResultDto> out = new ArrayList<>();
-        for (Result r : all) out.add(ResultDto.from(r));
+        for (Result resultEntity : all) {
+            out.add(ResultDto.from(resultEntity));
+        }
         return out;
     }
 

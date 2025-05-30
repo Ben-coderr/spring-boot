@@ -14,10 +14,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-/**
- * Same as {@link StudentAlgorithmService} but for teachers, demonstrating that
- * the algorithms can easily be reused for other entities.
- */
+// same idea as StudentAlgorithmService but for teachers
 @Service
 public class TeacherAlgorithmService {
 
@@ -33,17 +30,22 @@ public class TeacherAlgorithmService {
     public List<TeacherDto> sort(String field, String algorithm) {
         List<Teacher> data = teacherRepo.findAll();
         Comparator<Teacher> comparator;
-        switch (field.toLowerCase()) {
-            case "name" -> comparator = Comparator.comparing(Teacher::getFullName, String.CASE_INSENSITIVE_ORDER);
-            case "birthday", "date" -> comparator = Comparator.comparing(Teacher::getBirthday);
-            default -> comparator = Comparator.comparing(Teacher::getId);
+        String fieldLower = field.toLowerCase();
+        if (fieldLower.equals("name")) {
+            comparator = Comparator.comparing(Teacher::getFullName, String.CASE_INSENSITIVE_ORDER);
+        } else if (fieldLower.equals("birthday") || fieldLower.equals("date")) {
+            comparator = Comparator.comparing(Teacher::getBirthday);
+        } else {
+            comparator = Comparator.comparing(Teacher::getId);
         }
-        List<Teacher> sorted = "insertion".equalsIgnoreCase(algorithm)
+
+        List<Teacher> sorted = algorithm.equalsIgnoreCase("insertion")
                 ? algorithms.insertionSort(data, comparator)
                 : algorithms.bubbleSort(data, comparator);
+
         List<TeacherDto> out = new ArrayList<>();
-        for (Teacher t : sorted) {
-            out.add(TeacherDto.from(t));
+        for (Teacher teacher : sorted) {
+            out.add(TeacherDto.from(teacher));
         }
         return out;
     }
@@ -51,18 +53,20 @@ public class TeacherAlgorithmService {
     public TeacherDto search(String field, String value) {
         List<Teacher> data = teacherRepo.findAll();
         Predicate<Teacher> predicate;
-        switch (field.toLowerCase()) {
-            case "name" -> predicate = t -> value.equalsIgnoreCase(t.getFullName());
-            case "id" -> {
-                try {
-                    Long id = Long.parseLong(value);
-                    predicate = t -> t.getId().equals(id);
-                } catch (NumberFormatException ex) {
-                    predicate = t -> false;
-                }
+        String fieldLower = field.toLowerCase();
+        if (fieldLower.equals("name")) {
+            predicate = teacher -> value.equalsIgnoreCase(teacher.getFullName());
+        } else if (fieldLower.equals("id")) {
+            try {
+                Long parsedId = Long.parseLong(value);
+                predicate = teacher -> teacher.getId().equals(parsedId);
+            } catch (NumberFormatException ex) {
+                predicate = teacher -> false;
             }
-            default -> predicate = t -> false;
+        } else {
+            predicate = teacher -> false;
         }
+
         Optional<Teacher> result = algorithms.linearSearch(data, predicate);
         return result.map(TeacherDto::from)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "teacher not found"));

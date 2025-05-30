@@ -30,21 +30,21 @@ public class ClassRankingService { // rank students
                     HttpStatus.NOT_FOUND, "no results for class " + classId);
 
         List<Map<String,Object>> out = new ArrayList<>();
-        int rk = 1;
+        int rankNumber = 1;
 
         for (Object[] row : rows) {
-            Long    sid = (Long)   row[0];
-            Double  avg = (Double) row[1];
-            String  nm  = students.findById(sid)
+            Long    studentId = (Long)   row[0];
+            Double  average   = (Double) row[1];
+            String  name      = students.findById(studentId)
                                   .map(student -> student.getFullName())
                                   .orElse("unknown");
 
-            Map<String,Object> m = new HashMap<>();
-            m.put("rank",       rk++);
-            m.put("studentId",  sid);
-            m.put("name",       nm);
-            m.put("average",    avg);
-            out.add(m);
+            Map<String,Object> record = new HashMap<>();
+            record.put("rank",       rankNumber++);
+            record.put("studentId",  studentId);
+            record.put("name",       name);
+            record.put("average",    average);
+            out.add(record);
         }
         return out;
     }

@@ -125,7 +125,9 @@ public class TeacherController { // teacher endpoints
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "teacher " + id + " not found"));
         List<Lesson> all = lessonRepo.findByTeacher_Id(id);
         List<LessonDto> out = new ArrayList<>();
-        for (Lesson l : all) out.add(LessonDto.from(l));
+        for (Lesson lesson : all) {
+            out.add(LessonDto.from(lesson));
+        }
         return out;
     }
 
@@ -168,7 +170,9 @@ public class TeacherController { // teacher endpoints
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "teacher " + id + " not found"));
         List<Exam> all = examRepo.findByLesson_Teacher_Id(id);
         List<ExamDto> out = new ArrayList<>();
-        for (Exam e : all) out.add(ExamDto.from(e));
+        for (Exam exam : all) {
+            out.add(ExamDto.from(exam));
+        }
         return out;
     }
 
@@ -213,7 +217,9 @@ public class TeacherController { // teacher endpoints
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "teacher " + id + " not found"));
         List<Assignment> all = assignmentRepo.findByLesson_Teacher_Id(id);
         List<AssignmentDto> out = new ArrayList<>();
-        for (Assignment a : all) out.add(AssignmentMapper.toDto(a));
+        for (Assignment assignment : all) {
+            out.add(AssignmentMapper.toDto(assignment));
+        }
         return out;
     }
 

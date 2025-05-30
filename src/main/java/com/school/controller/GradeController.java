@@ -62,9 +62,9 @@ public class GradeController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "grade " + id + " not found"));
         List<SchoolClass> all = classRepo.findByGrade_Id(id);
         List<SchoolClassDto> out = new ArrayList<>();
-        for (SchoolClass c : all) {
-            Long gid = (c.getGrade() != null) ? c.getGrade().getId() : null;
-            out.add(new SchoolClassDto(c.getId(), c.getName(), gid));
+        for (SchoolClass schoolClass : all) {
+            Long gid = (schoolClass.getGrade() != null) ? schoolClass.getGrade().getId() : null;
+            out.add(new SchoolClassDto(schoolClass.getId(), schoolClass.getName(), gid));
         }
         return out;
     }

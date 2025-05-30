@@ -32,13 +32,13 @@ public class ClassManagementService { // manage classes
     }
 
 
-    //elper to detect class size and if enough 
+// helper to see if class has space
     public boolean hasSpace(Long classId) {
-        SchoolClass c = classRepo.findById(classId)
+        SchoolClass currentClass = classRepo.findById(classId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "class "+classId+" ?"));
 
         long headcount = studentRepo.countBySchoolClass_Id(classId);
-        Integer cap    = (c.getCapacity() == null) ? 30 : c.getCapacity();
+        Integer cap    = (currentClass.getCapacity() == null) ? 30 : currentClass.getCapacity();
 
         return headcount < cap;
     }
@@ -60,24 +60,24 @@ public class ClassManagementService { // manage classes
         studentRepo.save(kid);
     }
 
-    //method to promote class to next grade
+    // promote class to the next grade
     @Transactional
     public void promoteClass(Long classId, List<Long> repeaters) {
 
-        SchoolClass c = classRepo.findById(classId)
+        SchoolClass currentClass = classRepo.findById(classId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "class "+classId+" ?"));
 
-        if (c.getGrade() == null)
+        if (currentClass.getGrade() == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "grade not set");
-        Grade next = gradeRepo.findByLevel(c.getGrade().getLevel() + 1)
+        Grade next = gradeRepo.findByLevel(currentClass.getGrade().getLevel() + 1)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "grade missing"));
 
         // make a new class in the next grade with the same name
         SchoolClass newClass = new SchoolClass();
-        newClass.setName(c.getName());
-        newClass.setCapacity(c.getCapacity());
+        newClass.setName(currentClass.getName());
+        newClass.setCapacity(currentClass.getCapacity());
         newClass.setGrade(next);
-        newClass.setSupervisor(c.getSupervisor());
+        newClass.setSupervisor(currentClass.getSupervisor());
         classRepo.save(newClass);
 
         // move everyone except repeaters

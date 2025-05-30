@@ -11,32 +11,26 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-/**
- * Generic service providing simple sorting and searching facilities. It
- * is deliberately basic so that other parts of the application can use the
- * algorithms without knowing their implementations.
- */
+// basic service for sort and search algorithms
+// algorithms can be swapped without clients knowing
 import org.springframework.stereotype.Service;
 
 @Service
 public class SimpleAlgorithmService {
 
-    /** Sort the provided data using bubble sort. */
+    // sort using bubble sort
     public <T> List<T> bubbleSort(List<T> data, Comparator<T> comparator) {
         SortAlgorithm<T> algo = new BubbleSort<>();
         return algo.sort(data, comparator);
     }
 
-    /** Sort the provided data using insertion sort. */
+    // sort using insertion sort
     public <T> List<T> insertionSort(List<T> data, Comparator<T> comparator) {
         SortAlgorithm<T> algo = new InsertionSort<>();
         return algo.sort(data, comparator);
     }
 
-    /**
-     * Perform a linear search over the data. Returns an empty Optional
-     * if no element satisfies the predicate.
-     */
+    // linear search, returns empty Optional when no match
     public <T> Optional<T> linearSearch(List<T> data, Predicate<T> predicate) {
         SearchAlgorithm<T> algo = new LinearSearch<>();
         return algo.search(data, predicate);

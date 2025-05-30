@@ -169,7 +169,9 @@ public class StudentController {
         findStudent(id);
         List<Result> all = resultRepo.findByStudent_Id(id);
         List<ResultDto> out = new ArrayList<>();
-        for (Result r : all) out.add(ResultDto.from(r));
+        for (Result resultEntity : all) {
+            out.add(ResultDto.from(resultEntity));
+        }
         return out;
     }
 
@@ -212,7 +214,9 @@ public class StudentController {
         findStudent(id);
         List<Attendance> all = attendanceRepo.findByStudentId(id);
         List<AttendanceDto> out = new ArrayList<>();
-        for (Attendance a : all) out.add(AttendanceDto.from(a));
+        for (Attendance record : all) {
+            out.add(AttendanceDto.from(record));
+        }
         return out;
     }
 
