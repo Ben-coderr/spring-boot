@@ -25,6 +25,8 @@ public class ParentController { // manage parents
     private final AttendanceService attendanceService;
     private final AttendanceRepository attendanceRepo;
     private final ResultRepository resultRepo;
+    private final ExamRepository examRepo;
+    private final AssignmentRepository assignmentRepo;
     private final BulletinService bulletinService;
 
     public ParentController(ParentRepository repo,
@@ -34,6 +36,8 @@ public class ParentController { // manage parents
                             AttendanceService attendanceService,
                             AttendanceRepository attendanceRepo,
                             ResultRepository resultRepo,
+                            ExamRepository examRepo,
+                            AssignmentRepository assignmentRepo,
                             BulletinService bulletinService) {
         this.parentRepo = repo;
         this.passwordEncoder = passwordEncoder;
@@ -42,6 +46,8 @@ public class ParentController { // manage parents
         this.attendanceService = attendanceService;
         this.attendanceRepo = attendanceRepo;
         this.resultRepo = resultRepo;
+        this.examRepo = examRepo;
+        this.assignmentRepo = assignmentRepo;
         this.bulletinService = bulletinService;
     }
 
@@ -161,6 +167,48 @@ public class ParentController { // manage parents
         List<Map<String,Object>> out = new ArrayList<>();
         for (Student s : studentRepo.findByParent_Id(id)) {
             out.add(bulletinService.generate(s.getId()));
+        }
+        return out;
+    }
+
+    // assignments for all children
+    @GetMapping("{id}/students/assignments")
+    public List<AssignmentDto> assignmentsForKids(@PathVariable Long id) {
+        List<AssignmentDto> out = new ArrayList<>();
+        for (Student s : studentRepo.findByParent_Id(id)) {
+            if (s.getSchoolClass() != null) {
+                Long cid = s.getSchoolClass().getId();
+                for (Assignment a : assignmentRepo.findByLesson_SchoolClass_Id(cid)) {
+                    out.add(AssignmentMapper.toDto(a));
+                }
+            }
+        }
+        return out;
+    }
+
+    // exams for all children
+    @GetMapping("{id}/students/exams")
+    public List<ExamDto> examsForKids(@PathVariable Long id) {
+        List<ExamDto> out = new ArrayList<>();
+        for (Student s : studentRepo.findByParent_Id(id)) {
+            if (s.getSchoolClass() != null) {
+                Long cid = s.getSchoolClass().getId();
+                for (Exam e : examRepo.findByLesson_SchoolClass_Id(cid)) {
+                    out.add(ExamDto.from(e));
+                }
+            }
+        }
+        return out;
+    }
+
+    // attendance records for all children
+    @GetMapping("{id}/students/attendances")
+    public List<AttendanceDto> attendancesForKids(@PathVariable Long id) {
+        List<AttendanceDto> out = new ArrayList<>();
+        for (Student s : studentRepo.findByParent_Id(id)) {
+            for (Attendance a : attendanceRepo.findByStudentId(s.getId())) {
+                out.add(AttendanceDto.from(a));
+            }
         }
         return out;
     }

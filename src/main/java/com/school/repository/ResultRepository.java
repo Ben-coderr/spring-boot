@@ -61,4 +61,7 @@ public interface ResultRepository extends JpaRepository<Result, Long> { // exam 
 
     // list results for a specific exam
     List<Result> findByExam_Id(Long examId);
+    // list results for exams given by a teacher
+    java.util.List<Result> findByExam_Lesson_Teacher_Id(Long teacherId);
+
 }

@@ -22,6 +22,9 @@ public class TeacherController { // teacher endpoints
     private final LessonRepository    lessonRepo;
     private final ExamRepository      examRepo;
     private final AssignmentRepository assignmentRepo;
+    private final StudentRepository   studentRepo;
+    private final AttendanceRepository attendanceRepo;
+    private final ResultRepository    resultRepo;
 
     public TeacherController(TeacherRepository repo,
                              PasswordEncoder    passwordEncoder,
@@ -29,7 +32,10 @@ public class TeacherController { // teacher endpoints
                              SubjectRepository   subjectRepo,
                              LessonRepository    lessonRepo,
                              ExamRepository      examRepo,
-                             AssignmentRepository assignmentRepo) {
+                             AssignmentRepository assignmentRepo,
+                             StudentRepository   studentRepo,
+                             AttendanceRepository attendanceRepo,
+                             ResultRepository    resultRepo) {
         this.teacherRepo   = repo;
         this.passwordEncoder = passwordEncoder;
         this.userRepo      = userRepo;
@@ -37,6 +43,9 @@ public class TeacherController { // teacher endpoints
         this.lessonRepo    = lessonRepo;
         this.examRepo      = examRepo;
         this.assignmentRepo = assignmentRepo;
+        this.studentRepo   = studentRepo;
+        this.attendanceRepo = attendanceRepo;
+        this.resultRepo    = resultRepo;
     }
 
     //helper to validate needed fields
@@ -219,6 +228,63 @@ public class TeacherController { // teacher endpoints
         List<AssignmentDto> out = new ArrayList<>();
         for (Assignment assignment : all) {
             out.add(AssignmentMapper.toDto(assignment));
+        }
+        return out;
+    }
+
+    // results for exams given by teacher
+    @GetMapping("{id}/exams/results")
+    public List<ResultDto> resultsForTeacher(@PathVariable Long id) {
+        teacherRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "teacher " + id + " not found"));
+        List<Result> all = resultRepo.findByExam_Lesson_Teacher_Id(id);
+        List<ResultDto> out = new ArrayList<>();
+        for (Result r : all) out.add(ResultDto.from(r));
+        return out;
+    }
+
+    // raw attendance for students in teacher's lessons
+    @GetMapping("{id}/students/attendance")
+    public List<AttendanceDto> attendanceForTeacher(@PathVariable Long id) {
+        teacherRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "teacher " + id + " not found"));
+        List<Attendance> all = attendanceRepo.findByLesson_Teacher_Id(id);
+        List<AttendanceDto> out = new ArrayList<>();
+        for (Attendance a : all) out.add(AttendanceDto.from(a));
+        return out;
+    }
+
+    // students taught by teacher
+    @GetMapping("{id}/students")
+    public List<StudentDto> studentsForTeacher(@PathVariable Long id) {
+        teacherRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "teacher " + id + " not found"));
+        java.util.Set<Long> classIds = new java.util.HashSet<>();
+        for (Lesson l : lessonRepo.findByTeacher_Id(id)) {
+            if (l.getSchoolClass() != null) classIds.add(l.getSchoolClass().getId());
+        }
+        List<StudentDto> out = new ArrayList<>();
+        for (Long cid : classIds) {
+            for (Student s : studentRepo.findBySchoolClass_Id(cid)) {
+                out.add(StudentMapper.toDto(s));
+            }
+        }
+        return out;
+    }
+
+    // classes taught by teacher
+    @GetMapping("{id}/students/classes")
+    public List<SchoolClassDto> classesForTeacher(@PathVariable Long id) {
+        teacherRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "teacher " + id + " not found"));
+        java.util.Set<SchoolClass> classes = new java.util.HashSet<>();
+        for (Lesson l : lessonRepo.findByTeacher_Id(id)) {
+            if (l.getSchoolClass() != null) classes.add(l.getSchoolClass());
+        }
+        List<SchoolClassDto> out = new ArrayList<>();
+        for (SchoolClass sc : classes) {
+            out.add(new SchoolClassDto(sc.getId(), sc.getName(),
+                    sc.getGrade() != null ? sc.getGrade().getId() : null));
         }
         return out;
     }
