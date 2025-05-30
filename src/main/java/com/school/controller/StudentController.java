@@ -197,8 +197,11 @@ public class StudentController {
         Result r = new Result();
         r.setStudent(student);
         r.setExam(exam);
+        r.setSubject(exam.getLesson() != null ? exam.getLesson().getSubject() : null);
         r.setScore(dto.score());
         r.setKind(dto.kind());
+        if ("CC".equalsIgnoreCase(dto.kind())) r.setCcScore(dto.score());
+        if ("EXAM".equalsIgnoreCase(dto.kind())) r.setExamScore(dto.score());
         r.setIsFinal(Boolean.FALSE);
         return resultRepo.save(r);
     }
@@ -215,6 +218,8 @@ public class StudentController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "result " + resultId + " not for student " + studentId);
         if (in.getScore() != null) result.setScore(in.getScore());
         if (in.getKind() != null) result.setKind(in.getKind());
+        if (in.getCcScore() != null) result.setCcScore(in.getCcScore());
+        if (in.getExamScore() != null) result.setExamScore(in.getExamScore());
         return ResultDto.from(resultRepo.save(result));
     }
 

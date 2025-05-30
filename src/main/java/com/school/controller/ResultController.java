@@ -7,6 +7,7 @@ import com.school.repository.ResultRepository;
 import com.school.repository.StudentRepository;
 import com.school.repository.ExamRepository;
 import com.school.dto.ResultDto;
+import com.school.dto.SimpleResultDto;
 import com.school.dto.CreateResultReq;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -36,11 +37,11 @@ public class ResultController {
 
 
     @GetMapping
-    public List<ResultDto> allResults(){
+    public List<SimpleResultDto> allResults(){
         List<Result> all = resultRepo.findAll();
-        List<ResultDto> out = new ArrayList<>();
+        List<SimpleResultDto> out = new ArrayList<>();
         for (Result result : all) {
-            out.add(ResultDto.from(result));
+            out.add(SimpleResultDto.from(result));
         }
         return out;
     }
@@ -50,6 +51,34 @@ public class ResultController {
         Result result = resultRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"result "+id+" not found"));
         return ResultDto.from(result);
+    }
+
+    // list results for one student
+    @GetMapping("/student/{sid}")
+    public List<SimpleResultDto> byStudent(@PathVariable("sid") Long id) {
+        List<Result> all = resultRepo.findByStudent_Id(id);
+        List<SimpleResultDto> out = new ArrayList<>();
+        for (Result r : all) out.add(SimpleResultDto.from(r));
+        return out;
+    }
+
+    // list results for one subject
+    @GetMapping("/subject/{sub}")
+    public List<SimpleResultDto> bySubject(@PathVariable("sub") Long id) {
+        List<Result> all = resultRepo.findBySubject_Id(id);
+        List<SimpleResultDto> out = new ArrayList<>();
+        for (Result r : all) out.add(SimpleResultDto.from(r));
+        return out;
+    }
+
+    // list results for student and subject
+    @GetMapping("/student/{sid}/subject/{sub}")
+    public List<SimpleResultDto> byStudentSubject(@PathVariable("sid") Long sid,
+                                                 @PathVariable("sub") Long sub) {
+        List<Result> all = resultRepo.findByStudent_IdAndSubject_Id(sid, sub);
+        List<SimpleResultDto> out = new ArrayList<>();
+        for (Result r : all) out.add(SimpleResultDto.from(r));
+        return out;
     }
 
     @GetMapping("/student/{id}/average")
@@ -79,8 +108,11 @@ public class ResultController {
         Result result = new Result();
         result.setStudent(student);
         result.setExam(exam);
+        result.setSubject(exam.getLesson() != null ? exam.getLesson().getSubject() : null);
         result.setKind(req.kind());
         result.setScore(req.score());
+        if ("CC".equalsIgnoreCase(req.kind())) result.setCcScore(req.score());
+        if ("EXAM".equalsIgnoreCase(req.kind())) result.setExamScore(req.score());
         result.setIsFinal(req.isFinal() != null ? req.isFinal() : false);
         return ResultDto.from(resultRepo.save(result));
     }
@@ -91,6 +123,8 @@ public class ResultController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,"result "+id+" not found"));
         if(in.getScore()!=null) result.setScore(in.getScore());
         if(in.getKind()!=null)  result.setKind(in.getKind());
+        if(in.getCcScore()!=null) result.setCcScore(in.getCcScore());
+        if(in.getExamScore()!=null) result.setExamScore(in.getExamScore());
         return ResultDto.from(resultRepo.save(result));
     }
 

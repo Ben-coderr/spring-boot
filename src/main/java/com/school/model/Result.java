@@ -12,6 +12,10 @@ public class Result {
     private Student student;
     @ManyToOne(fetch = FetchType.LAZY)
     private Exam exam;
+    @ManyToOne(fetch = FetchType.LAZY)
+    private Subject subject; // link subject
+    private Double ccScore;   // continuous assessment
+    private Double examScore; // exam mark
     private Boolean isFinal;
 
     // 'CC', 'EXAM' or 'ATTENDANCE'
@@ -26,10 +30,16 @@ public class Result {
     public void setStudent(Student student) { this.student = student; }
     public Exam getExam() { return exam; }
     public void setExam(Exam exam) { this.exam = exam; }
+    public Subject getSubject() { return subject; }
+    public void setSubject(Subject subject) { this.subject = subject; }
+    public Double getCcScore() { return ccScore; }
+    public void setCcScore(Double ccScore) { this.ccScore = ccScore; }
+    public Double getExamScore() { return examScore; }
+    public void setExamScore(Double examScore) { this.examScore = examScore; }
     public Boolean getIsFinal() { return isFinal; }
     public void setIsFinal(Boolean isFinal) { this.isFinal = isFinal; }
 
     public String getKind() { return kind; }
     public void setKind(String kind) { this.kind = kind; }
 }
-
+

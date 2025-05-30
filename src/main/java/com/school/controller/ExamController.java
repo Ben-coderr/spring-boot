@@ -80,6 +80,9 @@ public class ExamController {
         if (body.getStudent() == null || body.getScore() == null || body.getKind() == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "student, score and kind required");
         body.setExam(exam);
+        body.setSubject(exam.getLesson() != null ? exam.getLesson().getSubject() : null);
+        if ("CC".equalsIgnoreCase(body.getKind())) body.setCcScore(body.getScore());
+        if ("EXAM".equalsIgnoreCase(body.getKind())) body.setExamScore(body.getScore());
         if (body.getIsFinal() == null) body.setIsFinal(false);
         return ResultDto.from(resultRepo.save(body));
     }
@@ -96,6 +99,8 @@ public class ExamController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "result " + resultId + " not for exam " + examId);
         if (in.getScore() != null) result.setScore(in.getScore());
         if (in.getKind() != null) result.setKind(in.getKind());
+        if (in.getCcScore() != null) result.setCcScore(in.getCcScore());
+        if (in.getExamScore() != null) result.setExamScore(in.getExamScore());
         return ResultDto.from(resultRepo.save(result));
     }
 }
