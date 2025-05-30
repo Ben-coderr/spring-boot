@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.example.school_managment.controllers.GradeFormController">
+
+    <!-- ───────────────  TITLE  ─────────────── -->
+    <top>
+        <Label text="Add Grade" styleClass="dialog-title" BorderPane.alignment="CENTER"/>
+    </top>
+
+    <!-- ───────────────  FORM  ─────────────── -->
+    <center>
+        <GridPane hgap="15" vgap="12" alignment="TOP_LEFT">
+            <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
+            <columnConstraints>
+                <ColumnConstraints halignment="RIGHT" minWidth="120"/>
+                <ColumnConstraints halignment="LEFT"  hgrow="ALWAYS"/>
+            </columnConstraints>
+
+            <!-- Only one data field: level -->
+            <Label text="Level:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+            <Spinner fx:id="levelSpinner" editable="true"
+                     GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+        </GridPane>
+    </center>
+
+    <!-- ───────────────  ACTION BUTTONS  ─────────────── -->
+    <bottom>
+        <HBox alignment="CENTER_RIGHT" spacing="10" BorderPane.alignment="CENTER">
+            <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
+            <Button text="Cancel" fx:id="cancelButton"/>
+            <Button text="Save"   fx:id="saveButton"   defaultButton="true"/>
+        </HBox>
+    </bottom>
+</BorderPane>

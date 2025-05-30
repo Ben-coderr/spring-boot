@@ -1,62 +1,86 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<!-- ============================================================
+     student-list-view.fxml  FINAL – native TableView scrollbars
+     ============================================================ -->
+
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
-<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Pagination?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
 <?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
 
-<VBox xmlns="http://javafx.com/javafx"
-      xmlns:fx="http://javafx.com/fxml"
-      fx:controller="com.example.school_managment.controllers.StudentController"
-      spacing="10">
+<VBox spacing="10" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.school_managment.controllers.StudentController">
 
+    <!-- ─────────── TOP BAR ─────────── -->
     <HBox alignment="CENTER_LEFT" spacing="15">
-        <Label text="All Students" styleClass="page-title"/>
-        <Region HBox.hgrow="ALWAYS"/>
-        <HBox styleClass="search-box" alignment="CENTER">
-            <TextField fx:id="searchField" promptText="Search..." styleClass="search-field"/>
+        <Label styleClass="page-title" text="All Students" />
+        <Region HBox.hgrow="ALWAYS" />
+        <HBox alignment="CENTER" styleClass="search-box">
+            <TextField fx:id="searchField" promptText="Search..." styleClass="search-field" />
             <Button styleClass="search-button">
                 <graphic>
-                    <ImageView fitHeight="20.0" fitWidth="20.0">
-                        <Image url="@../images/search.png"/>
+                    <ImageView fitHeight="20" fitWidth="20">
+                        <Image url="@../images/search.png" />
                     </ImageView>
                 </graphic>
             </Button>
         </HBox>
         <Button fx:id="filterButton" styleClass="filter-button">
             <graphic>
-                <ImageView fitHeight="20.0" fitWidth="20.0">
-                    <Image url="@../images/filter.png"/>
+                <ImageView fitHeight="20" fitWidth="20">
+                    <Image url="@../images/filter.png" />
                 </ImageView>
             </graphic>
         </Button>
         <Button fx:id="sortButton" styleClass="sort-button">
             <graphic>
-                <ImageView fitHeight="20.0" fitWidth="20.0">
-                    <Image url="@../images/sort.png"/>
+                <ImageView fitHeight="20" fitWidth="20">
+                    <Image url="@../images/sort.png" />
                 </ImageView>
             </graphic>
         </Button>
-        <Button fx:id="addButton" text="+" styleClass="add-button"/>
+        <Button fx:id="addButton" styleClass="add-button" text="+" />
     </HBox>
 
-    <VBox spacing="10">
+    <!-- ─────────── TABLE (built‑in scrollbars) ─────────── -->
+    <StackPane VBox.vgrow="ALWAYS">
         <TableView fx:id="studentTable" styleClass="student-table">
-            <columns>
-                <TableColumn fx:id="nameColumn" text="Info" prefWidth="180"/>
-                <TableColumn fx:id="idColumn" text="Student ID" prefWidth="150"/>
-                <TableColumn fx:id="gradeColumn" text="Grade" prefWidth="120"/>
-                <TableColumn fx:id="phoneColumn" text="Phone" prefWidth="140"/>
-                <TableColumn fx:id="addressColumn" text="Address" prefWidth="200"/>
-                <TableColumn fx:id="actionsColumn" text="Actions" prefWidth="180"/>
+            <columnResizePolicy>
+                <TableView fx:constant="UNCONSTRAINED_RESIZE_POLICY" />
+            </columnResizePolicy>
+   
+               <columns>
+                <TableColumn fx:id="nameColumn" prefWidth="180" text="Info" />
+                <TableColumn fx:id="idColumn" prefWidth="120" text="Student ID" />
+                <TableColumn fx:id="matriculeColumn" prefWidth="120" text="Matricule" />
+                <TableColumn fx:id="surnameColumn" prefWidth="140" text="Surname" />
+                <TableColumn fx:id="emailColumn" prefWidth="200" text="Email" />
+                <TableColumn fx:id="phoneColumn" prefWidth="140" text="Phone" />
+                <TableColumn fx:id="gradeColumn" prefWidth="100" text="Grade" />
+                <TableColumn fx:id="classColumn" prefWidth="100" text="Class" />
+                <TableColumn fx:id="parentColumn" prefWidth="180" text="Parent" />
+                <TableColumn fx:id="placeColumn" prefWidth="150" text="Place of Birth" />
+                <TableColumn fx:id="bloodTypeColumn" prefWidth="90" text="Blood Type" />
+                <TableColumn fx:id="sexColumn" prefWidth="60" text="Sex" />
+                <TableColumn fx:id="birthdayColumn" prefWidth="120" text="Birthday" />
+                <TableColumn fx:id="addressColumn" prefWidth="220" text="Address" />
+                <TableColumn fx:id="actionsColumn" prefWidth="160" text="Actions" />
             </columns>
         </TableView>
+    </StackPane>
 
-        <Pagination fx:id="pagination" maxPageIndicatorCount="5" styleClass="pagination"/>
-    </VBox>
+    <Pagination fx:id="pagination" maxPageIndicatorCount="5" styleClass="pagination" />
 
     <padding>
-        <Insets top="20" right="20" bottom="20" left="20"/>
+        <Insets bottom="20" left="20" right="20" top="20" />
     </padding>
 </VBox>
