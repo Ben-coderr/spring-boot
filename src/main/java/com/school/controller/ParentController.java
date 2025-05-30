@@ -179,7 +179,7 @@ public class ParentController { // manage parents
             if (s.getSchoolClass() != null) {
                 Long cid = s.getSchoolClass().getId();
                 for (Assignment a : assignmentRepo.findByLesson_SchoolClass_Id(cid)) {
-                    out.add(AssignmentMapper.toDto(a));
+                    out.add(AssignmentDto.from(a, s.getId()));
                 }
             }
         }
@@ -194,7 +194,7 @@ public class ParentController { // manage parents
             if (s.getSchoolClass() != null) {
                 Long cid = s.getSchoolClass().getId();
                 for (Exam e : examRepo.findByLesson_SchoolClass_Id(cid)) {
-                    out.add(ExamDto.from(e));
+                    out.add(ExamDto.from(e, s.getId()));
                 }
             }
         }
